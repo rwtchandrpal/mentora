@@ -157,7 +157,7 @@ Deliver a production-ready, cloud-deployed AI tutoring web application where aut
 | **Acceptance Criteria** | 1. No magic literals exist; all enums and limits are exported as named constants/types.<br>2. `StaticLearnerProfileSchema` rejects missing or invalid `educationLevel` or `preferredStyle` values.<br>3. Topic and message length bounds match `NFR-004` / `AGENTS.md` Section J. |
 | **Testing** | Unit tests in `packages/shared/src/__tests__/auth-profile.schema.test.ts` verifying valid and invalid payloads. |
 | **Priority** | Must Have |
-| **Status** | Not Started |
+| **Status** | Done |
 
 #### `IMP-003` — Implement `@mentora/shared` Mode Schemas (Explain, Interact, Practice) & DTOs
 | Field | Specification |
