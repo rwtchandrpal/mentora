@@ -1,0 +1,14 @@
+{
+  "name": "@mentora/server",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@mentora/shared": "workspace:*"
+  }
+}
