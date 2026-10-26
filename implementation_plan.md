@@ -172,7 +172,7 @@ Deliver a production-ready, cloud-deployed AI tutoring web application where aut
 | **Acceptance Criteria** | 1. `PracticeBatchGenerationSchema` enforces exactly 10 questions, 4 options per question, `0 <= correctOptionIndex <= 3`, and `solutionExplanation` property order.<br>2. `McqQuestionMaskedSchema` strips answer keys.<br>3. `ExplainInitOutputSchema` enforces exactly 4 core cards when `isEducationalValid === true`. |
 | **Testing** | Unit tests in `packages/shared/src/__tests__/modes.schema.test.ts` testing boundary conditions (e.g., 9 MCQs rejected, `correctOptionIndex: 4` rejected, masked schema strips keys). |
 | **Priority** | Must Have |
-| **Status** | Not Started |
+| **Status** | Done |
 
 ---
 

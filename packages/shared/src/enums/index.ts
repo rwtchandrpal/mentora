@@ -104,3 +104,67 @@ export const ERROR_CODES = [
   ErrorCode.STREAM_INTERRUPTED,
   ErrorCode.INTERNAL_SERVER_ERROR,
 ] as const;
+
+export const ExplainStepType = {
+  INTUITION: 'intuition',
+  CORE_MECHANISM: 'core_mechanism',
+  EXAMPLE: 'example',
+  CHECK_FOR_UNDERSTANDING: 'check_for_understanding',
+} as const;
+export type ExplainStepType = (typeof ExplainStepType)[keyof typeof ExplainStepType];
+
+export const EXPLAIN_STEP_TYPES = [
+  ExplainStepType.INTUITION,
+  ExplainStepType.CORE_MECHANISM,
+  ExplainStepType.EXAMPLE,
+  ExplainStepType.CHECK_FOR_UNDERSTANDING,
+] as const;
+
+export const ExplainStatus = {
+  NOT_STARTED: 'not_started',
+  READY: 'ready',
+} as const;
+export type ExplainStatus = (typeof ExplainStatus)[keyof typeof ExplainStatus];
+
+export const EXPLAIN_STATUSES = [
+  ExplainStatus.NOT_STARTED,
+  ExplainStatus.READY,
+] as const;
+
+export const InteractStatus = {
+  NOT_STARTED: 'not_started',
+  ACTIVE: 'active',
+  COMPLETED: 'completed',
+} as const;
+export type InteractStatus = (typeof InteractStatus)[keyof typeof InteractStatus];
+
+export const INTERACT_STATUSES = [
+  InteractStatus.NOT_STARTED,
+  InteractStatus.ACTIVE,
+  InteractStatus.COMPLETED,
+] as const;
+
+export const ChatRole = {
+  USER: 'user',
+  ASSISTANT: 'assistant',
+} as const;
+export type ChatRole = (typeof ChatRole)[keyof typeof ChatRole];
+
+export const CHAT_ROLES = [
+  ChatRole.USER,
+  ChatRole.ASSISTANT,
+] as const;
+
+export const SocraticOutcome = {
+  ADVANCE: 'ADVANCE',
+  STRIKE: 'STRIKE',
+  CIRCUIT_BREAKER_ACK: 'CIRCUIT_BREAKER_ACK',
+} as const;
+export type SocraticOutcome = (typeof SocraticOutcome)[keyof typeof SocraticOutcome];
+
+export const SOCRATIC_OUTCOMES = [
+  SocraticOutcome.ADVANCE,
+  SocraticOutcome.STRIKE,
+  SocraticOutcome.CIRCUIT_BREAKER_ACK,
+] as const;
+
