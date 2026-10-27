@@ -206,7 +206,7 @@ Deliver a production-ready, cloud-deployed AI tutoring web application where aut
 | **Acceptance Criteria** | 1. Querying a `User` by default excludes `passwordHash`.<br>2. Creating a `TopicSession` initializes `explainState`, `interactState`, and `practiceState` (`medium` and `hard` locked).<br>3. Attempting to read/update/delete a session with a mismatched `userId` returns `null` from `session.repository.ts`. |
 | **Testing** | Repository integration tests using `mongodb-memory-server` in `apps/server/src/__tests__/repositories.test.ts`. |
 | **Priority** | Must Have |
-| **Status** | Not Started |
+| **Status** | Done |
 
 #### `IMP-006` — Implement JWT Authentication & Static Learner Profile Endpoints
 | Field | Specification |
