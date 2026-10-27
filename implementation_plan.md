@@ -285,7 +285,7 @@ Deliver a production-ready, cloud-deployed AI tutoring web application where aut
 | **Acceptance Criteria** | 1. Switching `activeMode` preserves `activeSession` in memory without clearing mode states.<br>2. Updating `meta.quota` from any API response updates the quota state in `authSlice`.<br>3. Logging out clears `token`, `user`, and `activeSession`. |
 | **Testing** | Unit tests in `apps/client/src/__tests__/store.slices.test.ts` testing reducer transitions. |
 | **Priority** | Must Have |
-| **Status** | Not Started |
+| **Status** | Done |
 
 #### `IMP-011` — Implement Route Guards, Login/Register Pages, & Mandatory Onboarding Flow
 | Field | Specification |
