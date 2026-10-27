@@ -221,7 +221,7 @@ Deliver a production-ready, cloud-deployed AI tutoring web application where aut
 | **Acceptance Criteria** | 1. Newly registered users have `profile.isCompleted === false`.<br>2. Protected routes guarded by `requireCompletedProfile` return `403 PROFILE_INCOMPLETE` until `PUT /api/v1/profile` succeeds.<br>3. Invalid or expired JWTs return `401 UNAUTHORIZED`. |
 | **Testing** | Supertest API integration tests in `apps/server/src/__tests__/auth-profile.routes.test.ts`. |
 | **Priority** | Must Have |
-| **Status** | Not Started |
+| **Status** | Done |
 
 #### `IMP-007` — Implement Rolling 24-Hour AI Usage Quota Middleware (`BR-04`)
 | Field | Specification |

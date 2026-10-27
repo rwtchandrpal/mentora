@@ -4,9 +4,11 @@ import cors from 'cors';
 import { rateLimit } from 'express-rate-limit';
 import { env } from './config/env.js';
 import { healthRouter } from './routes/health.routes.js';
+import { authRouter } from './routes/auth.routes.js';
+import { profileRouter } from './routes/profile.routes.js';
 import { notFoundMiddleware, errorMiddleware } from './middlewares/error.middleware.js';
 
-export const createApp = (): Express => {
+export const createApp = (customRoutes?: (app: Express) => void): Express => {
   const app = express();
 
   app.use(helmet());
@@ -30,6 +32,12 @@ export const createApp = (): Express => {
   app.use(express.json({ limit: '100kb' }));
 
   app.use('/api/v1', healthRouter);
+  app.use('/api/v1/auth', authRouter);
+  app.use('/api/v1/profile', profileRouter);
+
+  if (customRoutes) {
+    customRoutes(app);
+  }
 
   app.use(notFoundMiddleware);
   app.use(errorMiddleware);
