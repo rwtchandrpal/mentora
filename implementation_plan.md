@@ -315,7 +315,7 @@ Deliver a production-ready, cloud-deployed AI tutoring web application where aut
 | **Acceptance Criteria** | 1. Clicking a session in the Left Sidebar loads it into the workspace.<br>2. Toggling `Explain`, `Interact`, and `Practice` tabs switches the active stage while keeping the current session bound.<br>3. Layout is keyboard-accessible and responsive across mobile (`360px+`) and desktop (`1024px+`) viewports (`NFR-004`). |
 | **Testing** | Component tests in `apps/client/src/__tests__/WorkspaceShell.test.tsx`. |
 | **Priority** | Must Have |
-| **Status** | Not Started |
+| **Status** | Done |
 
 ---
 

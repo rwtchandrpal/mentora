@@ -79,6 +79,16 @@ describe('IMP-011: Route Guards, Auth Pages, Mandatory Onboarding & Profile Sett
     if (typeof window !== 'undefined' && window.localStorage) {
       window.localStorage.clear();
     }
+    const defaultMockAdapter: AxiosAdapter = async (config) => {
+      return {
+        data: { success: true, data: [] },
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config,
+      };
+    };
+    apiClient.defaults.adapter = defaultMockAdapter;
   });
 
   afterEach(() => {
@@ -178,10 +188,10 @@ describe('IMP-011: Route Guards, Auth Pages, Mandatory Onboarding & Profile Sett
         },
       });
 
-      // Verification: Workspace placeholder is rendered
+      // Verification: Workspace New Topic stage is rendered
       expect(
         screen.getByRole('heading', {
-          name: /welcome to mentora, ada completed!/i,
+          name: /what topic would you like to master\?/i,
         })
       ).toBeInTheDocument();
     });
@@ -199,7 +209,7 @@ describe('IMP-011: Route Guards, Auth Pages, Mandatory Onboarding & Profile Sett
 
       expect(
         screen.getByRole('heading', {
-          name: /welcome to mentora, ada completed!/i,
+          name: /what topic would you like to master\?/i,
         })
       ).toBeInTheDocument();
     });
@@ -318,7 +328,7 @@ describe('IMP-011: Route Guards, Auth Pages, Mandatory Onboarding & Profile Sett
       await waitFor(() => {
         expect(
           screen.getByRole('heading', {
-            name: /welcome to mentora, ada incomplete!/i,
+            name: /what topic would you like to master\?/i,
           })
         ).toBeInTheDocument();
       });

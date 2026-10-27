@@ -217,7 +217,7 @@ export const sessionSlice = createSlice({
     });
     builder.addCase(fetchSessionsThunk.fulfilled, (state, action) => {
       state.isLoadingList = false;
-      state.sessionList = action.payload.data;
+      state.sessionList = Array.isArray(action.payload?.data) ? action.payload.data : [];
       state.error = null;
     });
     builder.addCase(fetchSessionsThunk.rejected, (state, action) => {
