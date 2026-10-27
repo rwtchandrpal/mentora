@@ -270,7 +270,7 @@ Deliver a production-ready, cloud-deployed AI tutoring web application where aut
 | **Acceptance Criteria** | 1. Client build fails fast if `VITE_API_BASE_URL` is invalid.<br>2. `apiClient` automatically injects the stored JWT token on outgoing requests.<br>3. `pingHealthCheck()` executes non-blockingly without crashing the UI if the backend is waking up. |
 | **Testing** | Unit tests in `apps/client/src/__tests__/apiClient.test.ts` verifying header injection and error normalization. |
 | **Priority** | Must Have |
-| **Status** | Not Started |
+| **Status** | Done |
 
 #### `IMP-010` — Implement Redux Toolkit Store (`authSlice`, `sessionSlice`, `uiSlice`)
 | Field | Specification |
