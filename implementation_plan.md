@@ -300,7 +300,7 @@ Deliver a production-ready, cloud-deployed AI tutoring web application where aut
 | **Acceptance Criteria** | 1. Unauthenticated users visiting `/workspace` are redirected to `/login`.<br>2. Authenticated users with `profile.isCompleted === false` visiting `/workspace` are redirected to `/onboarding` (`BR-01`).<br>3. Completing `/onboarding` updates the profile and navigates to `/workspace`. |
 | **Testing** | Component and routing tests in `apps/client/src/__tests__/auth-onboarding.test.tsx`. |
 | **Priority** | Must Have |
-| **Status** | Not Started |
+| **Status** | Done |
 
 #### `IMP-012` — Implement Unified Workspace Shell, Left History Sidebar, & Mode Switcher Tabs
 | Field | Specification |
