@@ -2,13 +2,32 @@
   "name": "@mentora/server",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
+    "dev": "tsx watch src/index.ts",
     "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src",
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
-    "@mentora/shared": "workspace:*"
+    "@mentora/shared": "workspace:*",
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.9",
+    "express": "^5.3.0",
+    "express-rate-limit": "^8.7.1",
+    "helmet": "^8.3.0",
+    "mongoose": "^9.11.4",
+    "pino": "^10.4.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.6.5",
+    "@types/supertest": "^7.2.1",
+    "supertest": "^7.3.1",
+    "tsx": "^4.23.15"
   }
 }

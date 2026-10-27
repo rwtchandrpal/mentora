@@ -191,7 +191,7 @@ Deliver a production-ready, cloud-deployed AI tutoring web application where aut
 | **Acceptance Criteria** | 1. Missing required env vars throw a clear startup validation error.<br>2. `GET /api/v1/health` returns `200 OK` with `{ success: true, data: { status: 'ok', uptime } }`.<br>3. Thrown `AppError` instances return `{ success: false, error: { code, message, details? } }` with the proper HTTP status. |
 | **Testing** | Unit/integration tests in `apps/server/src/__tests__/app.health-error.test.ts` verifying env validation, `/api/v1/health`, `400 VALIDATION_ERROR`, and `500` redaction. |
 | **Priority** | Must Have |
-| **Status** | Not Started |
+| **Status** | Done |
 
 #### `IMP-005` — Implement `User` and `TopicSession` Mongoose Models & Repositories
 | Field | Specification |
