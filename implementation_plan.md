@@ -251,7 +251,7 @@ Deliver a production-ready, cloud-deployed AI tutoring web application where aut
 | **Acceptance Criteria** | 1. `GET /api/v1/sessions` returns sessions sorted by `updatedAt DESC`.<br>2. `User B` requesting or deleting `User A`'s session receives `404 RESOURCE_NOT_FOUND`.<br>3. Any Practice batch with `status === 'in_progress'` has `correctOptionIndex` and `solutionExplanation` omitted in the returned JSON. |
 | **Testing** | Integration tests in `apps/server/src/__tests__/session.routes.test.ts`. |
 | **Priority** | Must Have |
-| **Status** | Not Started |
+| **Status** | Done |
 
 ---
 
