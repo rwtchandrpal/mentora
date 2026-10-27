@@ -61,7 +61,9 @@ export class UserRepository {
     if (!mongoose.isValidObjectId(userId)) {
       return null;
     }
+
     const nextReset = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+
     return User.findOneAndUpdate(
       {
         _id: userId,
@@ -77,10 +79,35 @@ export class UserRepository {
     ).exec();
   }
 
-  async incrementQuotaCount(userId: string): Promise<IUserDocument | null> {
+  async syncQuotaWindow(
+    userId: string,
+    now: Date = new Date()
+  ): Promise<IUserDocument | null> {
     if (!mongoose.isValidObjectId(userId)) {
       return null;
     }
+
+    const reset = await this.resetQuotaWindowIfNeeded(userId, now);
+    if (reset) {
+      return reset;
+    }
+
+    return User.findById(userId).exec();
+  }
+
+  async incrementQuotaCount(
+    userId: string,
+    now: Date = new Date()
+  ): Promise<IUserDocument | null> {
+    if (!mongoose.isValidObjectId(userId)) {
+      return null;
+    }
+
+    const synced = await this.syncQuotaWindow(userId, now);
+    if (!synced) {
+      return null;
+    }
+
     return User.findByIdAndUpdate(
       userId,
       {

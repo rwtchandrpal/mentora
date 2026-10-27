@@ -236,7 +236,7 @@ Deliver a production-ready, cloud-deployed AI tutoring web application where aut
 | **Acceptance Criteria** | 1. Requests 1 through 50 within a 24h window pass.<br>2. Request 51 returns `429 DAILY_QUOTA_EXCEEDED` with `details.resetAt`.<br>3. Passing the `windowResetAt` timestamp automatically resets `dailyCount` to `0`. |
 | **Testing** | Unit and integration tests in `apps/server/src/__tests__/quota.middleware.test.ts` testing boundary #50, #51, and 24-hour window rollover. |
 | **Priority** | Must Have |
-| **Status** | Not Started |
+| **Status** | Done |
 
 #### `IMP-008` — Implement `TopicSession` CRUD & Answer-Masking Mapper (`BR-03`)
 | Field | Specification |
