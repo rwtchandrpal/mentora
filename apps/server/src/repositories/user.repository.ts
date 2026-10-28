@@ -116,6 +116,13 @@ export class UserRepository {
       { returnDocument: 'after' }
     ).exec();
   }
+
+  async incrementUserQuota(
+    userId: string,
+    now: Date = new Date()
+  ): Promise<IUserDocument | null> {
+    return this.incrementQuotaCount(userId, now);
+  }
 }
 
 export const userRepository = new UserRepository();

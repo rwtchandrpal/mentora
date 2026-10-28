@@ -92,9 +92,28 @@ export const ExplainDeepDiveOutputSchema = z.object({
   contentMarkdown: z.string().trim().min(1),
 });
 
-export const ExplainStepRequestSchema = z.object({
-  currentStepIndex: z.number().int().min(0).max(EXPLAIN_CORE_STEPS_COUNT - 1),
-});
+export const ExplainStepRequestSchema = z
+  .object({
+    currentStepIndex: z
+      .number()
+      .int()
+      .min(0)
+      .max(EXPLAIN_CORE_STEPS_COUNT - 1)
+      .optional(),
+    stepIndex: z
+      .number()
+      .int()
+      .min(0)
+      .max(EXPLAIN_CORE_STEPS_COUNT - 1)
+      .optional(),
+  })
+  .refine(
+    (data) => data.currentStepIndex !== undefined || data.stepIndex !== undefined,
+    {
+      message:
+        'Either currentStepIndex or stepIndex must be provided as an integer between 0 and 3.',
+    }
+  );
 
 export const ExplainDeeperRequestSchema = z.object({
   stepNumber: z.number().int().min(1).max(EXPLAIN_CORE_STEPS_COUNT),

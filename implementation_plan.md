@@ -383,7 +383,7 @@ Deliver a production-ready, cloud-deployed AI tutoring web application where aut
 | **Acceptance Criteria** | 1. Initializing Explain Mode creates 4 cards with `currentStepIndex === 0` (`AC-EXP-01`).<br>2. `PATCH /explain/step` updates `currentStepIndex` without incrementing `usageQuota.dailyCount`.<br>3. `POST /explain/deeper` appends a sub-card under the target card without resetting `currentStepIndex` (`AC-EXP-03`). |
 | **Testing** | Unit and Supertest integration tests in `apps/server/src/__tests__/explain.service.test.ts`. |
 | **Priority** | Must Have |
-| **Status** | Not Started |
+| **Status** | Done |
 
 #### `IMP-017` — Implement Frontend Explain Mode Stage, Progressive Card Stepper, & `Go Deeper` UI
 | Field | Specification |

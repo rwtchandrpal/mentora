@@ -78,6 +78,10 @@ export class SessionRepository {
 
     return result.deletedCount === 1;
   }
+
+  async save(session: ITopicSessionDocument): Promise<ITopicSessionDocument> {
+    return session.save();
+  }
 }
 
 export const sessionRepository = new SessionRepository();
