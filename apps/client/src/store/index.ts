@@ -28,6 +28,7 @@ export const createAppStore = (preloadedState?: PreloadedRootState) => {
             'session.error',
             'session.explainError',
             'session.interactError',
+            'session.practiceError',
           ],
         },
       }),

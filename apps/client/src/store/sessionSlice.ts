@@ -2,6 +2,7 @@ import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/tool
 import {
   LearningMode,
   InteractStatus,
+  PracticeTier,
   type TopicSessionDTO,
   type SessionSummaryDTO,
   type CreateSessionRequestDTO,
@@ -37,6 +38,9 @@ export interface SessionState {
   explainError: NormalizedApiErrorData | null;
   isInitializingInteract: boolean;
   interactError: NormalizedApiErrorData | null;
+  isGeneratingPractice: boolean;
+  isSubmittingPractice: boolean;
+  practiceError: NormalizedApiErrorData | null;
 }
 
 export const initialStreamingState: StreamingState = {
@@ -61,6 +65,9 @@ export const initialSessionState: SessionState = {
   explainError: null,
   isInitializingInteract: false,
   interactError: null,
+  isGeneratingPractice: false,
+  isSubmittingPractice: false,
+  practiceError: null,
 };
 
 export const fetchSessionsThunk = createAsyncThunk<
@@ -279,6 +286,57 @@ export const initializeInteractThunk = createAsyncThunk<
   }
 });
 
+export const generatePracticeBatchThunk = createAsyncThunk<
+  ApiSuccessEnvelope<TopicSessionDTO>,
+  { sessionId: string; tier: PracticeTier },
+  { rejectValue: NormalizedApiErrorData }
+>('session/generatePracticeBatch', async ({ sessionId, tier }, { dispatch, rejectWithValue }) => {
+  try {
+    const response = await apiClient.post<ApiSuccessEnvelope<TopicSessionDTO>>(
+      `/sessions/${sessionId}/practice/generate`,
+      { tier },
+      { timeout: 45000 }
+    );
+    if (response.data.meta?.quota) {
+      dispatch(setQuota(response.data.meta.quota));
+    }
+    return response.data;
+  } catch (error) {
+    const normalized = normalizeAxiosError(error);
+    return rejectWithValue({
+      statusCode: normalized.statusCode,
+      code: normalized.code,
+      message: normalized.message,
+      details: normalized.details,
+    });
+  }
+});
+
+export const submitPracticeBatchThunk = createAsyncThunk<
+  ApiSuccessEnvelope<TopicSessionDTO>,
+  { sessionId: string; tier: PracticeTier; answers: number[] },
+  { rejectValue: NormalizedApiErrorData }
+>('session/submitPracticeBatch', async ({ sessionId, tier, answers }, { dispatch, rejectWithValue }) => {
+  try {
+    const response = await apiClient.post<ApiSuccessEnvelope<TopicSessionDTO>>(
+      `/sessions/${sessionId}/practice/submit`,
+      { tier, answers }
+    );
+    if (response.data.meta?.quota) {
+      dispatch(setQuota(response.data.meta.quota));
+    }
+    return response.data;
+  } catch (error) {
+    const normalized = normalizeAxiosError(error);
+    return rejectWithValue({
+      statusCode: normalized.statusCode,
+      code: normalized.code,
+      message: normalized.message,
+      details: normalized.details,
+    });
+  }
+});
+
 export const sessionSlice = createSlice({
   name: 'session',
   initialState: initialSessionState,
@@ -300,6 +358,9 @@ export const sessionSlice = createSlice({
       state.explainError = null;
       state.isInitializingInteract = false;
       state.interactError = null;
+      state.isGeneratingPractice = false;
+      state.isSubmittingPractice = false;
+      state.practiceError = null;
     },
     clearActiveSession: (state) => {
       state.activeSession = null;
@@ -309,6 +370,9 @@ export const sessionSlice = createSlice({
       state.explainError = null;
       state.isInitializingInteract = false;
       state.interactError = null;
+      state.isGeneratingPractice = false;
+      state.isSubmittingPractice = false;
+      state.practiceError = null;
     },
     clearSessionError: (state) => {
       state.error = null;
@@ -318,6 +382,9 @@ export const sessionSlice = createSlice({
     },
     clearInteractError: (state) => {
       state.interactError = null;
+    },
+    clearPracticeError: (state) => {
+      state.practiceError = null;
     },
     startStreaming: (
       state,
@@ -575,6 +642,44 @@ export const sessionSlice = createSlice({
       };
     });
 
+    // generatePracticeBatchThunk
+    builder.addCase(generatePracticeBatchThunk.pending, (state) => {
+      state.isGeneratingPractice = true;
+      state.practiceError = null;
+    });
+    builder.addCase(generatePracticeBatchThunk.fulfilled, (state, action) => {
+      state.isGeneratingPractice = false;
+      state.activeSession = action.payload.data;
+      state.practiceError = null;
+    });
+    builder.addCase(generatePracticeBatchThunk.rejected, (state, action) => {
+      state.isGeneratingPractice = false;
+      state.practiceError = action.payload ?? {
+        statusCode: 0,
+        code: 'UNKNOWN_ERROR',
+        message: action.error.message || 'Failed to generate practice batch',
+      };
+    });
+
+    // submitPracticeBatchThunk
+    builder.addCase(submitPracticeBatchThunk.pending, (state) => {
+      state.isSubmittingPractice = true;
+      state.practiceError = null;
+    });
+    builder.addCase(submitPracticeBatchThunk.fulfilled, (state, action) => {
+      state.isSubmittingPractice = false;
+      state.activeSession = action.payload.data;
+      state.practiceError = null;
+    });
+    builder.addCase(submitPracticeBatchThunk.rejected, (state, action) => {
+      state.isSubmittingPractice = false;
+      state.practiceError = action.payload ?? {
+        statusCode: 0,
+        code: 'UNKNOWN_ERROR',
+        message: action.error.message || 'Failed to submit practice batch',
+      };
+    });
+
     // Reset on logout from authSlice
     builder.addCase(logout, () => {
       return { ...initialSessionState };
@@ -589,6 +694,7 @@ export const {
   clearSessionError,
   clearExplainError,
   clearInteractError,
+  clearPracticeError,
   startStreaming,
   appendStreamToken,
   setStreamError,

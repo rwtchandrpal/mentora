@@ -496,7 +496,7 @@ Deliver a production-ready, cloud-deployed AI tutoring web application where aut
 | **Acceptance Criteria** | 1. Selecting MCQ options immediately writes to `localStorage` and survives a simulated page reload or mode tab switch (`Edge Case 5`).<br>2. `"Submit Batch"` button remains disabled until all 10 questions have a selected option (`BR-03`).<br>3. Batch Review view clearly labels both the user's choice and the verified correct option with rendered $\LaTeX$/code rationales (`AC-PRC-02`). |
 | **Testing** | Hook and component tests in `apps/client/src/__tests__/PracticeStage.test.tsx`. |
 | **Priority** | Must Have |
-| **Status** | Not Started |
+| **Status** | Done |
 
 #### `IMP-024` — Verify End-to-End Practice Mode Progression (`Easy -> Medium -> Hard`)
 | Field | Specification |

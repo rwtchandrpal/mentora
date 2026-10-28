@@ -18,6 +18,7 @@ import { StickyTopicHeader } from '../components/layout/StickyTopicHeader.js';
 import { ProfileSettingsModal } from '../components/layout/ProfileSettingsModal.js';
 import { ExplainStage } from '../components/explain/ExplainStage.js';
 import { InteractStage } from '../components/interact/InteractStage.js';
+import { PracticeStage } from '../components/practice/PracticeStage.js';
 
 interface ModeOption {
   mode: LearningMode;
@@ -304,28 +305,7 @@ export const WorkspacePage: React.FC = () => {
 
               {activeMode === LearningMode.INTERACT && <InteractStage />}
 
-              {activeMode === LearningMode.PRACTICE && (
-                <div
-                  data-testid="practice-stage-placeholder"
-                  role="tabpanel"
-                  id="practice-stage-panel"
-                  aria-labelledby="tab-practice"
-                  className="flex-1 bg-white p-6 sm:p-10 rounded-2xl shadow-sm border border-gray-200 flex flex-col justify-center items-center text-center space-y-4"
-                >
-                  <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold text-xl">
-                    P
-                  </div>
-                  <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
-                    Practice Mode
-                  </h2>
-                  <p className="text-sm text-gray-600 max-w-md">
-                    Mastery assessment batches across Easy → Medium → Hard tiers with reasoning derivation and answer masking for <span className="font-semibold text-gray-800">"{activeSession.normalizedTitle || activeSession.topicQuery}"</span>.
-                  </p>
-                  <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-                    Tiered MCQ Engine Integration — Phase 7 (`IMP-022`)
-                  </div>
-                </div>
-              )}
+              {activeMode === LearningMode.PRACTICE && <PracticeStage />}
             </main>
           </div>
         )}
