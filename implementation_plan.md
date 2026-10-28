@@ -364,7 +364,7 @@ Deliver a production-ready, cloud-deployed AI tutoring web application where aut
 | **Acceptance Criteria** | 1. Inline `$E = mc^2$` and block `$$...$$` math expressions render via KaTeX.<br>2. Code blocks display syntax highlighting and copy-to-clipboard feedback.<br>3. Passing malformed Mermaid syntax to `<MermaidDiagram />` renders the fallback view without throwing an unhandled React error (`Edge Case 3`). |
 | **Testing** | Component tests in `apps/client/src/__tests__/RichMarkdownRenderer.test.tsx` covering GFM tables, KaTeX, code copy, and malformed Mermaid fallback. |
 | **Priority** | Must Have |
-| **Status** | Not Started |
+| **Status** | Done |
 
 ---
 
