@@ -334,7 +334,7 @@ Deliver a production-ready, cloud-deployed AI tutoring web application where aut
 | **Acceptance Criteria** | 1. No module outside `apps/server/src/ai/` imports `@google/genai`.<br>2. `PromptBuilder` outputs distinct pedagogical instructions for every combination of `EducationLevel` (`high_school`, `undergraduate`, `professional`) and `ExplanationStyle` (`visual`, `analogy_heavy`, `concise_technical`).<br>3. `ModelRouter` reads model names strictly from validated environment variables. |
 | **Testing** | Unit tests in `apps/server/src/__tests__/ai.prompt-router.test.ts`. |
 | **Priority** | Must Have |
-| **Status** | Not Started |
+| **Status** | Done |
 
 #### `IMP-014` — Implement Gemini Structured Output Schemas, Validation Runner, & Single-Retry Guard
 | Field | Specification |
@@ -349,7 +349,7 @@ Deliver a production-ready, cloud-deployed AI tutoring web application where aut
 | **Acceptance Criteria** | 1. First-attempt invalid JSON triggers exactly 1 automatic retry.<br>2. Second-attempt invalid JSON throws `502 AI_UPSTREAM_FAILURE`.<br>3. Non-educational prompt output (`isEducationalValid: false`) throws `422 EDUCATIONAL_GUARDRAIL_REFUSAL` without persisting a corrupt session. |
 | **Testing** | Unit tests with mocked `@google/genai` responses in `apps/server/src/__tests__/ai.structured-runner.test.ts`. |
 | **Priority** | Must Have |
-| **Status** | Not Started |
+| **Status** | Done |
 
 #### `IMP-015` — Implement Frontend `<RichMarkdownRenderer />` (GFM, KaTeX, Code, Fault-Tolerant Mermaid)
 | Field | Specification |

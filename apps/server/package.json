@@ -12,6 +12,7 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
+    "@google/genai": "^2.31.0",
     "@mentora/shared": "workspace:*",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",

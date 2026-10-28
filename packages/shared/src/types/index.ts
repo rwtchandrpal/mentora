@@ -89,6 +89,7 @@ export type {
 export type EducationLevelDTO = z.infer<typeof EducationLevelSchema>;
 export type ExplanationStyleDTO = z.infer<typeof ExplanationStyleSchema>;
 export type StaticLearnerProfileDTO = z.infer<typeof StaticLearnerProfileSchema>;
+export type StaticLearnerProfile = StaticLearnerProfileDTO;
 export type StaticLearnerProfileInputDTO = z.infer<typeof StaticLearnerProfileInputSchema>;
 export type UserProfileStateDTO = z.infer<typeof UserProfileStateSchema>;
 export type QuotaMetaDTO = z.infer<typeof QuotaMetaSchema>;
