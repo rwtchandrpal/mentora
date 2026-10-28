@@ -481,7 +481,7 @@ Deliver a production-ready, cloud-deployed AI tutoring web application where aut
 | **Acceptance Criteria** | 1. Generating `medium` or `hard` before completing the prior tier returns `409 TIER_LOCKED` (`BR-02`, `AC-PRC-01`).<br>2. Unsubmitted batch responses omit `correctOptionIndex` and `solutionExplanation` (`BR-03`).<br>3. Submitting fewer than 10 answers returns `400 VALIDATION_ERROR` (`BR-03`).<br>4. Submitting 10 answers calculates the exact score deterministically, reveals full rationales, and unlocks the next tier (`AC-PRC-02`, `AC-PRC-03`). |
 | **Testing** | Unit and integration tests in `apps/server/src/__tests__/practice.service.test.ts`. |
 | **Priority** | Must Have |
-| **Status** | Not Started |
+| **Status** | Done |
 
 #### `IMP-023` — Implement Frontend `useQuizDraftPersistence` Hook & Practice Mode UI Stage
 | Field | Specification |

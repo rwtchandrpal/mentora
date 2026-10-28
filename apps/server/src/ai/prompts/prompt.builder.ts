@@ -359,12 +359,30 @@ export class PromptBuilder {
   }
 
   /**
+   * Difficulty tier directive for Practice Mode batch generation.
+   */
+  static getTierDirective(tier: string): string {
+    switch (tier.toLowerCase()) {
+      case 'easy':
+        return 'Easy Tier: Focus on foundational definitions, core principles, direct concept recall, and straightforward identification.';
+      case 'medium':
+        return 'Medium Tier: Focus on multi-step application, scenario analysis, analytical problem-solving, and practical trade-offs.';
+      case 'hard':
+        return 'Hard Tier: Focus on complex edge cases, cross-concept synthesis, non-trivial troubleshooting, and rigorous quantitative/technical depth.';
+      default:
+        return `Difficulty Tier: ${tier.toUpperCase()}`;
+    }
+  }
+
+  /**
    * Prompt for Practice Mode 10-MCQ Batch Generation
    */
   static buildPracticeGeneratePrompt(topicQuery: string, tier: string): string {
+    const tierDirective = PromptBuilder.getTierDirective(tier);
     return [
       `Generate a Practice Mode 10-MCQ batch for the topic: "${topicQuery}".`,
       `Target Difficulty Tier: ${tier.toUpperCase()}`,
+      `Tier Objectives: ${tierDirective}`,
       '',
       'Requirements:',
       '- Generate exactly 10 multiple-choice questions.',
