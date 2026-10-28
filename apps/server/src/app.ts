@@ -8,6 +8,7 @@ import { authRouter } from './routes/auth.routes.js';
 import { profileRouter } from './routes/profile.routes.js';
 import { sessionRouter } from './routes/session.routes.js';
 import { explainRouter } from './routes/explain.routes.js';
+import { interactRouter } from './routes/interact.routes.js';
 import { notFoundMiddleware, errorMiddleware } from './middlewares/error.middleware.js';
 
 export const createApp = (customRoutes?: (app: Express) => void): Express => {
@@ -38,6 +39,7 @@ export const createApp = (customRoutes?: (app: Express) => void): Express => {
   app.use('/api/v1/profile', profileRouter);
   app.use('/api/v1/sessions', sessionRouter);
   app.use('/api/v1/sessions', explainRouter);
+  app.use('/api/v1/sessions', interactRouter);
 
   if (customRoutes) {
     customRoutes(app);

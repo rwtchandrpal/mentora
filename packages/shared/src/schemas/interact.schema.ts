@@ -101,6 +101,8 @@ export const SseMetadataEventSchema = z.object({
   strikeCount: z.number().int().min(0).max(MAX_SOCRATIC_STRIKES - 1),
   milestones: z.array(InteractMilestoneSchema),
   isCompleted: z.boolean(),
+  userMessage: InteractMessageSchema.optional(),
+  assistantMessage: InteractMessageSchema.optional(),
   quota: QuotaMetaSchema.optional(),
 });
 

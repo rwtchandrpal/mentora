@@ -16,11 +16,20 @@ export interface ExplainDeeperPromptParams {
 }
 
 export interface InteractTurnPromptParams {
-  activeMilestone: string;
+  topicQuery?: string;
+  activeMilestone?: string;
+  milestones?: Array<{
+    milestoneNumber: number;
+    title: string;
+    description: string;
+    status?: string;
+  }>;
+  activeMilestoneIndex?: number;
   strikeCount: number;
   history: Array<{ role: string; content: string }>;
   userMessage: string;
   isManualBypass?: boolean;
+  forceDirectExplanation?: boolean;
 }
 
 export interface PracticeGeneratePromptParams {
@@ -241,28 +250,112 @@ export class PromptBuilder {
    * Prompt for Interact Mode Socratic Turn
    */
   static buildInteractTurnPrompt(params: InteractTurnPromptParams): string {
-    const { activeMilestone, strikeCount, history, userMessage, isManualBypass } = params;
+    const {
+      topicQuery,
+      activeMilestone,
+      milestones,
+      activeMilestoneIndex,
+      strikeCount,
+      history,
+      userMessage,
+      isManualBypass,
+      forceDirectExplanation,
+    } = params;
+
+    const manualBypass = forceDirectExplanation ?? isManualBypass ?? false;
+
+    let activeMilestoneText = activeMilestone ?? '';
+    if (
+      !activeMilestoneText &&
+      milestones &&
+      activeMilestoneIndex !== undefined &&
+      milestones[activeMilestoneIndex]
+    ) {
+      const activeObj = milestones[activeMilestoneIndex]!;
+      activeMilestoneText = `Milestone ${activeObj.milestoneNumber}: ${activeObj.title} - ${activeObj.description}`;
+    }
 
     const historyFormatted = history
       .map((entry) => `${entry.role.toUpperCase()}: ${entry.content}`)
       .join('\n');
 
-    return [
-      `Active Milestone: "${activeMilestone}"`,
-      `Current Strike Count: ${strikeCount}`,
-      `Manual "Explain Directly" Triggered: ${isManualBypass ? 'YES' : 'NO'}`,
-      '',
-      'Recent Conversation History:',
-      historyFormatted.length > 0 ? historyFormatted : '(Beginning of conversation)',
-      '',
-      `Latest Learner Message: "${userMessage}"`,
-      '',
-      'Evaluate the learner\'s response against the active milestone:',
-      '1. If manual bypass is requested or strikeCount === 2 with an incorrect response, activate Strike 3 (Circuit Breaker): set outcome="CIRCUIT_BREAKER_ACK", explain the milestone directly, and check understanding.',
-      '2. If the learner demonstrated conceptual mastery of the active milestone, set outcome="ADVANCE", affirm the insight, and guide them to the next milestone.',
-      '3. If the learner is stuck or incorrect (strikeCount < 2), set outcome="STRIKE", provide appropriate scaffolding (Strike 1 nudge or Strike 2 hint).',
-      'Begin your output with <<MENTORA_STATE:{"outcome":"ADVANCE"|"STRIKE"|"CIRCUIT_BREAKER_ACK"}>> on line 1.',
-    ].join('\n');
+    const lines: string[] = [];
+    if (topicQuery) {
+      lines.push(`Topic: "${topicQuery}"`);
+    }
+
+    if (milestones && milestones.length > 0) {
+      lines.push('Conceptual Milestones Roadmap:');
+      milestones.forEach((m, idx) => {
+        const isActive =
+          activeMilestoneIndex !== undefined && idx === activeMilestoneIndex;
+        lines.push(
+          `- Milestone ${m.milestoneNumber}: "${m.title}" — ${m.description} [${
+            m.status ?? (isActive ? 'ACTIVE' : 'PENDING')
+          }]`
+        );
+      });
+      lines.push('');
+    }
+
+    lines.push(`Active Milestone: "${activeMilestoneText}"`);
+    lines.push(`Current Strike Count: ${strikeCount}`);
+    lines.push(
+      `Manual "Explain Directly" Triggered: ${manualBypass ? 'YES' : 'NO'}`
+    );
+    lines.push('');
+    lines.push('Recent Conversation History:');
+    lines.push(
+      historyFormatted.length > 0
+        ? historyFormatted
+        : '(Beginning of conversation)'
+    );
+    lines.push('');
+    lines.push(`Latest Learner Message: "${userMessage}"`);
+    lines.push('');
+    lines.push('### Socratic Pedagogical Protocol');
+    lines.push(
+      'Line 1 of your response MUST be a control header in the exact format:'
+    );
+    lines.push(
+      '<<MENTORA_STATE:{"outcome":"ADVANCE"|"STRIKE"|"CIRCUIT_BREAKER_ACK"}>>'
+    );
+    lines.push(
+      'Followed immediately by your response on the subsequent lines.'
+    );
+    lines.push('');
+    lines.push('Pedagogical Rules:');
+    lines.push('1. Manual Bypass OR Strike 3 (Circuit Breaker):');
+    lines.push(
+      '   If Manual "Explain Directly" is YES OR (Current Strike Count is 2 and the learner is incorrect/stuck):'
+    );
+    lines.push('   - Set outcome="CIRCUIT_BREAKER_ACK".');
+    lines.push('   - Stop withholding the concept.');
+    lines.push(
+      '   - Provide a direct, crystal-clear explanation of the active milestone.'
+    );
+    lines.push(
+      '   - End with a simple, targeted confirmation question to verify comprehension.'
+    );
+    lines.push('2. Conceptual Mastery Demonstrated:');
+    lines.push(
+      '   If the learner demonstrates clear understanding of the active milestone:'
+    );
+    lines.push('   - Set outcome="ADVANCE".');
+    lines.push('   - Affirm their insight.');
+    lines.push(
+      '   - Transition smoothly into introducing or questioning the next milestone (or congratulate on mastering all milestones if this is the final one).'
+    );
+    lines.push('3. Incomplete, Misconceived, or Stuck (Strike Count < 2):');
+    lines.push('   - Set outcome="STRIKE".');
+    lines.push(
+      '   - If Current Strike Count is 0 (Strike 1 Nudge): Validate any partial intuition; provide a simpler, targeted Socratic guiding question.'
+    );
+    lines.push(
+      '   - If Current Strike Count is 1 (Strike 2 Hint): Stop open-ended questioning; provide a concrete hint, analogy, or narrowed two-choice prompt.'
+    );
+
+    return lines.join('\n');
   }
 
   /**

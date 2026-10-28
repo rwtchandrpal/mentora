@@ -432,7 +432,7 @@ Deliver a production-ready, cloud-deployed AI tutoring web application where aut
 | **Acceptance Criteria** | 1. `/interact/init` generates 3–5 milestones and an opening diagnostic question (`AC-INT-01`).<br>2. Three consecutive `"STRIKE"` outcomes transition `strikeCount` `0 -> 1 (Nudge) -> 2 (Hint) -> Circuit Breaker explanation + reset to 0` (`AC-INT-02`).<br>3. `forceDirectExplanation: true` immediately triggers the Circuit Breaker explanation and resets `strikeCount = 0` (`FR-013`).<br>4. `<<MENTORA_STATE:...>>` never leaks into the client's visible message text.<br>5. Stream failure emits `event: error` and leaves `strikeCount` unchanged (`Edge Case 4`). |
 | **Testing** | Unit tests in `apps/server/src/__tests__/interact.state-machine.test.ts` covering all strike/advance/manual-override/error transitions. |
 | **Priority** | Must Have |
-| **Status** | Not Started |
+| **Status** | Done |
 
 #### `IMP-020` — Implement Frontend SSE Client Hook (`useSseStream`) & Interact Mode UI Stage
 | Field | Specification |

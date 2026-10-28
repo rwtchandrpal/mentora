@@ -187,3 +187,63 @@ export const generateStructuredOutput = async <T>(
     }
   );
 };
+
+export interface StreamContentOptions {
+  operation: AiOperation;
+  systemInstruction: string;
+  prompt: string;
+  temperature?: number;
+}
+
+/**
+ * Streams content chunks from Gemini using ModelRouter to resolve the operation model.
+ * Yields non-empty text string chunks via an AsyncGenerator.
+ */
+export async function* streamContent(
+  options: StreamContentOptions
+): AsyncGenerator<string, void, unknown> {
+  const { operation, systemInstruction, prompt, temperature } = options;
+  const model = ModelRouter.getModelForOperation(operation);
+  const client = getGeminiClient();
+
+  try {
+    const responseStream = await client.models.generateContentStream({
+      model,
+      contents: prompt,
+      config: {
+        systemInstruction,
+        ...(temperature !== undefined ? { temperature } : {}),
+      },
+    });
+
+    for await (const chunk of responseStream) {
+      const text = typeof chunk === 'string' ? chunk : chunk?.text;
+      if (text && text.length > 0) {
+        yield text;
+      }
+    }
+  } catch (err) {
+    if (err instanceof AppError) {
+      throw err;
+    }
+
+    logger.error(
+      {
+        err: err instanceof Error ? { message: err.message, name: err.name } : err,
+        operation,
+        model,
+      },
+      'Streaming AI generation failed'
+    );
+
+    throw new AppError(
+      502,
+      ErrorCode.AI_UPSTREAM_FAILURE,
+      'Failed to stream AI response from Gemini.',
+      {
+        operation,
+        cause: err instanceof Error ? err.message : String(err),
+      }
+    );
+  }
+}
