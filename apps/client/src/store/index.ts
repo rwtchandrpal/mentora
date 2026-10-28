@@ -11,15 +11,19 @@ export const rootReducer = combineReducers({
 
 export type RootState = ReturnType<typeof rootReducer>;
 
-export const createAppStore = (preloadedState?: Partial<RootState>) => {
+export type PreloadedRootState = {
+  [K in keyof RootState]?: Partial<RootState[K]>;
+};
+
+export const createAppStore = (preloadedState?: PreloadedRootState) => {
   return configureStore({
     reducer: rootReducer,
-    preloadedState,
+    preloadedState: preloadedState as unknown as undefined,
     middleware: (getDefaultMiddleware) =>
       getDefaultMiddleware({
         serializableCheck: {
           ignoredActionPaths: ['payload.error', 'error'],
-          ignoredPaths: ['auth.error', 'session.error'],
+          ignoredPaths: ['auth.error', 'session.error', 'session.explainError'],
         },
       }),
   });

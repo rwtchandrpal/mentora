@@ -21,7 +21,7 @@ import {
   type QuotaMetaDTO,
 } from '@mentora/shared';
 import { apiClient, clearStoredToken } from '../services/apiClient.js';
-import { createAppStore, type RootState } from '../store/index.js';
+import { createAppStore, type PreloadedRootState } from '../store/index.js';
 import { WorkspacePage } from '../pages/WorkspacePage.js';
 
 describe('IMP-012: Unified Workspace Shell, Left History Sidebar, & Mode Switcher Tabs', () => {
@@ -142,7 +142,7 @@ describe('IMP-012: Unified Workspace Shell, Left History Sidebar, & Mode Switche
 
   const renderWorkspace = (
     initialEntries = ['/workspace'],
-    preloadedState?: Partial<RootState>
+    preloadedState?: PreloadedRootState
   ) => {
     const store = createAppStore(preloadedState);
     const view = render(
@@ -439,8 +439,8 @@ describe('IMP-012: Unified Workspace Shell, Left History Sidebar, & Mode Switche
         },
       });
 
-      // Verify Explain stage placeholder is rendered
-      expect(screen.getByTestId('explain-stage-placeholder')).toBeInTheDocument();
+      // Verify Explain stage is rendered
+      expect(screen.getByTestId('explain-stage')).toBeInTheDocument();
       expect(screen.getByRole('tab', { name: /explain/i })).toHaveAttribute('aria-selected', 'true');
 
       // Click Interact Tab

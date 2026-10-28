@@ -16,6 +16,7 @@ import { toggleMobileDrawer } from '../store/uiSlice.js';
 import { LeftHistorySidebar } from '../components/layout/LeftHistorySidebar.js';
 import { StickyTopicHeader } from '../components/layout/StickyTopicHeader.js';
 import { ProfileSettingsModal } from '../components/layout/ProfileSettingsModal.js';
+import { ExplainStage } from '../components/explain/ExplainStage.js';
 
 interface ModeOption {
   mode: LearningMode;
@@ -298,28 +299,7 @@ export const WorkspacePage: React.FC = () => {
 
             {/* Active Stage Container with Mode Placeholders */}
             <main className="flex-1 p-4 sm:p-6 lg:p-8 flex flex-col max-w-5xl w-full mx-auto">
-              {activeMode === LearningMode.EXPLAIN && (
-                <div
-                  data-testid="explain-stage-placeholder"
-                  role="tabpanel"
-                  id="explain-stage-panel"
-                  aria-labelledby="tab-explain"
-                  className="flex-1 bg-white p-6 sm:p-10 rounded-2xl shadow-sm border border-gray-200 flex flex-col justify-center items-center text-center space-y-4"
-                >
-                  <div className="w-12 h-12 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xl">
-                    E
-                  </div>
-                  <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
-                    Explain Mode
-                  </h2>
-                  <p className="text-sm text-gray-600 max-w-md">
-                    Progressive 4-card breakdown (Intuition → Mechanism → Example → Check) with on-demand Go Deeper sub-cards for <span className="font-semibold text-gray-800">"{activeSession.normalizedTitle || activeSession.topicQuery}"</span>.
-                  </p>
-                  <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
-                    Stage Engine Integration — Phase 5 (`IMP-016`)
-                  </div>
-                </div>
-              )}
+              {activeMode === LearningMode.EXPLAIN && <ExplainStage />}
 
               {activeMode === LearningMode.INTERACT && (
                 <div

@@ -29,6 +29,9 @@ export interface SessionState {
   isCreatingSession: boolean;
   error: NormalizedApiErrorData | null;
   streamingState: StreamingState;
+  isInitializingExplain: boolean;
+  deepDiveLoadingStep: number | null;
+  explainError: NormalizedApiErrorData | null;
 }
 
 export const initialStreamingState: StreamingState = {
@@ -47,6 +50,9 @@ export const initialSessionState: SessionState = {
   isCreatingSession: false,
   error: null,
   streamingState: initialStreamingState,
+  isInitializingExplain: false,
+  deepDiveLoadingStep: null,
+  explainError: null,
 };
 
 export const fetchSessionsThunk = createAsyncThunk<
@@ -167,6 +173,80 @@ export const deleteSessionThunk = createAsyncThunk<
   }
 });
 
+export const initializeExplainThunk = createAsyncThunk<
+  ApiSuccessEnvelope<TopicSessionDTO>,
+  string,
+  { rejectValue: NormalizedApiErrorData }
+>('session/initializeExplain', async (sessionId, { dispatch, rejectWithValue }) => {
+  try {
+    const response = await apiClient.post<ApiSuccessEnvelope<TopicSessionDTO>>(
+      `/sessions/${sessionId}/explain/init`
+    );
+    if (response.data.meta?.quota) {
+      dispatch(setQuota(response.data.meta.quota));
+    }
+    return response.data;
+  } catch (error) {
+    const normalized = normalizeAxiosError(error);
+    return rejectWithValue({
+      statusCode: normalized.statusCode,
+      code: normalized.code,
+      message: normalized.message,
+      details: normalized.details,
+    });
+  }
+});
+
+export const advanceExplainStepThunk = createAsyncThunk<
+  ApiSuccessEnvelope<TopicSessionDTO>,
+  { sessionId: string; stepIndex: number },
+  { rejectValue: NormalizedApiErrorData }
+>('session/advanceExplainStep', async ({ sessionId, stepIndex }, { dispatch, rejectWithValue }) => {
+  try {
+    const response = await apiClient.patch<ApiSuccessEnvelope<TopicSessionDTO>>(
+      `/sessions/${sessionId}/explain/step`,
+      { stepIndex }
+    );
+    if (response.data.meta?.quota) {
+      dispatch(setQuota(response.data.meta.quota));
+    }
+    return response.data;
+  } catch (error) {
+    const normalized = normalizeAxiosError(error);
+    return rejectWithValue({
+      statusCode: normalized.statusCode,
+      code: normalized.code,
+      message: normalized.message,
+      details: normalized.details,
+    });
+  }
+});
+
+export const generateDeepDiveThunk = createAsyncThunk<
+  ApiSuccessEnvelope<TopicSessionDTO>,
+  { sessionId: string; stepNumber: number },
+  { rejectValue: NormalizedApiErrorData }
+>('session/generateDeepDive', async ({ sessionId, stepNumber }, { dispatch, rejectWithValue }) => {
+  try {
+    const response = await apiClient.post<ApiSuccessEnvelope<TopicSessionDTO>>(
+      `/sessions/${sessionId}/explain/deeper`,
+      { stepNumber }
+    );
+    if (response.data.meta?.quota) {
+      dispatch(setQuota(response.data.meta.quota));
+    }
+    return response.data;
+  } catch (error) {
+    const normalized = normalizeAxiosError(error);
+    return rejectWithValue({
+      statusCode: normalized.statusCode,
+      code: normalized.code,
+      message: normalized.message,
+      details: normalized.details,
+    });
+  }
+});
+
 export const sessionSlice = createSlice({
   name: 'session',
   initialState: initialSessionState,
@@ -183,13 +263,22 @@ export const sessionSlice = createSlice({
         state.activeMode = action.payload.lastActiveMode;
       }
       state.streamingState = { ...initialStreamingState };
+      state.isInitializingExplain = false;
+      state.deepDiveLoadingStep = null;
+      state.explainError = null;
     },
     clearActiveSession: (state) => {
       state.activeSession = null;
       state.streamingState = { ...initialStreamingState };
+      state.isInitializingExplain = false;
+      state.deepDiveLoadingStep = null;
+      state.explainError = null;
     },
     clearSessionError: (state) => {
       state.error = null;
+    },
+    clearExplainError: (state) => {
+      state.explainError = null;
     },
     startStreaming: (state, action: PayloadAction<{ turnId?: string } | undefined>) => {
       state.streamingState.isStreaming = true;
@@ -332,6 +421,63 @@ export const sessionSlice = createSlice({
       };
     });
 
+    // initializeExplainThunk
+    builder.addCase(initializeExplainThunk.pending, (state) => {
+      state.isInitializingExplain = true;
+      state.explainError = null;
+    });
+    builder.addCase(initializeExplainThunk.fulfilled, (state, action) => {
+      state.isInitializingExplain = false;
+      state.activeSession = action.payload.data;
+      state.explainError = null;
+    });
+    builder.addCase(initializeExplainThunk.rejected, (state, action) => {
+      state.isInitializingExplain = false;
+      state.explainError = action.payload ?? {
+        statusCode: 0,
+        code: 'UNKNOWN_ERROR',
+        message: action.error.message || 'Failed to initialize explain mode',
+      };
+    });
+
+    // advanceExplainStepThunk
+    builder.addCase(advanceExplainStepThunk.pending, (state, action) => {
+      if (state.activeSession?.explainState) {
+        state.activeSession.explainState.currentStepIndex = action.meta.arg.stepIndex;
+      }
+      state.explainError = null;
+    });
+    builder.addCase(advanceExplainStepThunk.fulfilled, (state, action) => {
+      state.activeSession = action.payload.data;
+      state.explainError = null;
+    });
+    builder.addCase(advanceExplainStepThunk.rejected, (state, action) => {
+      state.explainError = action.payload ?? {
+        statusCode: 0,
+        code: 'UNKNOWN_ERROR',
+        message: action.error.message || 'Failed to advance step',
+      };
+    });
+
+    // generateDeepDiveThunk
+    builder.addCase(generateDeepDiveThunk.pending, (state, action) => {
+      state.deepDiveLoadingStep = action.meta.arg.stepNumber;
+      state.explainError = null;
+    });
+    builder.addCase(generateDeepDiveThunk.fulfilled, (state, action) => {
+      state.deepDiveLoadingStep = null;
+      state.activeSession = action.payload.data;
+      state.explainError = null;
+    });
+    builder.addCase(generateDeepDiveThunk.rejected, (state, action) => {
+      state.deepDiveLoadingStep = null;
+      state.explainError = action.payload ?? {
+        statusCode: 0,
+        code: 'UNKNOWN_ERROR',
+        message: action.error.message || 'Failed to generate deep dive',
+      };
+    });
+
     // Reset on logout from authSlice
     builder.addCase(logout, () => {
       return { ...initialSessionState };
@@ -344,6 +490,7 @@ export const {
   setActiveSession,
   clearActiveSession,
   clearSessionError,
+  clearExplainError,
   startStreaming,
   appendStreamToken,
   setStreamError,

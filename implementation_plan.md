@@ -398,7 +398,7 @@ Deliver a production-ready, cloud-deployed AI tutoring web application where aut
 | **Acceptance Criteria** | 1. On initial load, only Card 1 is visible (`AC-EXP-01`).<br>2. Clicking `Next` reveals Card 2, 3, and 4 sequentially (`AC-EXP-02`).<br>3. Clicking `Go Deeper` renders the nested sub-card directly beneath the active card (`AC-EXP-03`). |
 | **Testing** | Frontend component tests in `apps/client/src/__tests__/ExplainStage.test.tsx`. |
 | **Priority** | Must Have |
-| **Status** | Not Started |
+| **Status** | Done |
 
 #### `IMP-018` — Verify End-to-End Explain Mode Workflow & Acceptance Criteria
 | Field | Specification |
