@@ -462,7 +462,7 @@ Deliver a production-ready, cloud-deployed AI tutoring web application where aut
 | **Acceptance Criteria** | All Interact Mode acceptance criteria (`AC-INT-01`–`03`) pass automated tests. |
 | **Testing** | Run `pnpm test` across `@mentora/server` and `@mentora/client`. |
 | **Priority** | Must Have |
-| **Status** | Not Started |
+| **Status** | Done |
 
 ---
 
