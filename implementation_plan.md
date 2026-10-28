@@ -447,7 +447,7 @@ Deliver a production-ready, cloud-deployed AI tutoring web application where aut
 | **Acceptance Criteria** | 1. Milestone progress bar updates immediately when `event: metadata` marks a milestone completed (`AC-INT-03`).<br>2. Streaming tokens render smoothly inside `<StreamingBubble />`.<br>3. Clicking `"Explain this milestone directly"` sends `forceDirectExplanation: true`.<br>4. Simulated network drop reveals the retry button and re-sends the last turn cleanly (`Edge Case 4`). |
 | **Testing** | Hook and component tests in `apps/client/src/__tests__/InteractStage.test.tsx`. |
 | **Priority** | Must Have |
-| **Status** | Not Started |
+| **Status** | Done |
 
 #### `IMP-021` — Verify End-to-End Interact Mode & 3-Strike Circuit Breaker
 | Field | Specification |

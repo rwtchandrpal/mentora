@@ -449,7 +449,7 @@ describe('IMP-012: Unified Workspace Shell, Left History Sidebar, & Mode Switche
 
       // Verify mode switched to Interact
       await waitFor(() => {
-        expect(screen.getByTestId('interact-stage-placeholder')).toBeInTheDocument();
+        expect(screen.getByTestId('interact-stage')).toBeInTheDocument();
       });
       expect(interactTab).toHaveAttribute('aria-selected', 'true');
       expect(patchModeCalled).toBe(true);

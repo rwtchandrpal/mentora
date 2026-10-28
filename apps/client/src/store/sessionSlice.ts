@@ -1,10 +1,12 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
 import {
   LearningMode,
+  InteractStatus,
   type TopicSessionDTO,
   type SessionSummaryDTO,
   type CreateSessionRequestDTO,
   type ApiSuccessEnvelope,
+  type SseMetadataEventDTO,
 } from '@mentora/shared';
 import {
   apiClient,
@@ -18,6 +20,7 @@ export interface StreamingState {
   streamBuffer: string;
   streamError: string | null;
   activeTurnId: string | null;
+  activeTurnMessage?: string | null;
 }
 
 export interface SessionState {
@@ -32,6 +35,8 @@ export interface SessionState {
   isInitializingExplain: boolean;
   deepDiveLoadingStep: number | null;
   explainError: NormalizedApiErrorData | null;
+  isInitializingInteract: boolean;
+  interactError: NormalizedApiErrorData | null;
 }
 
 export const initialStreamingState: StreamingState = {
@@ -39,6 +44,7 @@ export const initialStreamingState: StreamingState = {
   streamBuffer: '',
   streamError: null,
   activeTurnId: null,
+  activeTurnMessage: null,
 };
 
 export const initialSessionState: SessionState = {
@@ -53,6 +59,8 @@ export const initialSessionState: SessionState = {
   isInitializingExplain: false,
   deepDiveLoadingStep: null,
   explainError: null,
+  isInitializingInteract: false,
+  interactError: null,
 };
 
 export const fetchSessionsThunk = createAsyncThunk<
@@ -247,6 +255,30 @@ export const generateDeepDiveThunk = createAsyncThunk<
   }
 });
 
+export const initializeInteractThunk = createAsyncThunk<
+  ApiSuccessEnvelope<TopicSessionDTO>,
+  string,
+  { rejectValue: NormalizedApiErrorData }
+>('session/initializeInteract', async (sessionId, { dispatch, rejectWithValue }) => {
+  try {
+    const response = await apiClient.post<ApiSuccessEnvelope<TopicSessionDTO>>(
+      `/sessions/${sessionId}/interact/init`
+    );
+    if (response.data.meta?.quota) {
+      dispatch(setQuota(response.data.meta.quota));
+    }
+    return response.data;
+  } catch (error) {
+    const normalized = normalizeAxiosError(error);
+    return rejectWithValue({
+      statusCode: normalized.statusCode,
+      code: normalized.code,
+      message: normalized.message,
+      details: normalized.details,
+    });
+  }
+});
+
 export const sessionSlice = createSlice({
   name: 'session',
   initialState: initialSessionState,
@@ -266,6 +298,8 @@ export const sessionSlice = createSlice({
       state.isInitializingExplain = false;
       state.deepDiveLoadingStep = null;
       state.explainError = null;
+      state.isInitializingInteract = false;
+      state.interactError = null;
     },
     clearActiveSession: (state) => {
       state.activeSession = null;
@@ -273,6 +307,8 @@ export const sessionSlice = createSlice({
       state.isInitializingExplain = false;
       state.deepDiveLoadingStep = null;
       state.explainError = null;
+      state.isInitializingInteract = false;
+      state.interactError = null;
     },
     clearSessionError: (state) => {
       state.error = null;
@@ -280,11 +316,18 @@ export const sessionSlice = createSlice({
     clearExplainError: (state) => {
       state.explainError = null;
     },
-    startStreaming: (state, action: PayloadAction<{ turnId?: string } | undefined>) => {
+    clearInteractError: (state) => {
+      state.interactError = null;
+    },
+    startStreaming: (
+      state,
+      action: PayloadAction<{ turnId?: string; message?: string } | undefined>
+    ) => {
       state.streamingState.isStreaming = true;
       state.streamingState.streamBuffer = '';
       state.streamingState.streamError = null;
-      state.streamingState.activeTurnId = action.payload?.turnId ?? null;
+      state.streamingState.activeTurnId = action?.payload?.turnId ?? null;
+      state.streamingState.activeTurnMessage = action?.payload?.message ?? null;
     },
     appendStreamToken: (state, action: PayloadAction<string>) => {
       state.streamingState.streamBuffer += action.payload;
@@ -293,9 +336,44 @@ export const sessionSlice = createSlice({
       state.streamingState.isStreaming = false;
       state.streamingState.streamError = action.payload;
     },
+    clearStreamError: (state) => {
+      state.streamingState.streamError = null;
+      state.streamingState.streamBuffer = '';
+      state.streamingState.activeTurnMessage = null;
+    },
     finishStreaming: (state) => {
       state.streamingState.isStreaming = false;
       state.streamingState.activeTurnId = null;
+      state.streamingState.activeTurnMessage = null;
+    },
+    applyInteractMetadata: (state, action: PayloadAction<SseMetadataEventDTO>) => {
+      if (state.activeSession?.interactState) {
+        state.activeSession.interactState.activeMilestoneIndex =
+          action.payload.activeMilestoneIndex;
+        state.activeSession.interactState.strikeCount = action.payload.strikeCount;
+        state.activeSession.interactState.milestones = action.payload.milestones;
+        if (action.payload.isCompleted) {
+          state.activeSession.interactState.status = InteractStatus.COMPLETED;
+        }
+        if (action.payload.userMessage) {
+          const userMsg = action.payload.userMessage;
+          const exists = state.activeSession.interactState.messages.some(
+            (m) => m.id === userMsg.id
+          );
+          if (!exists) {
+            state.activeSession.interactState.messages.push(userMsg);
+          }
+        }
+        if (action.payload.assistantMessage) {
+          const asstMsg = action.payload.assistantMessage;
+          const exists = state.activeSession.interactState.messages.some(
+            (m) => m.id === asstMsg.id
+          );
+          if (!exists) {
+            state.activeSession.interactState.messages.push(asstMsg);
+          }
+        }
+      }
     },
   },
   extraReducers: (builder) => {
@@ -478,6 +556,25 @@ export const sessionSlice = createSlice({
       };
     });
 
+    // initializeInteractThunk
+    builder.addCase(initializeInteractThunk.pending, (state) => {
+      state.isInitializingInteract = true;
+      state.interactError = null;
+    });
+    builder.addCase(initializeInteractThunk.fulfilled, (state, action) => {
+      state.isInitializingInteract = false;
+      state.activeSession = action.payload.data;
+      state.interactError = null;
+    });
+    builder.addCase(initializeInteractThunk.rejected, (state, action) => {
+      state.isInitializingInteract = false;
+      state.interactError = action.payload ?? {
+        statusCode: 0,
+        code: 'UNKNOWN_ERROR',
+        message: action.error.message || 'Failed to initialize interact mode',
+      };
+    });
+
     // Reset on logout from authSlice
     builder.addCase(logout, () => {
       return { ...initialSessionState };
@@ -491,10 +588,13 @@ export const {
   clearActiveSession,
   clearSessionError,
   clearExplainError,
+  clearInteractError,
   startStreaming,
   appendStreamToken,
   setStreamError,
+  clearStreamError,
   finishStreaming,
+  applyInteractMetadata,
 } = sessionSlice.actions;
 
 export default sessionSlice.reducer;

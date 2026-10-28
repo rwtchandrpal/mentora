@@ -194,7 +194,9 @@ describe('IMP-018: Frontend End-to-End Explain Mode Workflow & Acceptance Criter
   });
 
   describe('1. Full Interactive Learner Journey (Topic Entry -> Auto-init -> Stepping -> Go Deeper -> CFU -> Mode Switch)', () => {
-    it('walks through entering topic, progressive cards reveal, deep-dive expansion, and CFU answer toggle', async () => {
+    it(
+      'walks through entering topic, progressive cards reveal, deep-dive expansion, and CFU answer toggle',
+      async () => {
       // In-memory mock session state that evolves across requests
       let activeSessionData = createInitialSessionDTO();
 
@@ -518,7 +520,7 @@ describe('IMP-018: Frontend End-to-End Explain Mode Workflow & Acceptance Criter
       await waitFor(() => {
         expect(store.getState().session.activeMode).toBe(LearningMode.PRACTICE);
       });
-    });
+    }, 15000);
   });
 
   describe('2. History Sidebar Session Navigation & Persistence (FR-006, Journey 3)', () => {

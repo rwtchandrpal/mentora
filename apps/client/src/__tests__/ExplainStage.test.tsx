@@ -21,7 +21,7 @@ import {
   type ExplainCardDTO,
 } from '@mentora/shared';
 import { apiClient } from '../services/apiClient.js';
-import { createAppStore, type RootState } from '../store/index.js';
+import { createAppStore, type PreloadedRootState } from '../store/index.js';
 import { ExplainStage } from '../components/explain/ExplainStage.js';
 
 // Mock mermaid for JSDOM
@@ -155,7 +155,7 @@ describe('IMP-017: Frontend Explain Mode Stage, Stepper, & Go Deeper UI', () => 
     updatedAt: '2026-10-27T10:00:00.000Z',
   });
 
-  const renderComponent = (preloadedState?: Partial<RootState>) => {
+  const renderComponent = (preloadedState?: PreloadedRootState) => {
     const store = createAppStore(preloadedState);
     const view = render(
       <Provider store={store}>

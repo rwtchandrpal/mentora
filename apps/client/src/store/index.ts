@@ -23,7 +23,12 @@ export const createAppStore = (preloadedState?: PreloadedRootState) => {
       getDefaultMiddleware({
         serializableCheck: {
           ignoredActionPaths: ['payload.error', 'error'],
-          ignoredPaths: ['auth.error', 'session.error', 'session.explainError'],
+          ignoredPaths: [
+            'auth.error',
+            'session.error',
+            'session.explainError',
+            'session.interactError',
+          ],
         },
       }),
   });
