@@ -74,6 +74,7 @@ export const TierSelectorBar: React.FC<TierSelectorBarProps> = ({
               key={config.tier}
               role="tab"
               id={`tab-tier-${config.tier}`}
+              data-testid={`tier-tab-${config.tier}`}
               aria-selected={isSelected}
               aria-controls={`tier-panel-${config.tier}`}
               aria-disabled={isLocked || disabled}
