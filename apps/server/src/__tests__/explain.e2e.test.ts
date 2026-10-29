@@ -149,6 +149,7 @@ describe('IMP-018: End-to-End Explain Mode Workflow & Acceptance Criteria Verifi
         .send({
           topicQuery: 'Deadlocks in Operating Systems',
           initialMode: LearningMode.EXPLAIN,
+          autoInitialize: false,
         });
 
       expect(createRes.status).toBe(201);
@@ -289,6 +290,7 @@ describe('IMP-018: End-to-End Explain Mode Workflow & Acceptance Criteria Verifi
         .send({
           topicQuery: 'Deadlocks in Operating Systems',
           initialMode: LearningMode.EXPLAIN,
+          autoInitialize: false,
         });
       const sessionId = createRes.body.data.id;
 
@@ -376,6 +378,7 @@ describe('IMP-018: End-to-End Explain Mode Workflow & Acceptance Criteria Verifi
         .send({
           topicQuery: 'How to bypass physical lock mechanisms',
           initialMode: LearningMode.EXPLAIN,
+          autoInitialize: false,
         });
       const sessionId = createRes.body.data.id;
 
@@ -426,6 +429,7 @@ describe('IMP-018: End-to-End Explain Mode Workflow & Acceptance Criteria Verifi
         .send({
           topicQuery: 'Private Research Topic',
           initialMode: LearningMode.EXPLAIN,
+          autoInitialize: false,
         });
       const sessionId = createRes.body.data.id;
 

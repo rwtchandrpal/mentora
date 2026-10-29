@@ -5,6 +5,8 @@ import {
   TopicSessionDTO,
 } from '@mentora/shared';
 import { sessionService, SessionService } from '../services/session.service.js';
+import { userRepository } from '../repositories/user.repository.js';
+import { toQuotaMetaDTO } from '../middlewares/quota.middleware.js';
 
 const extractParamId = (param: string | string[] | undefined): string => {
   if (Array.isArray(param)) {
@@ -32,10 +34,15 @@ export class SessionController {
     res: Response<ApiSuccessEnvelope<TopicSessionDTO>>
   ): Promise<void> => {
     const data = await this.service.createSession(req.user!.id, req.body);
+    let quotaMeta = req.quota;
+    const user = await userRepository.findById(req.user!.id);
+    if (user) {
+      quotaMeta = toQuotaMetaDTO(user.usageQuota);
+    }
     res.status(201).json({
       success: true,
       data,
-      ...(req.quota ? { meta: { quota: req.quota } } : {}),
+      ...(quotaMeta ? { meta: { quota: quotaMeta } } : {}),
     });
   };
 

@@ -91,6 +91,7 @@ describe('IMP-008: TopicSession CRUD & Answer-Masking Mapper (BR-03, FR-004–FR
         .send({
           topicQuery: 'Deadlocks in Operating Systems',
           initialMode: LearningMode.EXPLAIN,
+          autoInitialize: false,
         });
 
       expect(res.status).toBe(201);
@@ -139,6 +140,7 @@ describe('IMP-008: TopicSession CRUD & Answer-Masking Mapper (BR-03, FR-004–FR
         .send({
           topicQuery: 'Turing Machines',
           initialMode: LearningMode.EXPLAIN,
+          autoInitialize: false,
         });
 
       // Small delay to ensure distinct updatedAt
@@ -150,6 +152,7 @@ describe('IMP-008: TopicSession CRUD & Answer-Masking Mapper (BR-03, FR-004–FR
         .send({
           topicQuery: 'Halting Problem',
           initialMode: LearningMode.INTERACT,
+          autoInitialize: false,
         });
 
       const listRes = await request(app)
@@ -178,6 +181,7 @@ describe('IMP-008: TopicSession CRUD & Answer-Masking Mapper (BR-03, FR-004–FR
         .send({
           topicQuery: 'Compilers and Linkers',
           initialMode: LearningMode.EXPLAIN,
+          autoInitialize: false,
         });
 
       const sessionId = created.body.data.id;
@@ -208,6 +212,7 @@ describe('IMP-008: TopicSession CRUD & Answer-Masking Mapper (BR-03, FR-004–FR
         .send({
           topicQuery: 'Compilers and Linkers',
           initialMode: LearningMode.EXPLAIN,
+          autoInitialize: false,
         });
 
       const sessionId = created.body.data.id;
@@ -233,6 +238,7 @@ describe('IMP-008: TopicSession CRUD & Answer-Masking Mapper (BR-03, FR-004–FR
         .send({
           topicQuery: 'Secret Research of User A',
           initialMode: LearningMode.EXPLAIN,
+          autoInitialize: false,
         });
 
       const userASessionId = createdA.body.data.id;
@@ -278,6 +284,7 @@ describe('IMP-008: TopicSession CRUD & Answer-Masking Mapper (BR-03, FR-004–FR
         .send({
           topicQuery: 'Radioactivity and Decay Modes',
           initialMode: LearningMode.PRACTICE,
+          autoInitialize: false,
         });
 
       const sessionId = created.body.data.id;
@@ -373,6 +380,7 @@ describe('IMP-008: TopicSession CRUD & Answer-Masking Mapper (BR-03, FR-004–FR
         .send({
           topicQuery: 'Liskov Substitution Principle',
           initialMode: LearningMode.EXPLAIN,
+          autoInitialize: false,
         });
 
       const sessionId = created.body.data.id;

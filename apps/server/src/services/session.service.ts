@@ -2,6 +2,7 @@ import {
   LearningMode,
   ErrorCode,
   BatchStatus,
+  PracticeTier,
   SessionSummaryDTO,
   TopicSessionDTO,
   CreateSessionRequestDTO,
@@ -19,6 +20,9 @@ import {
   ITopicSessionDocument,
   IPracticeBatch,
 } from '../models/TopicSession.model.js';
+import { explainService, ExplainService } from './explain.service.js';
+import { interactService, InteractService } from './interact.service.js';
+import { practiceService, PracticeService } from './practice.service.js';
 
 const toIsoString = (val: Date | string | null | undefined): string => {
   if (!val) return new Date().toISOString();
@@ -152,7 +156,12 @@ export const toTopicSessionDTO = (
 };
 
 export class SessionService {
-  constructor(private readonly repository: SessionRepository = sessionRepository) {}
+  constructor(
+    private readonly repository: SessionRepository = sessionRepository,
+    private readonly explainServ: ExplainService = explainService,
+    private readonly interactServ: InteractService = interactService,
+    private readonly practiceServ: PracticeService = practiceService
+  ) {}
 
   async createSession(
     userId: string,
@@ -165,7 +174,31 @@ export class SessionService {
       normalizedTitle,
       initialMode: input.initialMode,
     });
-    return toTopicSessionDTO(sessionDoc);
+
+    if (input.autoInitialize === false) {
+      return toTopicSessionDTO(sessionDoc);
+    }
+
+    const sessionId = sessionDoc._id.toString();
+
+    try {
+      if (input.initialMode === LearningMode.EXPLAIN) {
+        return await this.explainServ.initializeExplain(userId, sessionId);
+      } else if (input.initialMode === LearningMode.INTERACT) {
+        const result = await this.interactServ.initializeInteract(userId, sessionId);
+        return result.session;
+      } else if (input.initialMode === LearningMode.PRACTICE) {
+        return await this.practiceServ.generateBatch(
+          userId,
+          sessionId,
+          PracticeTier.EASY
+        );
+      }
+      return toTopicSessionDTO(sessionDoc);
+    } catch (error) {
+      await this.repository.deleteByIdAndUserId(sessionId, userId);
+      throw error;
+    }
   }
 
   async listSessions(userId: string): Promise<SessionSummaryDTO[]> {

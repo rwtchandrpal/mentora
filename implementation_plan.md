@@ -530,7 +530,7 @@ Deliver a production-ready, cloud-deployed AI tutoring web application where aut
 | **Acceptance Criteria** | 1. Starting a session in any of the 3 modes initializes that mode immediately.<br>2. Mode states never overwrite each other when switching tabs.<br>3. Read-only and deterministic grading endpoints work when daily AI quota is `50/50` (`BR-04`). |
 | **Testing** | Integration tests in `apps/server/src/__tests__/cross-mode-continuity.test.ts`. |
 | **Priority** | Must Have |
-| **Status** | Not Started |
+| **Status** | Done |
 
 #### `IMP-026` — Implement Standalone Offline AI Evaluation Suite (`eval:ai`)
 | Field | Specification |
@@ -545,7 +545,7 @@ Deliver a production-ready, cloud-deployed AI tutoring web application where aut
 | **Acceptance Criteria** | 1. `pnpm test` does not invoke `eval-ai.ts`.<br>2. `eval-ai.ts` compiles cleanly under `pnpm typecheck` and reports structured metrics when invoked with a valid `GEMINI_API_KEY`. |
 | **Testing** | Typecheck verification and dry-run mock test of the evaluation runner. |
 | **Priority** | Should Have |
-| **Status** | Not Started |
+| **Status** | Done |
 
 #### `IMP-027` — Configure Vercel Frontend & Render Backend Deployment Artifacts
 | Field | Specification |
@@ -560,7 +560,7 @@ Deliver a production-ready, cloud-deployed AI tutoring web application where aut
 | **Acceptance Criteria** | 1. Full production build (`pnpm --filter @mentora/shared build && pnpm --filter @mentora/server build && pnpm --filter @mentora/client build`) succeeds cleanly from root.<br>2. No secrets or `.env` files are tracked in Git. |
 | **Testing** | Execute full clean build (`pnpm build`) and verify generated `dist/` artifacts in all three workspaces. |
 | **Priority** | Must Have |
-| **Status** | Not Started |
+| **Status** | Done |
 
 #### `IMP-028` — Final Quality Gate Verification & Production Smoke Test Checklist
 | Field | Specification |
@@ -575,7 +575,7 @@ Deliver a production-ready, cloud-deployed AI tutoring web application where aut
 | **Acceptance Criteria** | 100% of unit, component, and API integration tests pass; zero TypeScript or lint errors remain across the monorepo. |
 | **Testing** | Root `pnpm typecheck && pnpm lint && pnpm test && pnpm build`. |
 | **Priority** | Must Have |
-| **Status** | Not Started |
+| **Status** | Done |
 
 ---
 

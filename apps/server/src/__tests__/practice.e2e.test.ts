@@ -102,6 +102,7 @@ describe('IMP-024: Backend End-to-End Practice Mode Progression (Easy -> Medium 
         .send({
           topicQuery: 'Binary Search Trees & Balancing',
           initialMode: LearningMode.PRACTICE,
+          autoInitialize: false,
         });
 
       expect(createRes.status).toBe(201);
@@ -345,6 +346,7 @@ describe('IMP-024: Backend End-to-End Practice Mode Progression (Easy -> Medium 
         .send({
           topicQuery: 'Compilers and Lexical Analysis',
           initialMode: LearningMode.PRACTICE,
+          autoInitialize: false,
         });
       const sessionId = createRes.body.data.id as string;
 
@@ -457,6 +459,7 @@ describe('IMP-024: Backend End-to-End Practice Mode Progression (Easy -> Medium 
         .send({
           topicQuery: 'How to bypass security locks',
           initialMode: LearningMode.PRACTICE,
+          autoInitialize: false,
         });
       const sessionId = createRes.body.data.id as string;
 
@@ -506,6 +509,7 @@ describe('IMP-024: Backend End-to-End Practice Mode Progression (Easy -> Medium 
         .send({
           topicQuery: 'Dynamic Programming & Memoization',
           initialMode: LearningMode.PRACTICE,
+          autoInitialize: false,
         });
       const sessionId = createRes.body.data.id as string;
 
@@ -546,6 +550,7 @@ describe('IMP-024: Backend End-to-End Practice Mode Progression (Easy -> Medium 
         .send({
           topicQuery: 'Graph Traversal Algorithms',
           initialMode: LearningMode.PRACTICE,
+          autoInitialize: false,
         });
       const sessionId = createRes.body.data.id as string;
 

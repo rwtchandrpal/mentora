@@ -13,6 +13,7 @@ export const LearningModeSchema = z.enum(LEARNING_MODES);
 export const CreateSessionRequestSchema = z.object({
   topicQuery: z.string().trim().min(1).max(MAX_TOPIC_QUERY_LENGTH),
   initialMode: LearningModeSchema,
+  autoInitialize: z.boolean().optional(),
 });
 
 export const SwitchModeRequestSchema = z.object({

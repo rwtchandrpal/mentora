@@ -105,6 +105,7 @@ describe('IMP-021: Backend End-to-End Interact Mode Lifecycle & 3-Strike Circuit
       .send({
         topicQuery: 'Distributed Consensus in Raft',
         initialMode: LearningMode.INTERACT,
+        autoInitialize: false,
       });
 
     expect(createSessionRes.status).toBe(201);
@@ -371,6 +372,7 @@ describe('IMP-021: Backend End-to-End Interact Mode Lifecycle & 3-Strike Circuit
       .send({
         topicQuery: 'Private Session by Alice',
         initialMode: LearningMode.INTERACT,
+        autoInitialize: false,
       });
 
     const sessionId = sessionRes.body.data.id as string;

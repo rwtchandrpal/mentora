@@ -8,9 +8,11 @@
   },
   "scripts": {
     "build": "pnpm --filter @mentora/shared build && pnpm --filter @mentora/server build && pnpm --filter @mentora/client build",
+    "start": "pnpm --filter @mentora/server start",
     "typecheck": "pnpm -r typecheck",
     "lint": "eslint .",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run --passWithNoTests",
+    "eval:ai": "pnpm --filter @mentora/server eval:ai"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

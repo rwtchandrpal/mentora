@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: mentora-server
+    runtime: node
+    plan: free
+    buildCommand: pnpm install --frozen-lockfile && pnpm --filter @mentora/shared build && pnpm --filter @mentora/server build
+    startCommand: pnpm --filter @mentora/server start
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "4000"
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: CLIENT_ORIGIN
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_FAST_MODEL
+        value: gemini-3.5-flash-lite
+      - key: GEMINI_REASONING_MODEL
+        value: gemini-3.6-pro
+      - key: DAILY_AI_QUOTA_LIMIT
+        value: "50"
+
