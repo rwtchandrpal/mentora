@@ -74,9 +74,14 @@ export const generateStructuredOutput = async <T>(
   for (let attempt = 1; attempt <= MAX_STRUCTURED_RETRY_ATTEMPTS; attempt++) {
     try {
       const client = getGeminiClient();
+      const currentPrompt =
+        attempt > 1 && lastError instanceof Error
+          ? `${prompt}\n\n[CRITICAL CORRECTION ON ATTEMPT ${attempt}]: Your previous attempt failed schema validation: ${lastError.message}. You MUST return valid JSON adhering strictly to the schema. If isEducationalValid is true, "cards" MUST have EXACTLY 4 cards: step 1 (intuition), step 2 (core_mechanism), step 3 (example), step 4 (check_for_understanding). Never return more or less than 4 cards.`
+          : prompt;
+
       const response = await client.models.generateContent({
         model,
-        contents: prompt,
+        contents: currentPrompt,
         config: {
           systemInstruction,
           responseMimeType: 'application/json',
@@ -128,11 +133,23 @@ export const generateStructuredOutput = async <T>(
       }
 
       // Runtime Zod Schema Validation
+      const cardsLength =
+        typeof parsedJson === 'object' &&
+        parsedJson !== null &&
+        'cards' in parsedJson &&
+        Array.isArray((parsedJson as { cards: unknown[] }).cards)
+          ? (parsedJson as { cards: unknown[] }).cards.length
+          : undefined;
+
       const parseResult = zodSchema.safeParse(parsedJson);
       if (!parseResult.success) {
         const issuesSummary = parseResult.error.issues
           .map((issue) => `${issue.path.join('.') || 'root'}: ${issue.message}`)
           .join('; ');
+        logger.warn(
+          { operation, model, issuesSummary, cardsLength, rawSnippet: rawText.slice(0, 300) },
+          'Structured AI output failed Zod validation'
+        );
         throw new Error(`Zod schema validation failed: ${issuesSummary}`);
       }
 
@@ -159,6 +176,7 @@ export const generateStructuredOutput = async <T>(
           },
           `Structured AI generation attempt ${attempt} failed; retrying once...`
         );
+        await new Promise((resolve) => setTimeout(resolve, 2000));
       }
     }
   }

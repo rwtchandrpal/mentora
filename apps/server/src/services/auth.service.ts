@@ -1,6 +1,8 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import {
+  EducationLevel,
+  ExplanationStyle,
   RegisterRequestDTO,
   LoginRequestDTO,
   UserDTO,
@@ -14,6 +16,14 @@ import { env } from '../config/env.js';
 import { AppError } from '../utils/AppError.js';
 import { IUserDocument } from '../models/User.model.js';
 import { userRepository, UserRepository } from '../repositories/user.repository.js';
+
+export const DEMO_USER_CREDENTIALS = {
+  name: 'Jhon (Demo Learner)',
+  email: 'jhon@email.com',
+  password: 'Jhon1234',
+  educationLevel: EducationLevel.UNDERGRADUATE,
+  preferredStyle: ExplanationStyle.CONCISE_TECHNICAL,
+} as const;
 
 export const toUserDTO = (userDoc: IUserDocument): UserDTO => {
   const profileDto: UserProfileStateDTO = userDoc.profile.isCompleted
@@ -129,9 +139,53 @@ export class AuthService {
     };
   }
 
+  async ensureDemoUser(): Promise<IUserDocument> {
+    const normalizedEmail = DEMO_USER_CREDENTIALS.email.toLowerCase().trim();
+    const existing = await this.userRepo.findByEmailWithPassword(normalizedEmail);
+    if (existing) {
+      let needsSave = false;
+      if (!existing.profile?.isCompleted) {
+        existing.profile = {
+          isCompleted: true,
+          educationLevel: DEMO_USER_CREDENTIALS.educationLevel,
+          preferredStyle: DEMO_USER_CREDENTIALS.preferredStyle,
+        };
+        needsSave = true;
+      }
+      const isMatch = await bcrypt.compare(
+        DEMO_USER_CREDENTIALS.password,
+        existing.passwordHash
+      );
+      if (!isMatch) {
+        existing.passwordHash = await bcrypt.hash(DEMO_USER_CREDENTIALS.password, 12);
+        needsSave = true;
+      }
+      if (needsSave) {
+        await existing.save();
+      }
+      return existing;
+    }
+
+    const passwordHash = await bcrypt.hash(DEMO_USER_CREDENTIALS.password, 12);
+    return this.userRepo.create({
+      name: DEMO_USER_CREDENTIALS.name,
+      email: normalizedEmail,
+      passwordHash,
+      profile: {
+        isCompleted: true,
+        educationLevel: DEMO_USER_CREDENTIALS.educationLevel,
+        preferredStyle: DEMO_USER_CREDENTIALS.preferredStyle,
+      },
+    });
+  }
+
   async login(input: LoginRequestDTO): Promise<AuthResponseDataDTO> {
     const normalizedEmail = input.email.toLowerCase().trim();
-    const user = await this.userRepo.findByEmailWithPassword(normalizedEmail);
+    let user = await this.userRepo.findByEmailWithPassword(normalizedEmail);
+    if (!user && normalizedEmail === DEMO_USER_CREDENTIALS.email) {
+      await this.ensureDemoUser();
+      user = await this.userRepo.findByEmailWithPassword(normalizedEmail);
+    }
     if (!user) {
       throw new AppError(401, ErrorCode.UNAUTHORIZED, 'Invalid email or password');
     }
@@ -174,3 +228,7 @@ export class AuthService {
 }
 
 export const authService = new AuthService();
+
+export const ensureDemoUser = async (): Promise<IUserDocument> => {
+  return authService.ensureDemoUser();
+};

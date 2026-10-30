@@ -388,6 +388,37 @@ describe('IMP-011: Route Guards, Auth Pages, Mandatory Onboarding & Profile Sett
   // 4. Client-Side Validation on Login & Registration (FR-001)
   // =========================================================================
   describe('4. Client-Side Validation (FR-001)', () => {
+    it('LoginPage renders with demo credentials pre-filled and allows resetting if cleared', () => {
+      const store = createAppStore();
+      render(
+        <Provider store={store}>
+          <MemoryRouter>
+            <LoginPage />
+          </MemoryRouter>
+        </Provider>
+      );
+
+      const emailInput = screen.getByLabelText(/email address/i) as HTMLInputElement;
+      const passwordInput = screen.getByLabelText(/password/i) as HTMLInputElement;
+      const resetButton = screen.getByRole('button', { name: /reset to demo account/i });
+
+      // Pre-filled initial values
+      expect(emailInput.value).toBe('jhon@email.com');
+      expect(passwordInput.value).toBe('Jhon1234');
+      expect(screen.getByText(/demo credentials pre-filled/i)).toBeInTheDocument();
+
+      // Clear the inputs
+      fireEvent.change(emailInput, { target: { value: '' } });
+      fireEvent.change(passwordInput, { target: { value: '' } });
+      expect(emailInput.value).toBe('');
+      expect(passwordInput.value).toBe('');
+
+      // Click "Reset to Demo Account" button
+      fireEvent.click(resetButton);
+      expect(emailInput.value).toBe('jhon@email.com');
+      expect(passwordInput.value).toBe('Jhon1234');
+    });
+
     it('LoginPage prevents network calls on invalid email or empty password', async () => {
       let postLoginCalled = false;
       const mockAdapter: AxiosAdapter = async (config) => {

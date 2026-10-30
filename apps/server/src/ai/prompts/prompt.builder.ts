@@ -149,7 +149,7 @@ export class PromptBuilder {
       case LearningMode.EXPLAIN:
         return [
           '### Learning Mode: Explain Mode',
-          '- Pedagogical Sequence: Deconstruct knowledge across 4 progressive pedagogical steps:',
+          '- Pedagogical Sequence: Deconstruct knowledge across EXACTLY 4 progressive pedagogical cards in the "cards" array (cards.length MUST be 4):',
           '  1. Step 1 — Intuition: High-level mental model, motivation, and why the concept exists/matters.',
           '  2. Step 2 — Core Mechanism: Formal rules, foundational theory, equations, or architecture.',
           '  3. Step 3 — Example: Concrete applied scenario, step-by-step problem, or annotated code walkthrough.',
@@ -207,11 +207,13 @@ export class PromptBuilder {
   static buildExplainInitPrompt(topicQuery: string): string {
     return [
       `Initialize an Explain Mode session for the topic: "${topicQuery}".`,
-      'Generate the complete 4-card progressive sequence:',
-      '1. Step 1 — Intuition',
-      '2. Step 2 — Core Mechanism',
-      '3. Step 3 — Example',
-      '4. Step 4 — Check-for-Understanding (CFU)',
+      'Generate a 4-card progressive sequence breaking down this concept.',
+      'If isEducationalValid is true, you MUST produce an array of EXACTLY 4 cards in "cards" in strict order:',
+      '- cards[0]: stepNumber: 1, stepType: "intuition" (Intuition: High-level mental model and motivation)',
+      '- cards[1]: stepNumber: 2, stepType: "core_mechanism" (Core Mechanism: Formal rules, theory, equations, or architecture)',
+      '- cards[2]: stepNumber: 3, stepType: "example" (Example: Concrete applied scenario or annotated code walkthrough)',
+      '- cards[3]: stepNumber: 4, stepType: "check_for_understanding" (CFU: Targeted reflection question in checkQuestion, and answer reveal in checkAnswer. Both fields must be non-empty strings on card 4)',
+      'Never omit any card, never combine cards, and never add extra cards. The "cards" array length must be exactly 4.',
       'Ensure every card is calibrated strictly to the system instruction profile and formatting rules.',
     ].join('\n');
   }

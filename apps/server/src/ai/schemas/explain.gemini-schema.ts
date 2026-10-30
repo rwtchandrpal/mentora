@@ -24,7 +24,8 @@ export const explainInitGeminiSchema: Schema = {
     },
     cards: {
       type: Type.ARRAY,
-      description: 'The 4 progressive explanation cards (Intuition -> Core Mechanism -> Example -> Check-for-Understanding).',
+      maxItems: '4',
+      description: 'The progressive explanation cards. When isEducationalValid is true, this array MUST contain EXACTLY 4 cards: step 1 (intuition), step 2 (core_mechanism), step 3 (example), step 4 (check_for_understanding). When isEducationalValid is false, return empty array [].',
       items: {
         type: Type.OBJECT,
         properties: {

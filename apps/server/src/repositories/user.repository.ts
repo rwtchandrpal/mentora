@@ -7,11 +7,17 @@ export class UserRepository {
     name: string;
     email: string;
     passwordHash: string;
+    profile?: {
+      isCompleted: boolean;
+      educationLevel: EducationLevel | null;
+      preferredStyle: ExplanationStyle | null;
+    };
   }): Promise<IUserDocument> {
     const created = await User.create({
       name: data.name.trim(),
       email: data.email.toLowerCase().trim(),
       passwordHash: data.passwordHash,
+      ...(data.profile ? { profile: data.profile } : {}),
     });
     const doc = await User.findById(created._id).exec();
     return doc ?? created;

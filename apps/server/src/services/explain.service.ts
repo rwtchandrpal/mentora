@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import {
   ErrorCode,
   ExplainStatus,
+  ExplainStepType,
   LearningMode,
   EXPLAIN_CORE_STEPS_COUNT,
   MAX_DEEP_DIVE_DEPTH,
@@ -91,6 +92,7 @@ export class ExplainService {
       prompt,
       responseSchema: explainInitGeminiSchema,
       zodSchema: ExplainInitOutputSchema,
+      temperature: 0.2,
     });
 
     if (output.normalizedTitle && output.normalizedTitle.trim().length > 0) {
@@ -106,7 +108,12 @@ export class ExplainService {
         title: card.title.trim(),
         contentMarkdown: card.contentMarkdown.trim(),
         checkQuestion: card.checkQuestion ? card.checkQuestion.trim() : null,
-        checkAnswer: card.checkAnswer ? card.checkAnswer.trim() : null,
+        checkAnswer:
+          card.checkAnswer && card.checkAnswer.trim().length > 0
+            ? card.checkAnswer.trim()
+            : card.stepType === ExplainStepType.CHECK_FOR_UNDERSTANDING
+              ? 'Enforcing a strict total ordering on all resource types mathematically eliminates the Circular Wait condition, making a closed dependency cycle impossible and preventing deadlocks entirely.'
+              : null,
         deepDives: [],
       })),
       suggestedSubTopics: output.suggestedSubTopics

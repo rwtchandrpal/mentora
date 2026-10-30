@@ -12,6 +12,7 @@ import { env } from '../config/env.js';
 import { createApp } from '../app.js';
 import { User } from '../models/User.model.js';
 import { requireAuth, requireCompletedProfile } from '../middlewares/auth.middleware.js';
+import { ensureDemoUser } from '../services/auth.service.js';
 
 describe('IMP-006: Auth & Profile Routes Integration Tests', () => {
   let mongoServer: MongoMemoryServer;
@@ -184,6 +185,32 @@ describe('IMP-006: Auth & Profile Routes Integration Tests', () => {
           message: 'Invalid email or password',
         },
       });
+    });
+
+    it('authenticates demo user jhon@email.com and auto-provisions with completed learner profile', async () => {
+      const res = await request(app)
+        .post('/api/v1/auth/login')
+        .send({
+          email: 'jhon@email.com',
+          password: 'Jhon1234',
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.token).toBeDefined();
+      expect(res.body.data.user.email).toBe('jhon@email.com');
+      expect(res.body.data.user.profile.isCompleted).toBe(true);
+      expect(res.body.data.user.profile.educationLevel).toBe(EducationLevel.UNDERGRADUATE);
+      expect(res.body.data.user.profile.preferredStyle).toBe(ExplanationStyle.CONCISE_TECHNICAL);
+    });
+
+    it('ensureDemoUser is idempotent when called repeatedly', async () => {
+      const first = await ensureDemoUser();
+      const second = await ensureDemoUser();
+
+      expect(first._id.toString()).toBe(second._id.toString());
+      const count = await User.countDocuments({ email: 'jhon@email.com' });
+      expect(count).toBe(1);
     });
   });
 

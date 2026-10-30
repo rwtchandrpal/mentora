@@ -479,7 +479,10 @@ export const runAiEvaluationSuite = async (
   } else if (isDryRun) {
     generator = createSimulatedDryRunGenerator();
   } else {
-    const apiKey = options.apiKey || process.env.GEMINI_API_KEY || env.GEMINI_API_KEY;
+    const apiKey =
+      options.apiKey !== undefined
+        ? options.apiKey
+        : process.env.GEMINI_API_KEY || env.GEMINI_API_KEY;
     if (!apiKey || apiKey === 'test-gemini-api-key') {
       throw new Error(
         'GEMINI_API_KEY is not configured. Pass a valid API key, set GEMINI_API_KEY in environment, or run with --dry-run for offline verification.'
@@ -824,6 +827,6 @@ const isDirectExecution = (): boolean => {
 
 if (isDirectExecution()) {
   cliMain().then((code) => {
-    process.exit(code);
+    process.exitCode = code;
   });
 }

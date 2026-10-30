@@ -3,11 +3,19 @@ import { app } from './app.js';
 import { env } from './config/env.js';
 import { logger } from './config/logger.js';
 import { connectDatabase, disconnectDatabase } from './config/db.js';
+import { ensureDemoUser } from './services/auth.service.js';
 
 let server: http.Server | null = null;
 
 export const startServer = async (): Promise<http.Server> => {
   await connectDatabase();
+
+  try {
+    await ensureDemoUser();
+    logger.info('Demo user account ensured (jhon@email.com)');
+  } catch (err) {
+    logger.error({ err }, 'Failed to ensure demo user account on startup');
+  }
 
   server = app.listen(env.PORT, () => {
     logger.info(
