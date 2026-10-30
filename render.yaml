@@ -27,4 +27,6 @@ services:
         value: gemini-3.6-pro
       - key: DAILY_AI_QUOTA_LIMIT
         value: "50"
+      - key: MONGOMS_DISABLE_POSTINSTALL
+        value: "1"
 

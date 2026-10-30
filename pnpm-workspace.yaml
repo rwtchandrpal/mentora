@@ -3,8 +3,10 @@ packages:
   - "apps/*"
 
 allowBuilds:
+  '@google/genai': true
   esbuild: true
   mongodb-memory-server: true
+  protobufjs: true
 
 minimumReleaseAgeExclude:
   - "@typescript-eslint/eslint-plugin@8.72.1"
