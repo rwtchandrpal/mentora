@@ -89,7 +89,7 @@ export const TierSelectorBar: React.FC<TierSelectorBarProps> = ({
                 isSelected
                   ? 'border-indigo-600 bg-indigo-50/60 shadow-xs ring-1 ring-indigo-500/20'
                   : isLocked
-                  ? 'border-gray-200 bg-gray-50/70 text-gray-400 cursor-not-allowed opacity-75'
+                  ? 'border-gray-200 bg-gray-50/70 text-gray-700 cursor-not-allowed'
                   : 'border-gray-200 hover:border-gray-300 bg-white hover:bg-gray-50/50 text-gray-700 cursor-pointer'
               }`}
             >
@@ -97,10 +97,10 @@ export const TierSelectorBar: React.FC<TierSelectorBarProps> = ({
                 <span
                   className={`font-semibold text-xs sm:text-sm ${
                     isSelected
-                      ? 'text-indigo-950'
+                      ? 'text-indigo-950 font-bold'
                       : isLocked
-                      ? 'text-gray-400'
-                      : 'text-gray-800'
+                      ? 'text-gray-600'
+                      : 'text-gray-900'
                   }`}
                 >
                   {config.label}
@@ -110,10 +110,10 @@ export const TierSelectorBar: React.FC<TierSelectorBarProps> = ({
                 {isLocked && (
                   <span
                     data-testid={`tier-locked-badge-${config.tier}`}
-                    className="inline-flex items-center gap-1 text-[11px] font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full"
+                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-gray-700 bg-gray-100 px-2 py-0.5 rounded-full"
                   >
                     <svg
-                      className="w-3 h-3 text-gray-400"
+                      className="w-3 h-3 text-gray-500"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -133,7 +133,7 @@ export const TierSelectorBar: React.FC<TierSelectorBarProps> = ({
                 {isCompleted && (
                   <span
                     data-testid={`tier-completed-badge-${config.tier}`}
-                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full"
+                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-800 bg-emerald-50 border border-emerald-300 px-2 py-0.5 rounded-full"
                   >
                     <svg
                       className="w-3 h-3 text-emerald-600"
@@ -156,20 +156,20 @@ export const TierSelectorBar: React.FC<TierSelectorBarProps> = ({
                 {isInProgress && (
                   <span
                     data-testid={`tier-progress-badge-${config.tier}`}
-                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-indigo-700 bg-indigo-100/70 px-2 py-0.5 rounded-full"
+                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-indigo-800 bg-indigo-100 px-2 py-0.5 rounded-full"
                   >
                     In Progress
                   </span>
                 )}
 
                 {!isLocked && !isCompleted && !isInProgress && (
-                  <span className="text-[11px] font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                  <span className="text-[11px] font-semibold text-gray-700 bg-gray-100 px-2 py-0.5 rounded-full">
                     Start
                   </span>
                 )}
               </div>
 
-              <div className="text-[11px] sm:text-xs text-gray-500 line-clamp-1">
+              <div className="text-[11px] sm:text-xs text-gray-600 font-medium line-clamp-1">
                 {isLocked ? lockTooltip : config.description}
               </div>
             </button>

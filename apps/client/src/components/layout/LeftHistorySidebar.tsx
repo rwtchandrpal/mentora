@@ -90,7 +90,7 @@ export const LeftHistorySidebar: React.FC = () => {
           <button
             type="button"
             onClick={() => dispatch(setMobileDrawerOpen(false))}
-            className="lg:hidden p-1 text-gray-400 hover:text-gray-600 rounded-lg"
+            className="lg:hidden p-1 text-gray-600 hover:text-gray-900 rounded-lg"
             aria-label="Close sidebar"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -114,7 +114,7 @@ export const LeftHistorySidebar: React.FC = () => {
 
       {/* Scrollable Session List */}
       <div className="flex-1 overflow-y-auto px-3 py-3 space-y-1">
-        <div className="px-2 pb-2 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+        <div className="px-2 pb-2 text-[11px] font-bold uppercase tracking-wider text-gray-600">
           Recent Topics ({sortedSessions.length})
         </div>
 
@@ -127,7 +127,7 @@ export const LeftHistorySidebar: React.FC = () => {
         )}
 
         {!isLoadingList && sortedSessions.length === 0 && (
-          <div className="p-4 text-center text-xs text-gray-400 leading-relaxed">
+          <div className="p-4 text-center text-xs text-gray-600 font-medium leading-relaxed">
             No saved topics yet.<br />Click "+ New Topic" above to start your first session.
           </div>
         )}
@@ -173,7 +173,7 @@ export const LeftHistorySidebar: React.FC = () => {
                     >
                       {session.lastActiveMode}
                     </span>
-                    <span className="text-[10px] text-gray-400">
+                    <span className="text-[10px] font-medium text-gray-600">
                       {new Date(session.updatedAt).toLocaleDateString([], {
                         month: 'short',
                         day: 'numeric',
@@ -215,7 +215,7 @@ export const LeftHistorySidebar: React.FC = () => {
                         e.stopPropagation();
                         setConfirmDeleteId(session.id);
                       }}
-                      className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-all focus:opacity-100"
+                      className="opacity-0 group-hover:opacity-100 p-1 text-gray-600 hover:text-red-700 hover:bg-red-50 rounded transition-all focus:opacity-100"
                       title="Delete session"
                       aria-label={`Delete session ${session.normalizedTitle}`}
                     >
@@ -252,7 +252,7 @@ export const LeftHistorySidebar: React.FC = () => {
               <button
                 type="button"
                 onClick={() => dispatch(openProfileModal())}
-                className="text-[11px] text-indigo-600 hover:text-indigo-700 hover:underline block truncate text-left"
+                className="text-[11px] font-semibold text-indigo-700 hover:text-indigo-900 hover:underline block truncate text-left"
               >
                 Profile Settings
               </button>
@@ -262,7 +262,7 @@ export const LeftHistorySidebar: React.FC = () => {
           <button
             type="button"
             onClick={() => dispatch(logout())}
-            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+            className="p-1.5 text-gray-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
             title="Sign out"
             aria-label="Sign out"
           >

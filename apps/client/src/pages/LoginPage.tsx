@@ -80,25 +80,25 @@ export const LoginPage: React.FC = () => {
           <h1 className="mt-4 text-3xl font-extrabold text-gray-900 tracking-tight">
             Welcome back to Mentora
           </h1>
-          <p className="mt-2 text-sm text-gray-600">
+          <p className="mt-2 text-sm text-gray-700">
             Sign in to continue your personalized AI tutoring sessions
           </p>
         </div>
 
         {/* Demo Credentials Helper Badge & Reset Button */}
-        <div className="flex items-center justify-between p-3 bg-indigo-50 border border-indigo-100 rounded-xl text-xs text-indigo-800">
+        <div className="flex items-center justify-between p-3 bg-indigo-50 border border-indigo-100 rounded-xl text-xs text-indigo-900 font-medium">
           <div className="flex items-center space-x-2">
             <span
-              className="inline-block w-2 h-2 rounded-full bg-indigo-500 animate-pulse"
+              className="inline-block w-2 h-2 rounded-full bg-indigo-600 animate-pulse"
               aria-hidden="true"
             />
-            <span className="font-medium">Demo Credentials Pre-filled</span>
+            <span className="font-semibold">Demo Credentials Pre-filled</span>
           </div>
           <button
             type="button"
             onClick={handleResetToDemo}
             aria-label="Reset to Demo Account"
-            className="text-indigo-600 hover:text-indigo-800 font-semibold underline focus:outline-none focus:ring-1 focus:ring-indigo-500 rounded px-1 transition-colors"
+            className="text-indigo-700 hover:text-indigo-900 font-bold underline focus:outline-none focus:ring-1 focus:ring-indigo-500 rounded px-1 transition-colors"
           >
             Reset to Demo Account
           </button>
@@ -117,7 +117,7 @@ export const LoginPage: React.FC = () => {
         <form className="mt-8 space-y-6" onSubmit={handleSubmit} noValidate>
           <div className="space-y-4">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="email" className="block text-sm font-semibold text-gray-900">
                 Email address
               </label>
               <div className="mt-1">
@@ -133,7 +133,7 @@ export const LoginPage: React.FC = () => {
                   aria-describedby={fieldErrors.email ? 'email-error' : undefined}
                   className={`appearance-none block w-full px-3 py-2 border ${
                     fieldErrors.email ? 'border-red-300' : 'border-gray-300'
-                  } rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm`}
+                  } rounded-lg shadow-sm placeholder-gray-500 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm`}
                   placeholder="learner@university.edu"
                 />
                 {fieldErrors.email && (
@@ -145,7 +145,7 @@ export const LoginPage: React.FC = () => {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="password" className="block text-sm font-semibold text-gray-900">
                 Password
               </label>
               <div className="mt-1">
@@ -161,7 +161,7 @@ export const LoginPage: React.FC = () => {
                   aria-describedby={fieldErrors.password ? 'password-error' : undefined}
                   className={`appearance-none block w-full px-3 py-2 border ${
                     fieldErrors.password ? 'border-red-300' : 'border-gray-300'
-                  } rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm`}
+                  } rounded-lg shadow-sm placeholder-gray-500 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm`}
                   placeholder="••••••••"
                 />
                 {fieldErrors.password && (
@@ -184,10 +184,10 @@ export const LoginPage: React.FC = () => {
           </div>
 
           <div className="text-center text-sm">
-            <span className="text-gray-600">Don't have an account? </span>
+            <span className="text-gray-700">Don't have an account? </span>
             <Link
               to="/register"
-              className="font-medium text-indigo-600 hover:text-indigo-500 transition-colors"
+              className="font-semibold text-indigo-700 hover:text-indigo-900 transition-colors"
             >
               Create an account
             </Link>

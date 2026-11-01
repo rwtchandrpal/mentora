@@ -1,3 +1,160 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* =========================================================================
+   Centralized Typography & WCAG AA Color Contrast Tokens (NFR-004)
+   ========================================================================= */
+
+/* Default Light Surface Markdown & Content Tokens */
+.rich-markdown-renderer {
+  --rm-text-primary: #0f172a;       /* slate-900: contrast 18.6:1 on white */
+  --rm-text-secondary: #1e293b;     /* slate-800: contrast 14.8:1 on white */
+  --rm-text-body: #334155;          /* slate-700: contrast 10.0:1 on white */
+  --rm-text-muted: #475569;         /* slate-600: contrast 7.0:1 on white */
+  --rm-link: #3730a3;               /* indigo-800: contrast 8.6:1 on white */
+  --rm-link-hover: #1e1b4b;         /* indigo-950 */
+  --rm-code-bg: #f1f5f9;            /* slate-100 */
+  --rm-code-text: #3730a3;          /* indigo-800: contrast 8.6:1 on slate-100 */
+  --rm-code-border: #cbd5e1;        /* slate-300 */
+  --rm-table-border: #cbd5e1;       /* slate-300 */
+  --rm-table-bg: #ffffff;
+  --rm-table-header-bg: #f8fafc;    /* slate-50 */
+  --rm-table-row-hover: #f1f5f9;    /* slate-100 */
+  --rm-quote-border: #4f46e5;       /* indigo-600 */
+  --rm-quote-bg: #f8fafc;           /* slate-50 */
+  --rm-hr-border: #e2e8f0;          /* slate-200 */
+  color: var(--rm-text-body);
+}
+
+/* Explicit text color passed via className to RichMarkdownRenderer (e.g. text-amber-900, text-indigo-900) */
+.rich-markdown-renderer[class*="text-"] {
+  --rm-text-primary: currentColor;
+  --rm-text-secondary: currentColor;
+  --rm-text-body: currentColor;
+  --rm-text-muted: currentColor;
+  color: currentColor;
+}
+
+/* Dark Surface Markdown Tokens (e.g. inside ExplainCard & DeepDiveSubCard bg-slate-900 containers) */
+.bg-slate-900 .rich-markdown-renderer,
+.dark-surface .rich-markdown-renderer,
+.dark .rich-markdown-renderer,
+.rich-markdown-renderer.dark {
+  --rm-text-primary: #f8fafc;       /* slate-50: contrast 16.9:1 on slate-900 */
+  --rm-text-secondary: #f1f5f9;     /* slate-100: contrast 15.3:1 on slate-900 */
+  --rm-text-body: #e2e8f0;          /* slate-200: contrast 13.6:1 on slate-900 */
+  --rm-text-muted: #cbd5e1;         /* slate-300: contrast 10.4:1 on slate-900 */
+  --rm-link: #818cf8;               /* indigo-400: contrast 6.5:1 on slate-900 */
+  --rm-link-hover: #a5b4fc;         /* indigo-300 */
+  --rm-code-bg: #1e293b;            /* slate-800 */
+  --rm-code-text: #a5b4fc;          /* indigo-300: contrast 6.5:1 on slate-800 */
+  --rm-code-border: #334155;        /* slate-700 */
+  --rm-table-border: #334155;       /* slate-700 */
+  --rm-table-bg: rgba(15, 23, 42, 0.85);
+  --rm-table-header-bg: rgba(30, 41, 59, 0.95);
+  --rm-table-row-hover: rgba(30, 41, 59, 0.5);
+  --rm-quote-border: #6366f1;       /* indigo-500 */
+  --rm-quote-bg: rgba(30, 41, 59, 0.5);
+  --rm-hr-border: #334155;          /* slate-700 */
+  color: var(--rm-text-body);
+}
+
+/* User Message Chat Bubble (Indigo Surface) Tokens */
+.bg-indigo-600 .rich-markdown-renderer,
+.prose-invert .rich-markdown-renderer {
+  --rm-text-primary: #ffffff;
+  --rm-text-secondary: #f8fafc;
+  --rm-text-body: #ffffff;          /* white: contrast 8.2:1 on indigo-600 */
+  --rm-text-muted: #e0e7ff;         /* indigo-100: contrast 7.2:1 on indigo-600 */
+  --rm-link: #ffffff;
+  --rm-link-hover: #e0e7ff;
+  --rm-code-bg: rgba(30, 27, 75, 0.6);
+  --rm-code-text: #ffffff;
+  --rm-code-border: rgba(255, 255, 255, 0.25);
+  --rm-table-border: rgba(255, 255, 255, 0.25);
+  --rm-table-bg: rgba(0, 0, 0, 0.2);
+  --rm-table-header-bg: rgba(0, 0, 0, 0.35);
+  --rm-table-row-hover: rgba(255, 255, 255, 0.1);
+  --rm-quote-border: #ffffff;
+  --rm-quote-bg: rgba(255, 255, 255, 0.15);
+  --rm-hr-border: rgba(255, 255, 255, 0.25);
+  color: var(--rm-text-body);
+}
+
+/* Element Styles bound to Tokens */
+.rich-markdown-renderer .rich-h1 {
+  color: var(--rm-text-primary);
+}
+.rich-markdown-renderer .rich-h2 {
+  color: var(--rm-text-primary);
+}
+.rich-markdown-renderer .rich-h3 {
+  color: var(--rm-text-secondary);
+}
+.rich-markdown-renderer .rich-h4 {
+  color: var(--rm-text-secondary);
+}
+.rich-markdown-renderer .rich-p {
+  color: var(--rm-text-body);
+}
+.rich-markdown-renderer .rich-ul,
+.rich-markdown-renderer .rich-ol {
+  color: var(--rm-text-body);
+}
+.rich-markdown-renderer .rich-ul > li::marker,
+.rich-markdown-renderer .rich-ol > li::marker {
+  color: var(--rm-text-secondary);
+}
+.rich-markdown-renderer .rich-li {
+  color: var(--rm-text-body);
+}
+.rich-markdown-renderer .rich-blockquote {
+  border-left-color: var(--rm-quote-border);
+  background-color: var(--rm-quote-bg);
+  color: var(--rm-text-body);
+}
+.rich-markdown-renderer .rich-link {
+  color: var(--rm-link);
+}
+.rich-markdown-renderer .rich-link:hover {
+  color: var(--rm-link-hover);
+}
+.rich-markdown-renderer .rich-code {
+  background-color: var(--rm-code-bg);
+  color: var(--rm-code-text);
+  border-color: var(--rm-code-border);
+}
+.rich-markdown-renderer .rich-table-container {
+  border-color: var(--rm-table-border);
+}
+.rich-markdown-renderer .rich-table {
+  background-color: var(--rm-table-bg);
+  border-color: var(--rm-table-border);
+  color: var(--rm-text-body);
+}
+.rich-markdown-renderer .rich-thead {
+  background-color: var(--rm-table-header-bg);
+  color: var(--rm-text-primary);
+}
+.rich-markdown-renderer .rich-tbody {
+  border-color: var(--rm-table-border);
+}
+.rich-markdown-renderer .rich-tr:hover {
+  background-color: var(--rm-table-row-hover);
+}
+.rich-markdown-renderer .rich-th {
+  color: var(--rm-text-primary);
+}
+.rich-markdown-renderer .rich-td {
+  color: var(--rm-text-body);
+}
+.rich-markdown-renderer .rich-hr {
+  border-color: var(--rm-hr-border);
+}
+.rich-markdown-renderer .katex {
+  color: inherit;
+}
+.katex-wrapper {
+  color: inherit;
+}

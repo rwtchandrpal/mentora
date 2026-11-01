@@ -262,7 +262,7 @@ export const PracticeStage: React.FC = () => {
             <h3 className="text-lg sm:text-xl font-bold text-gray-900">
               Generating 10 Verified {activeTier.toUpperCase()} Questions...
             </h3>
-            <p className="text-xs sm:text-sm text-gray-500">
+            <p className="text-xs sm:text-sm text-gray-600 font-medium">
               Mentora is formulating rigorous problems with step-by-step reasoning derivations before answer keys are locked. This may take a few moments.
             </p>
           </div>
@@ -334,12 +334,12 @@ export const PracticeStage: React.FC = () => {
           {/* Full-Batch Submit Bar (BR-03) */}
           <div className="bg-white rounded-2xl p-5 sm:p-6 border border-gray-200 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4 sticky bottom-4">
             <div className="text-center sm:text-left">
-              <span className="text-xs sm:text-sm font-semibold text-gray-800 block">
+              <span className="text-xs sm:text-sm font-semibold text-gray-900 block">
                 {isComplete
                   ? 'All 10 questions answered! Ready to submit for instant grading.'
                   : `Please answer all 10 questions before submitting (${10 - answeredCount} remaining).`}
               </span>
-              <span className="text-xs text-gray-500">
+              <span className="text-xs text-gray-600 font-medium">
                 Your selections are automatically saved locally as you practice.
               </span>
             </div>
@@ -373,7 +373,7 @@ export const PracticeStage: React.FC = () => {
             <h3 className="text-xl font-bold text-gray-900">
               Start {activeTier.toUpperCase()} Batch
             </h3>
-            <p className="text-sm text-gray-600 max-w-md">
+            <p className="text-sm text-gray-700 max-w-md">
               Generate 10 rigorous multiple-choice questions calibrated to the {activeTier} tier with verified derivations.
             </p>
           </div>
@@ -391,9 +391,9 @@ export const PracticeStage: React.FC = () => {
         /* Locked Tier View (BR-02) */
         <div
           data-testid="practice-locked-view"
-          className="bg-white rounded-2xl p-8 sm:p-12 border border-gray-200 shadow-xs text-center flex flex-col items-center justify-center space-y-4 text-gray-500"
+          className="bg-white rounded-2xl p-8 sm:p-12 border border-gray-200 shadow-xs text-center flex flex-col items-center justify-center space-y-4 text-gray-700"
         >
-          <div className="w-12 h-12 rounded-2xl bg-gray-100 text-gray-400 flex items-center justify-center">
+          <div className="w-12 h-12 rounded-2xl bg-gray-100 text-gray-600 flex items-center justify-center">
             <svg
               className="w-6 h-6"
               fill="none"
@@ -408,10 +408,10 @@ export const PracticeStage: React.FC = () => {
               />
             </svg>
           </div>
-          <h3 className="text-xl font-bold text-gray-700">
+          <h3 className="text-xl font-bold text-gray-900">
             {activeTier.toUpperCase()} Tier Locked
           </h3>
-          <p className="text-sm text-gray-500 max-w-md">
+          <p className="text-sm text-gray-600 font-medium max-w-md">
             {activeTier === PracticeTier.MEDIUM
               ? 'Complete and submit the Easy tier batch to unlock Medium assessment.'
               : 'Complete and submit the Medium tier batch to unlock Hard assessment.'}

@@ -34,8 +34,8 @@ export const StreamingBubble: React.FC<StreamingBubbleProps> = ({
             Mentora Tutor
           </span>
           {isStreaming && (
-            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-purple-600">
-              <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-ping" />
+            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-purple-700">
+              <span className="w-1.5 h-1.5 rounded-full bg-purple-600 animate-ping" />
               Thinking...
             </span>
           )}
@@ -45,18 +45,18 @@ export const StreamingBubble: React.FC<StreamingBubbleProps> = ({
         {isStreaming && !streamBuffer && !streamError && (
           <div
             data-testid="streaming-thinking-indicator"
-            className="flex items-center gap-1.5 py-2 text-purple-600"
+            className="flex items-center gap-1.5 py-2 text-purple-700"
           >
-            <span className="w-2 h-2 rounded-full bg-purple-400 animate-bounce" />
+            <span className="w-2 h-2 rounded-full bg-purple-500 animate-bounce" />
             <span
-              className="w-2 h-2 rounded-full bg-purple-500 animate-bounce"
+              className="w-2 h-2 rounded-full bg-purple-600 animate-bounce"
               style={{ animationDelay: '0.15s' }}
             />
             <span
-              className="w-2 h-2 rounded-full bg-purple-600 animate-bounce"
+              className="w-2 h-2 rounded-full bg-purple-700 animate-bounce"
               style={{ animationDelay: '0.3s' }}
             />
-            <span className="text-xs text-gray-500 ml-2">
+            <span className="text-xs text-gray-600 font-medium ml-2">
               Formulating guided Socratic response...
             </span>
           </div>
@@ -64,7 +64,7 @@ export const StreamingBubble: React.FC<StreamingBubbleProps> = ({
 
         {/* Streamed Markdown Content */}
         {streamBuffer.length > 0 && (
-          <div className="prose prose-sm max-w-none text-gray-800">
+          <div className="prose prose-sm max-w-none text-gray-900">
             <RichMarkdownRenderer content={streamBuffer} />
             {isStreaming && (
               <span

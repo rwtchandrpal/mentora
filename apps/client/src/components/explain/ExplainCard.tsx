@@ -33,11 +33,11 @@ const STEP_TYPE_CONFIG: Record<
   },
   example: {
     label: 'Applied Example',
-    badgeClasses: 'bg-amber-50 text-amber-700 border-amber-200',
+    badgeClasses: 'bg-amber-50 text-amber-800 border-amber-300',
   },
   check_for_understanding: {
     label: 'Check for Understanding',
-    badgeClasses: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    badgeClasses: 'bg-emerald-50 text-emerald-800 border-emerald-300',
   },
 };
 
@@ -55,7 +55,7 @@ export const ExplainCard: React.FC<ExplainCardProps> = ({
 
   const stepMeta = STEP_TYPE_CONFIG[card.stepType] ?? {
     label: card.stepType,
-    badgeClasses: 'bg-gray-50 text-gray-700 border-gray-200',
+    badgeClasses: 'bg-gray-50 text-gray-800 border-gray-300',
   };
 
   const hasCFU = card.stepNumber === 4 || Boolean(card.checkQuestion);
@@ -83,7 +83,7 @@ export const ExplainCard: React.FC<ExplainCardProps> = ({
             </span>
           </div>
 
-          <span className="text-[11px] font-medium text-gray-400">
+          <span className="text-[11px] font-semibold text-slate-600">
             Progressive Card {card.stepNumber} of 4
           </span>
         </div>

@@ -97,7 +97,7 @@ export const MermaidDiagram: React.FC<MermaidDiagramProps> = ({
   if (isLoading || !svgHtml) {
     return (
       <div
-        className={`my-4 p-6 rounded-lg border border-slate-800 bg-slate-900/40 text-center text-xs text-slate-400 animate-pulse ${className}`}
+        className={`my-4 p-6 rounded-lg border border-slate-800 bg-slate-900/60 text-center text-xs text-slate-300 font-medium animate-pulse ${className}`}
         data-testid="mermaid-loading"
       >
         Rendering diagram...

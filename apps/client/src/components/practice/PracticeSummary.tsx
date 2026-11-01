@@ -77,10 +77,10 @@ export const PracticeSummary: React.FC<PracticeSummaryProps> = ({
         >
           <div className="text-left">
             <span className="text-xs text-indigo-200 block font-medium">Easy Tier</span>
-            <span className="text-xs text-indigo-300/80">Foundational</span>
+            <span className="text-xs text-indigo-200">Foundational</span>
           </div>
           <div className="text-lg font-bold text-white">
-            {easyScore} <span className="text-xs text-indigo-300 font-normal">/ 10</span>
+            {easyScore} <span className="text-xs text-indigo-200 font-normal">/ 10</span>
           </div>
         </div>
 
@@ -90,10 +90,10 @@ export const PracticeSummary: React.FC<PracticeSummaryProps> = ({
         >
           <div className="text-left">
             <span className="text-xs text-indigo-200 block font-medium">Medium Tier</span>
-            <span className="text-xs text-indigo-300/80">Application</span>
+            <span className="text-xs text-indigo-200">Application</span>
           </div>
           <div className="text-lg font-bold text-white">
-            {mediumScore} <span className="text-xs text-indigo-300 font-normal">/ 10</span>
+            {mediumScore} <span className="text-xs text-indigo-200 font-normal">/ 10</span>
           </div>
         </div>
 
@@ -103,7 +103,7 @@ export const PracticeSummary: React.FC<PracticeSummaryProps> = ({
         >
           <div className="text-left">
             <span className="text-xs text-indigo-200 block font-medium">Hard Tier</span>
-            <span className="text-xs text-indigo-300/80">Synthesis & Edge Cases</span>
+            <span className="text-xs text-indigo-200">Synthesis & Edge Cases</span>
           </div>
           <div className="text-lg font-bold text-white">
             {hardScore} <span className="text-xs text-indigo-300 font-normal">/ 10</span>

@@ -132,7 +132,7 @@ export const WorkspacePage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => dispatch(toggleMobileDrawer())}
-                  className="p-1.5 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+                  className="p-1.5 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100"
                   aria-label="Open sidebar menu"
                 >
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -154,7 +154,7 @@ export const WorkspacePage: React.FC = () => {
                   <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">
                     What topic would you like to master?
                   </h1>
-                  <p className="text-sm text-gray-600 max-w-lg mx-auto">
+                  <p className="text-sm text-gray-700 max-w-lg mx-auto">
                     Enter any academic theory, mathematical principle, system architecture, or skill to begin your personalized tutoring session.
                   </p>
                 </div>
@@ -210,9 +210,9 @@ export const WorkspacePage: React.FC = () => {
                         value={topicQuery}
                         onChange={(e) => handleInputChange(e.target.value)}
                         placeholder="e.g. Distributed Consensus in Raft, Eigenvalues & Eigenvectors, or RNA Splicing..."
-                        className="block w-full p-3.5 border border-gray-300 rounded-xl shadow-xs text-sm sm:text-base focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 placeholder-gray-400 transition-all resize-none"
+                        className="block w-full p-3.5 border border-gray-300 rounded-xl shadow-xs text-sm sm:text-base focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 placeholder-gray-500 transition-all resize-none"
                       />
-                      <div className="absolute right-3 bottom-2.5 text-[11px] font-medium text-gray-400">
+                      <div className="absolute right-3 bottom-2.5 text-[11px] font-semibold text-gray-600">
                         {topicQuery.length} / {MAX_TOPIC_QUERY_LENGTH}
                       </div>
                     </div>
@@ -269,7 +269,7 @@ export const WorkspacePage: React.FC = () => {
                               <span className="inline-block text-[10px] font-medium text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded">
                                 {opt.badge}
                               </span>
-                              <p className="text-[11px] text-gray-500 leading-tight pt-1">
+                              <p className="text-[11px] text-gray-600 font-medium leading-tight pt-1">
                                 {opt.description}
                               </p>
                             </div>

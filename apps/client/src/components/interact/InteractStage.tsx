@@ -105,7 +105,7 @@ export const InteractStage: React.FC = () => {
           <p className="text-sm font-semibold text-gray-700">
             Decomposing topic into conceptual milestones...
           </p>
-          <p className="text-xs text-gray-400 max-w-md text-center">
+          <p className="text-xs text-gray-600 font-medium max-w-md text-center">
             Mentora is calibrating the Socratic dialogue and crafting an opening diagnostic question.
           </p>
         </div>

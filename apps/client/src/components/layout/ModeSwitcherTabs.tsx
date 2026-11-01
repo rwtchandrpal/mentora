@@ -82,13 +82,13 @@ export const ModeSwitcherTabs: React.FC = () => {
             className={`flex items-center space-x-1.5 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
               isActive
                 ? 'bg-white text-indigo-700 shadow-sm border border-gray-200/60'
-                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200/60'
+                : 'text-gray-700 hover:text-gray-900 hover:bg-gray-200/80'
             }`}
           >
             <span>{tab.label}</span>
             <span
-              className={`hidden sm:inline-block text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
-                isActive ? 'bg-indigo-50 text-indigo-700' : 'bg-gray-200 text-gray-600'
+              className={`hidden sm:inline-block text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+                isActive ? 'bg-indigo-50 text-indigo-700' : 'bg-gray-200 text-gray-700'
               }`}
             >
               {tab.badge}

@@ -14,7 +14,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
       <div
         role="status"
         aria-live="polite"
-        className="min-h-screen flex items-center justify-center bg-gray-50 text-gray-600"
+        className="min-h-screen flex items-center justify-center bg-gray-50 text-gray-700"
       >
         <div className="flex flex-col items-center space-y-3">
           <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />

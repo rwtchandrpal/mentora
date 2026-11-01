@@ -131,7 +131,7 @@ export const OnboardingPage: React.FC = () => {
       <div className="max-w-xl w-full mx-auto space-y-8 bg-white p-8 sm:p-10 rounded-2xl shadow-sm border border-gray-200">
         {/* Header and Step Indicator */}
         <div>
-          <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-indigo-600 mb-2">
+          <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-indigo-700 mb-2">
             <span>Step {step} of 2</span>
             <span>{step === 1 ? '50% Completed' : '95% Completed'}</span>
           </div>
@@ -147,7 +147,7 @@ export const OnboardingPage: React.FC = () => {
               ? 'What is your current learning background?'
               : 'How do you prefer concepts explained?'}
           </h1>
-          <p className="mt-2 text-sm text-gray-600">
+          <p className="mt-2 text-sm text-gray-700">
             {step === 1
               ? 'Mentora calibrates vocabulary, mathematical depth, and problem context based on your background.'
               : 'Choose the pedagogical presentation style that best resonates with your mental models.'}
@@ -202,11 +202,11 @@ export const OnboardingPage: React.FC = () => {
                       <span className="font-semibold text-gray-900 text-base">
                         {option.title}
                       </span>
-                      <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-gray-100 text-gray-700">
+                      <span className="text-xs px-2 py-0.5 rounded-full font-semibold bg-gray-100 text-gray-800">
                         {option.badge}
                       </span>
                     </div>
-                    <p className="text-xs text-gray-600 leading-relaxed">
+                    <p className="text-xs text-gray-700 leading-relaxed">
                       {option.description}
                     </p>
                   </div>
@@ -262,11 +262,11 @@ export const OnboardingPage: React.FC = () => {
                       <span className="font-semibold text-gray-900 text-base">
                         {option.title}
                       </span>
-                      <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-gray-100 text-gray-700">
+                      <span className="text-xs px-2 py-0.5 rounded-full font-semibold bg-gray-100 text-gray-800">
                         {option.badge}
                       </span>
                     </div>
-                    <p className="text-xs text-gray-600 leading-relaxed">
+                    <p className="text-xs text-gray-700 leading-relaxed">
                       {option.description}
                     </p>
                   </div>
@@ -291,7 +291,7 @@ export const OnboardingPage: React.FC = () => {
             <button
               type="button"
               onClick={handlePrevStep}
-              className="py-2.5 px-5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+              className="py-2.5 px-5 border border-gray-300 rounded-lg text-sm font-medium text-gray-800 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
             >
               Back
             </button>

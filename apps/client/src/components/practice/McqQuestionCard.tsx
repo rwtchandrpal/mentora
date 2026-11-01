@@ -29,7 +29,7 @@ export const McqQuestionCard: React.FC<McqQuestionCardProps> = ({
       <div className="flex items-center justify-between pb-3 mb-4 border-b border-gray-100">
         <span
           id={`question-title-${question.questionNumber}`}
-          className="text-xs sm:text-sm font-semibold tracking-wide text-indigo-700 uppercase"
+          className="text-xs sm:text-sm font-bold tracking-wide text-indigo-800 uppercase"
         >
           Question {question.questionNumber} of 10
         </span>
@@ -41,10 +41,10 @@ export const McqQuestionCard: React.FC<McqQuestionCardProps> = ({
             onClick={() => setShowHint((prev) => !prev)}
             aria-expanded={showHint}
             aria-controls={`hint-container-${question.questionNumber}`}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-lg transition-colors text-amber-700 bg-amber-50 hover:bg-amber-100/80 border border-amber-200/80 focus:outline-none focus:ring-2 focus:ring-amber-500"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-lg transition-colors text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-500"
           >
             <svg
-              className="w-3.5 h-3.5 text-amber-600"
+              className="w-3.5 h-3.5 text-amber-700"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -122,14 +122,14 @@ export const McqQuestionCard: React.FC<McqQuestionCardProps> = ({
                 className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 transition-colors ${
                   isSelected
                     ? 'bg-indigo-600 text-white'
-                    : 'bg-gray-100 text-gray-700 border border-gray-200'
+                    : 'bg-gray-100 text-gray-800 border border-gray-300'
                 }`}
               >
                 {label}
               </div>
 
               {/* Option Text rendered with RichMarkdownRenderer */}
-              <div className="flex-1 text-xs sm:text-sm text-gray-800 pt-0.5">
+              <div className="flex-1 text-xs sm:text-sm text-gray-900 pt-0.5">
                 <RichMarkdownRenderer content={optionText} />
               </div>
 

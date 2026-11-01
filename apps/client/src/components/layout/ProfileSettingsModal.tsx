@@ -141,14 +141,14 @@ export const ProfileSettingsModal: React.FC = () => {
               <h2 id="profile-modal-title" className="text-xl font-bold text-gray-900">
                 Learner Profile Settings
               </h2>
-              <p className="text-xs text-gray-500 mt-0.5">
+              <p className="text-xs text-gray-600 font-medium mt-0.5">
                 Update how Mentora personalizes explanations across all sessions
               </p>
             </div>
             <button
               type="button"
               onClick={handleClose}
-              className="text-gray-400 hover:text-gray-600 rounded-lg p-1 transition-colors"
+              className="text-gray-600 hover:text-gray-900 rounded-lg p-1 transition-colors"
               aria-label="Close modal"
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -176,7 +176,7 @@ export const ProfileSettingsModal: React.FC = () => {
             <div>
               <label
                 htmlFor="education-select"
-                className="block text-sm font-semibold text-gray-800 mb-1"
+                className="block text-sm font-semibold text-gray-900 mb-1"
               >
                 Education / Experience Level
               </label>
@@ -192,7 +192,7 @@ export const ProfileSettingsModal: React.FC = () => {
                   </option>
                 ))}
               </select>
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-gray-600 font-medium mt-1">
                 {EDUCATION_OPTIONS.find((o) => o.value === educationLevel)?.desc}
               </p>
             </div>
@@ -201,7 +201,7 @@ export const ProfileSettingsModal: React.FC = () => {
             <div>
               <label
                 htmlFor="style-select"
-                className="block text-sm font-semibold text-gray-800 mb-1"
+                className="block text-sm font-semibold text-gray-900 mb-1"
               >
                 Preferred Explanation Style
               </label>
@@ -217,7 +217,7 @@ export const ProfileSettingsModal: React.FC = () => {
                   </option>
                 ))}
               </select>
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-gray-600 font-medium mt-1">
                 {STYLE_OPTIONS.find((o) => o.value === preferredStyle)?.desc}
               </p>
             </div>

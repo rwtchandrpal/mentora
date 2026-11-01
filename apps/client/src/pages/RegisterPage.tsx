@@ -74,7 +74,7 @@ export const RegisterPage: React.FC = () => {
           <h1 className="mt-4 text-3xl font-extrabold text-gray-900 tracking-tight">
             Create your Mentora account
           </h1>
-          <p className="mt-2 text-sm text-gray-600">
+          <p className="mt-2 text-sm text-gray-700">
             Start mastering complex topics with your personal Socratic tutor
           </p>
         </div>
@@ -92,7 +92,7 @@ export const RegisterPage: React.FC = () => {
         <form className="mt-8 space-y-6" onSubmit={handleSubmit} noValidate>
           <div className="space-y-4">
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="name" className="block text-sm font-semibold text-gray-900">
                 Full name
               </label>
               <div className="mt-1">
@@ -108,7 +108,7 @@ export const RegisterPage: React.FC = () => {
                   aria-describedby={fieldErrors.name ? 'name-error' : undefined}
                   className={`appearance-none block w-full px-3 py-2 border ${
                     fieldErrors.name ? 'border-red-300' : 'border-gray-300'
-                  } rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm`}
+                  } rounded-lg shadow-sm placeholder-gray-500 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm`}
                   placeholder="Marie Curie"
                 />
                 {fieldErrors.name && (
@@ -120,7 +120,7 @@ export const RegisterPage: React.FC = () => {
             </div>
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="email" className="block text-sm font-semibold text-gray-900">
                 Email address
               </label>
               <div className="mt-1">
@@ -136,7 +136,7 @@ export const RegisterPage: React.FC = () => {
                   aria-describedby={fieldErrors.email ? 'email-error' : undefined}
                   className={`appearance-none block w-full px-3 py-2 border ${
                     fieldErrors.email ? 'border-red-300' : 'border-gray-300'
-                  } rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm`}
+                  } rounded-lg shadow-sm placeholder-gray-500 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm`}
                   placeholder="learner@university.edu"
                 />
                 {fieldErrors.email && (
@@ -148,7 +148,7 @@ export const RegisterPage: React.FC = () => {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="password" className="block text-sm font-semibold text-gray-900">
                 Password
               </label>
               <div className="mt-1">
@@ -164,7 +164,7 @@ export const RegisterPage: React.FC = () => {
                   aria-describedby={fieldErrors.password ? 'password-error' : undefined}
                   className={`appearance-none block w-full px-3 py-2 border ${
                     fieldErrors.password ? 'border-red-300' : 'border-gray-300'
-                  } rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm`}
+                  } rounded-lg shadow-sm placeholder-gray-500 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm`}
                   placeholder="At least 8 characters"
                 />
                 {fieldErrors.password && (
@@ -187,10 +187,10 @@ export const RegisterPage: React.FC = () => {
           </div>
 
           <div className="text-center text-sm">
-            <span className="text-gray-600">Already have an account? </span>
+            <span className="text-gray-700">Already have an account? </span>
             <Link
               to="/login"
-              className="font-medium text-indigo-600 hover:text-indigo-500 transition-colors"
+              className="font-semibold text-indigo-700 hover:text-indigo-900 transition-colors"
             >
               Sign in
             </Link>

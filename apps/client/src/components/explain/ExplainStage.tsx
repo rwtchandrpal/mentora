@@ -168,9 +168,9 @@ export const ExplainStage: React.FC = () => {
             <h3 className="text-base sm:text-lg font-bold text-gray-900">
               Breaking down topic into 4 progressive learning cards...
             </h3>
-            <p className="text-xs sm:text-sm text-gray-600 max-w-md mx-auto">
+            <p className="text-xs sm:text-sm text-gray-700 max-w-md mx-auto">
               Calibrating conceptual intuition, mechanisms, and examples for{' '}
-              <span className="font-semibold text-gray-800">
+              <span className="font-semibold text-gray-900">
                 "{activeSession.normalizedTitle || activeSession.topicQuery}"
               </span>{' '}
               to your learner profile ({user?.profile?.educationLevel?.replace('_', ' ') || 'learner'}).

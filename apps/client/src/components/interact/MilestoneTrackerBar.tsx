@@ -33,7 +33,7 @@ export const MilestoneTrackerBar: React.FC<MilestoneTrackerBarProps> = ({
           <h2 className="text-sm font-semibold text-gray-900 tracking-tight">
             Conceptual Milestones
           </h2>
-          <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+          <span className="text-xs font-semibold text-gray-700 bg-gray-100 px-2 py-0.5 rounded-full">
             {completedCount} of {milestones.length} Completed
           </span>
         </div>
@@ -44,8 +44,8 @@ export const MilestoneTrackerBar: React.FC<MilestoneTrackerBarProps> = ({
             data-testid="strike-indicator"
             className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
               strikeCount === 1
-                ? 'bg-amber-50 text-amber-800 border border-amber-200'
-                : 'bg-orange-50 text-orange-800 border border-orange-200 animate-pulse'
+                ? 'bg-amber-50 text-amber-800 border border-amber-300'
+                : 'bg-orange-50 text-orange-800 border border-orange-300 animate-pulse'
             }`}
           >
             <span className="w-1.5 h-1.5 rounded-full bg-current" />
@@ -58,7 +58,7 @@ export const MilestoneTrackerBar: React.FC<MilestoneTrackerBarProps> = ({
         {isCompleted && (
           <span
             data-testid="milestones-completed-badge"
-            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200"
+            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200"
           >
             <svg
               className="w-3.5 h-3.5"
@@ -99,11 +99,11 @@ export const MilestoneTrackerBar: React.FC<MilestoneTrackerBarProps> = ({
                   ? 'bg-emerald-50/60 border-emerald-200 text-emerald-950'
                   : isCurrentActive
                     ? 'bg-purple-50/80 border-purple-300 ring-2 ring-purple-500/20 shadow-xs'
-                    : 'bg-gray-50/50 border-gray-200 text-gray-500 opacity-75'
+                    : 'bg-gray-50 border-gray-200 text-gray-700'
               }`}
             >
               <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[11px] font-bold tracking-wider uppercase opacity-75">
+                <span className="text-[11px] font-bold tracking-wider uppercase text-gray-600">
                   Milestone {milestone.milestoneNumber}
                 </span>
 
@@ -138,7 +138,7 @@ export const MilestoneTrackerBar: React.FC<MilestoneTrackerBarProps> = ({
                 )}
 
                 {isPending && (
-                  <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-gray-200 text-gray-600 text-[11px] font-medium">
+                  <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-gray-200 text-gray-800 text-[11px] font-bold">
                     {milestone.milestoneNumber}
                   </span>
                 )}
@@ -150,7 +150,7 @@ export const MilestoneTrackerBar: React.FC<MilestoneTrackerBarProps> = ({
                     ? 'text-emerald-900'
                     : isCurrentActive
                       ? 'text-purple-950 font-bold'
-                      : 'text-gray-700'
+                      : 'text-gray-900'
                 }`}
                 title={milestone.title}
               >
@@ -160,10 +160,10 @@ export const MilestoneTrackerBar: React.FC<MilestoneTrackerBarProps> = ({
               <p
                 className={`text-[11px] mt-1 line-clamp-2 leading-relaxed ${
                   isStepCompleted
-                    ? 'text-emerald-800/80'
+                    ? 'text-emerald-900'
                     : isCurrentActive
-                      ? 'text-purple-800'
-                      : 'text-gray-500'
+                      ? 'text-purple-900 font-medium'
+                      : 'text-gray-600 font-medium'
                 }`}
                 title={milestone.description}
               >

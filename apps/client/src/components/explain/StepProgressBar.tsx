@@ -77,7 +77,7 @@ export const StepProgressBar: React.FC<StepProgressBarProps> = ({
                         ? 'bg-indigo-600 text-white ring-4 ring-indigo-100 scale-105'
                         : isCompleted
                         ? 'bg-indigo-50 border-2 border-indigo-600 text-indigo-700'
-                        : 'bg-gray-100 border border-gray-300 text-gray-400'
+                        : 'bg-gray-100 border border-gray-300 text-gray-600'
                     }`}
                   >
                     {isCompleted ? (
@@ -97,7 +97,7 @@ export const StepProgressBar: React.FC<StepProgressBarProps> = ({
                       </svg>
                     ) : isLocked ? (
                       <svg
-                        className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-400"
+                        className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-500"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -119,17 +119,17 @@ export const StepProgressBar: React.FC<StepProgressBarProps> = ({
                   <span
                     className={`mt-2 text-xs font-semibold truncate max-w-[80px] sm:max-w-[140px] ${
                       isCurrent
-                        ? 'text-indigo-600'
+                        ? 'text-indigo-700 font-bold'
                         : isCompleted
-                        ? 'text-gray-800'
-                        : 'text-gray-400'
+                        ? 'text-gray-900'
+                        : 'text-gray-700'
                     }`}
                   >
                     {step.label}
                   </span>
 
                   {/* Sub-label for desktop */}
-                  <span className="hidden sm:inline-block text-[10px] text-gray-400 truncate max-w-[130px]">
+                  <span className="hidden sm:inline-block text-[10px] text-gray-600 truncate max-w-[130px] font-medium">
                     {step.shortDesc}
                   </span>
                 </div>

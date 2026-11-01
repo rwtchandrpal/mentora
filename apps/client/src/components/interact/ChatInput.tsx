@@ -52,11 +52,11 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     >
       {/* Top Action Row: Escape Hatch Button + Context */}
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="text-xs text-gray-500 truncate max-w-xs sm:max-w-md">
+        <div className="text-xs text-gray-600 font-medium truncate max-w-xs sm:max-w-md">
           {activeMilestoneTitle ? (
             <span>
               Active Goal:{' '}
-              <span className="font-semibold text-gray-700">
+              <span className="font-semibold text-gray-800">
                 {activeMilestoneTitle}
               </span>
             </span>
@@ -71,10 +71,10 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           data-testid="explain-directly-button"
           onClick={handleExplainDirectly}
           disabled={isStreaming || disabled}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-purple-700 bg-purple-50 hover:bg-purple-100 active:bg-purple-200 border border-purple-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-2xs"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-purple-800 bg-purple-50 hover:bg-purple-100 active:bg-purple-200 border border-purple-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-2xs"
           title="Skip Socratic questioning and request a direct explanation of this milestone"
         >
-          <span className="text-purple-600">💡</span>
+          <span className="text-purple-700">💡</span>
           Explain this milestone directly
         </button>
       </div>
@@ -96,7 +96,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                   ? 'Mentora is streaming a response...'
                   : 'Respond to Mentora or explain your thinking... (Press Enter to send, Shift+Enter for new line)'
             }
-            className="w-full resize-none p-3 text-sm text-gray-900 placeholder-gray-400 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed transition-all"
+            className="w-full resize-none p-3 text-sm text-gray-900 placeholder-gray-500 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed transition-all"
           />
         </div>
 
@@ -109,7 +109,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                 ? 'text-rose-600 font-bold'
                 : charsRemaining < 200
                   ? 'text-amber-600 font-medium'
-                  : 'text-gray-400'
+                  : 'text-gray-600 font-medium'
             }`}
           >
             {message.length} / {MAX_INTERACT_MESSAGE_LENGTH}

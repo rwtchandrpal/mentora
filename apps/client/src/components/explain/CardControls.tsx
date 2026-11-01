@@ -50,7 +50,7 @@ export const CardControls: React.FC<CardControlsProps> = ({
                 ? 'bg-indigo-100 text-indigo-700 cursor-wait'
                 : canGoDeeper
                 ? 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200'
-                : 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed'
+                : 'bg-gray-100 text-gray-500 border border-gray-200 cursor-not-allowed'
             }`}
           >
             {isGoingDeeper ? (
@@ -136,7 +136,7 @@ export const CardControls: React.FC<CardControlsProps> = ({
               <h4 className="text-sm font-bold text-gray-900">
                 You have completed the foundational 4-step explanation!
               </h4>
-              <p className="text-xs text-gray-600">
+              <p className="text-xs text-gray-700 font-medium">
                 Deepen your mastery with conversational inquiry or test your retrieval through tiered MCQ assessment:
               </p>
             </div>

@@ -24,9 +24,9 @@ export const DeepDiveSubCard: React.FC<DeepDiveSubCardProps> = ({ deepDive, inde
             Deep Dive #{index + 1}
           </span>
         </div>
-        <div className="inline-flex items-center text-xs text-indigo-700 bg-white/80 border border-indigo-200/60 px-2 py-0.5 rounded-md">
+        <div className="inline-flex items-center text-xs font-medium text-indigo-800 bg-white border border-indigo-200 px-2 py-0.5 rounded-md">
           <svg
-            className="w-3.5 h-3.5 mr-1 text-indigo-500"
+            className="w-3.5 h-3.5 mr-1 text-indigo-600"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"

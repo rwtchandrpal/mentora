@@ -72,13 +72,13 @@ export const BatchReviewView: React.FC<BatchReviewViewProps> = ({
             <span className="text-xs font-bold uppercase tracking-wider text-indigo-700 bg-indigo-50 px-2.5 py-0.5 rounded-full">
               {tier.toUpperCase()} TIER REVIEW
             </span>
-            <span className="text-xs text-gray-400">•</span>
-            <span className="text-xs text-gray-500">10 Questions Completed</span>
+            <span className="text-xs text-gray-600 font-bold">•</span>
+            <span className="text-xs text-gray-700 font-semibold">10 Questions Completed</span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">
             Batch Score: {score} / 10 ({percentage}%)
           </h2>
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-gray-700">
             {percentage >= 80
               ? 'Outstanding performance! You have demonstrated strong conceptual mastery for this tier.'
               : percentage >= 60
@@ -140,7 +140,7 @@ export const BatchReviewView: React.FC<BatchReviewViewProps> = ({
             >
               {/* Question Review Header */}
               <div className="flex items-center justify-between pb-3 mb-4 border-b border-gray-100">
-                <span className="text-xs sm:text-sm font-semibold tracking-wide text-gray-500 uppercase">
+                <span className="text-xs sm:text-sm font-bold tracking-wide text-gray-700 uppercase">
                   Question {q.questionNumber} of 10
                 </span>
 
@@ -201,7 +201,7 @@ export const BatchReviewView: React.FC<BatchReviewViewProps> = ({
 
                   // Determine container styles
                   let containerStyles =
-                    'border-gray-200 bg-gray-50/50 text-gray-700';
+                    'border-gray-200 bg-gray-50/50 text-gray-800';
                   if (isCorrectOption) {
                     containerStyles =
                       'border-emerald-500 bg-emerald-50/70 text-emerald-950 font-medium ring-1 ring-emerald-500/30';
@@ -224,7 +224,7 @@ export const BatchReviewView: React.FC<BatchReviewViewProps> = ({
                               ? 'bg-emerald-600 text-white'
                               : isUserChoice
                               ? 'bg-rose-600 text-white'
-                              : 'bg-gray-200 text-gray-700'
+                              : 'bg-gray-200 text-gray-800'
                           }`}
                         >
                           {label}
