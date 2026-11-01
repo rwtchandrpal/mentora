@@ -22,14 +22,11 @@ Instead of re-explaining your background every time you start a new chat, you se
 
 ---
 
-## Demo & Screenshots
-
-- **Live Demo:** [Mentora Live Workspace](#) *(placeholder link for Vercel deployment)*
-- **Backend API Health:** [Mentora API Status](#) *(placeholder link for Render `/api/v1/health`)*
-
-![Explain Mode](./docs/images/explain-mode.png)
-![Interact Mode](./docs/images/interact-mode.png)
-![Practice Mode](./docs/images/practice-mode.png)
+<p align="center">
+  <a href="mentoraclient.vercel.app/login">
+    <img src="https://img.shields.io/badge/Live_Demo-Visit%20Website-2ea44f?style=for-the-badge" alt="Live Demo">
+  </a>
+</p>
 
 ---
 
