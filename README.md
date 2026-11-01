@@ -21,8 +21,8 @@ Mentora is built for independent learners, including high school students, unive
 Instead of re-explaining your background every time you start a new chat, you set up a learning profile once. After that, you can enter any topic and switch smoothly between reading structured explanations, having a guided conversation, and taking practice tests inside a single workspace.
 
 ---
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Visit%20Now-blue?style=for-the-badge)](https://mentoraclient.vercel.app/)
 
-[![Demo](https://img.shields.io/badge/Demo-Live-brightgreen?style=for-the-badge&logo=googlechrome&logoColor=white)]([https://your-demo-link.com](https://mentoraclient.vercel.app/login))
 
 ---
 
