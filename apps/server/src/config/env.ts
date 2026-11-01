@@ -36,5 +36,8 @@ const TEST_ENV_DEFAULTS: NodeJS.ProcessEnv = {
 
 export const env: Env =
   process.env.NODE_ENV === 'test' || process.env.MENTORA_STANDALONE === 'true'
-    ? parseEnv({ ...TEST_ENV_DEFAULTS, ...process.env })
+    ? parseEnv({
+        ...process.env,
+        ...TEST_ENV_DEFAULTS,
+      })
     : parseEnv(process.env);

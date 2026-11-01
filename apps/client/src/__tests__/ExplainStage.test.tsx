@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import React from 'react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, cleanup, act } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { MemoryRouter } from 'react-router-dom';
 import { AxiosError, type AxiosAdapter, type InternalAxiosRequestConfig } from 'axios';
@@ -22,6 +22,7 @@ import {
 } from '@mentora/shared';
 import { apiClient } from '../services/apiClient.js';
 import { createAppStore, type PreloadedRootState } from '../store/index.js';
+import { fetchSessionByIdThunk } from '../store/sessionSlice.js';
 import { ExplainStage } from '../components/explain/ExplainStage.js';
 
 // Mock mermaid for JSDOM
@@ -574,6 +575,77 @@ describe('IMP-017: Frontend Explain Mode Stage, Stepper, & Go Deeper UI', () => 
       expect(switchedMode).toBe(LearningMode.PRACTICE);
     });
     expect(store.getState().session.activeMode).toBe(LearningMode.PRACTICE);
+  });
+
+  it('Issue 4: resets isAnswerRevealed whenever switching to another topic session or card', async () => {
+    const session1 = createBaseSession(3);
+    const session2: TopicSessionDTO = {
+      ...createBaseSession(3),
+      id: 'session-exp-2',
+      _id: 'session-exp-2',
+      topicQuery: 'Binary Search',
+      explainState: {
+        ...session1.explainState,
+        cards: [
+          ...session1.explainState.cards.slice(0, 3),
+          {
+            ...session1.explainState.cards[3]!,
+            checkQuestion: 'What is the time complexity if the array is unsorted?',
+            checkAnswer: 'Binary search yields incorrect results; linear search is required.',
+          },
+        ],
+      },
+    };
+
+    const { store } = renderComponent({
+      auth: {
+        token: 'token',
+        user: mockUser,
+        quota: null,
+        authStatus: 'authenticated',
+        error: null,
+      },
+      session: {
+        sessionList: [],
+        activeSession: session1,
+        activeMode: LearningMode.EXPLAIN,
+        isLoadingList: false,
+        isLoadingSession: false,
+        isCreatingSession: false,
+        error: null,
+        streamingState: {
+          isStreaming: false,
+          streamBuffer: '',
+          streamError: null,
+          activeTurnId: null,
+        },
+        isInitializingExplain: false,
+        deepDiveLoadingStep: null,
+        explainError: null,
+      },
+    });
+
+    // Reveal answer on session 1
+    const revealBtn = screen.getByRole('button', { name: /reveal answer/i });
+    fireEvent.click(revealBtn);
+    expect(screen.getByTestId('cfu-answer')).toBeInTheDocument();
+    expect(screen.getByText(/Neither candidate achieves a majority/i)).toBeInTheDocument();
+
+    // Switch active session to session 2
+    act(() => {
+      store.dispatch(
+        fetchSessionByIdThunk.fulfilled(
+          { success: true, data: session2 },
+          '',
+          session2.id
+        )
+      );
+    });
+
+    // Answer must be hidden on the new session
+    expect(screen.queryByTestId('cfu-answer')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /reveal answer/i })).toBeInTheDocument();
+    expect(screen.getByText(/What is the time complexity if the array is unsorted/i)).toBeInTheDocument();
   });
 
   // 5. Auto-Initialization & Progressive Loading Skeleton (NFR-002)

@@ -349,7 +349,7 @@ export const PracticeStage: React.FC = () => {
               aria-disabled={!isComplete || isSubmittingPractice}
               className="w-full sm:w-auto px-7 py-3 rounded-xl font-bold text-sm text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-indigo-600"
             >
-              {isSubmittingPractice ? 'Grading Batch...' : 'Submit Batch (10 Questions)'}
+              {isSubmittingPractice ? 'Submitting...' : 'Submit'}
             </button>
           </div>
         </div>

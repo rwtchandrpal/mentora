@@ -2,6 +2,7 @@ import React from 'react';
 import { LearningMode } from '@mentora/shared';
 import { useAppDispatch, useAppSelector } from '../../store/hooks.js';
 import { setActiveMode, switchSessionModeThunk } from '../../store/sessionSlice.js';
+import { getModeTabClasses } from '../../utils/modeTheme.js';
 
 interface ModeTabDefinition {
   mode: LearningMode;
@@ -71,11 +72,10 @@ export const ModeSwitcherTabs: React.FC = () => {
             tabIndex={isActive ? 0 : -1}
             onClick={() => handleSelectMode(tab.mode)}
             onKeyDown={(e) => handleKeyDown(e, idx)}
-            className={`flex items-center px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+            className={`flex items-center px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500 ${getModeTabClasses(
+              tab.mode,
               isActive
-                ? 'bg-white text-indigo-700 shadow-sm border border-gray-200/60'
-                : 'text-gray-700 hover:text-gray-900 hover:bg-gray-200/80'
-            }`}
+            )}`}
           >
             <span>{tab.label}</span>
           </button>

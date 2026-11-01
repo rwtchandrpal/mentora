@@ -20,6 +20,7 @@ import { SidebarToggleButton } from '../components/layout/SidebarToggleButton.js
 import { ExplainStage } from '../components/explain/ExplainStage.js';
 import { InteractStage } from '../components/interact/InteractStage.js';
 import { PracticeStage } from '../components/practice/PracticeStage.js';
+import { getModeCardClasses, getModeRadioClasses } from '../utils/modeTheme.js';
 
 interface ModeOption {
   mode: LearningMode;
@@ -244,21 +245,19 @@ export const WorkspacePage: React.FC = () => {
                                 setSelectedInitialMode(opt.mode);
                               }
                             }}
-                            className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all flex items-center justify-between ${
+                            className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all flex items-center justify-between ${getModeCardClasses(
+                              opt.mode,
                               isSelected
-                                ? 'border-indigo-600 bg-indigo-50/50 shadow-xs'
-                                : 'border-gray-200 hover:border-gray-300 bg-white'
-                            }`}
+                            )}`}
                           >
                             <span className="font-semibold text-xs sm:text-sm text-gray-900">
                               {opt.title}
                             </span>
                             <div
-                              className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                              className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${getModeRadioClasses(
+                                opt.mode,
                                 isSelected
-                                  ? 'border-indigo-600 bg-indigo-600'
-                                  : 'border-gray-300'
-                              }`}
+                              )}`}
                             >
                               {isSelected && (
                                 <div className="w-1.5 h-1.5 rounded-full bg-white" />

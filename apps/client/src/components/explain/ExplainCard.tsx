@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   MAX_DEEP_DIVE_DEPTH,
   type ExplainCardDTO,
@@ -52,6 +52,10 @@ export const ExplainCard: React.FC<ExplainCardProps> = ({
   onSwitchMode,
 }) => {
   const [isAnswerRevealed, setIsAnswerRevealed] = useState(false);
+
+  useEffect(() => {
+    setIsAnswerRevealed(false);
+  }, [card.stepNumber, card.checkQuestion, card.checkAnswer]);
 
   const stepMeta = STEP_TYPE_CONFIG[card.stepType] ?? {
     label: card.stepType,

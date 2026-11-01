@@ -488,6 +488,7 @@ describe('IMP-023: Frontend Practice Mode UI Stage & useQuizDraftPersistence', (
     expect(screen.getByText(/Answered: 9 \/ 10 Questions/i)).toBeInTheDocument();
     const submitBtn = screen.getByTestId('submit-batch-btn');
     expect(submitBtn).toBeDisabled();
+    expect(submitBtn).toHaveTextContent(/^Submit$/);
 
     // Answer question 10 (index 9) with Option B (index 1)
     const option10_1 = screen.getByTestId('mcq-option-10-1');

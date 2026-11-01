@@ -53,12 +53,12 @@ export const explainInitGeminiSchema: Schema = {
           },
           checkQuestion: {
             type: Type.STRING,
-            description: 'Targeted reflection question for Step 4 (CFU), or null for steps 1-3.',
+            description: 'Targeted reflection question for Step 4 (CFU) specifically testing comprehension of the topic, or null for steps 1-3.',
             nullable: true,
           },
           checkAnswer: {
             type: Type.STRING,
-            description: 'Targeted reflection answer reveal for Step 4 (CFU), or null for steps 1-3.',
+            description: 'Accurate, explanatory answer reveal for Step 4 (CFU) directly answering checkQuestion, or null for steps 1-3.',
             nullable: true,
           },
         },

@@ -173,6 +173,13 @@ describe('IMP-016: Backend Explain Mode Service & Endpoints (FR-007, FR-008, BR-
       expect(sessionData.explainState.cards[1].stepType).toBe(ExplainStepType.CORE_MECHANISM);
       expect(sessionData.explainState.cards[2].stepType).toBe(ExplainStepType.EXAMPLE);
       expect(sessionData.explainState.cards[3].stepType).toBe(ExplainStepType.CHECK_FOR_UNDERSTANDING);
+      expect(sessionData.explainState.cards[3].checkQuestion).toBe(
+        'What is the time complexity if the array is unsorted?'
+      );
+      expect(sessionData.explainState.cards[3].checkAnswer).toBe(
+        'Binary search yields incorrect results on unsorted inputs; linear search $\\mathcal{O}(n)$ is required.'
+      );
+      expect(sessionData.explainState.cards[3].checkAnswer).not.toContain('Circular Wait');
 
       // Verify quota was incremented
       expect(res.body.meta?.quota?.used).toBe(1);

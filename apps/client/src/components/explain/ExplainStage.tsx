@@ -303,7 +303,7 @@ export const ExplainStage: React.FC = () => {
 
             return (
               <ExplainCard
-                key={card.stepNumber}
+                key={`${sessionId}-${card.stepNumber}`}
                 card={card}
                 isLatestVisibleCard={isLatestVisible}
                 isGoingDeeper={isCardGoingDeeper}

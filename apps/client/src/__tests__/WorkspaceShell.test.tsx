@@ -226,9 +226,18 @@ describe('IMP-012: Unified Workspace Shell, Left History Sidebar, & Mode Switche
       expect(screen.getByText('Select Mode')).toBeInTheDocument();
       expect(screen.queryByText(/Enter any academic theory/i)).not.toBeInTheDocument();
 
-      expect(screen.getByRole('radio', { name: /explain mode/i })).toBeInTheDocument();
-      expect(screen.getByRole('radio', { name: /interact mode/i })).toBeInTheDocument();
-      expect(screen.getByRole('radio', { name: /practice mode/i })).toBeInTheDocument();
+      const explainRadio = screen.getByRole('radio', { name: /explain mode/i });
+      expect(explainRadio).toBeInTheDocument();
+      expect(explainRadio).toHaveAttribute('aria-checked', 'true');
+      expect(explainRadio).toHaveClass('border-blue-600');
+
+      const interactRadio = screen.getByRole('radio', { name: /interact mode/i });
+      expect(interactRadio).toBeInTheDocument();
+      expect(interactRadio).toHaveAttribute('aria-checked', 'false');
+
+      const practiceRadio = screen.getByRole('radio', { name: /practice mode/i });
+      expect(practiceRadio).toBeInTheDocument();
+      expect(practiceRadio).toHaveAttribute('aria-checked', 'false');
 
       // Submit button is initially disabled
       expect(
@@ -443,7 +452,9 @@ describe('IMP-012: Unified Workspace Shell, Left History Sidebar, & Mode Switche
 
       // Verify Explain stage is rendered
       expect(screen.getByTestId('explain-stage')).toBeInTheDocument();
-      expect(screen.getByRole('tab', { name: 'Explain Mode' })).toHaveAttribute('aria-selected', 'true');
+      const explainTab = screen.getByRole('tab', { name: 'Explain Mode' });
+      expect(explainTab).toHaveAttribute('aria-selected', 'true');
+      expect(explainTab).toHaveClass('text-blue-800');
       expect(screen.queryByText('4 Cards')).not.toBeInTheDocument();
       expect(screen.queryByText('Socratic')).not.toBeInTheDocument();
       expect(screen.queryByText('10 MCQs')).not.toBeInTheDocument();
@@ -457,6 +468,7 @@ describe('IMP-012: Unified Workspace Shell, Left History Sidebar, & Mode Switche
         expect(screen.getByTestId('interact-stage')).toBeInTheDocument();
       });
       expect(interactTab).toHaveAttribute('aria-selected', 'true');
+      expect(interactTab).toHaveClass('text-emerald-800');
       expect(patchModeCalled).toBe(true);
       expect(patchedMode).toBe(LearningMode.INTERACT);
       expect(store.getState().session.activeMode).toBe(LearningMode.INTERACT);
@@ -470,6 +482,7 @@ describe('IMP-012: Unified Workspace Shell, Left History Sidebar, & Mode Switche
         expect(screen.getByTestId('practice-stage-placeholder')).toBeInTheDocument();
       });
       expect(practiceTab).toHaveAttribute('aria-selected', 'true');
+      expect(practiceTab).toHaveClass('text-violet-800');
       expect(store.getState().session.activeMode).toBe(LearningMode.PRACTICE);
     });
 
@@ -774,7 +787,7 @@ describe('IMP-012: Unified Workspace Shell, Left History Sidebar, & Mode Switche
 
       expect(store.getState().ui.isSidebarOpen).toBe(true);
 
-      // 1. When open: collapse button is in top-left with aria-expanded="true" and left arrow
+      // 1. When open: collapse button is in top-right with aria-expanded="true" and left arrow
       const collapseBtn = screen.getByLabelText(/collapse sidebar/i);
       expect(collapseBtn).toBeInTheDocument();
       expect(collapseBtn).toHaveAttribute('aria-expanded', 'true');

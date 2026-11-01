@@ -212,7 +212,7 @@ export class PromptBuilder {
       '- cards[0]: stepNumber: 1, stepType: "intuition" (Intuition: High-level mental model and motivation)',
       '- cards[1]: stepNumber: 2, stepType: "core_mechanism" (Core Mechanism: Formal rules, theory, equations, or architecture)',
       '- cards[2]: stepNumber: 3, stepType: "example" (Example: Concrete applied scenario or annotated code walkthrough)',
-      '- cards[3]: stepNumber: 4, stepType: "check_for_understanding" (CFU: Targeted reflection question in checkQuestion, and answer reveal in checkAnswer. Both fields must be non-empty strings on card 4)',
+      `- cards[3]: stepNumber: 4, stepType: "check_for_understanding" (CFU: "checkQuestion" MUST contain a targeted reflection question specifically testing comprehension of "${topicQuery}". "checkAnswer" MUST contain the direct, accurate explanatory answer directly solving that exact "checkQuestion". Both fields must be non-empty strings specifically authored for "${topicQuery}" and directly matching each other)`,
       'Never omit any card, never combine cards, and never add extra cards. The "cards" array length must be exactly 4.',
       'Ensure every card is calibrated strictly to the system instruction profile and formatting rules.',
     ].join('\n');

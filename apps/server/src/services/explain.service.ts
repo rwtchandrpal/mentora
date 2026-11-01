@@ -2,7 +2,6 @@ import crypto from 'node:crypto';
 import {
   ErrorCode,
   ExplainStatus,
-  ExplainStepType,
   LearningMode,
   EXPLAIN_CORE_STEPS_COUNT,
   MAX_DEEP_DIVE_DEPTH,
@@ -111,9 +110,7 @@ export class ExplainService {
         checkAnswer:
           card.checkAnswer && card.checkAnswer.trim().length > 0
             ? card.checkAnswer.trim()
-            : card.stepType === ExplainStepType.CHECK_FOR_UNDERSTANDING
-              ? 'Enforcing a strict total ordering on all resource types mathematically eliminates the Circular Wait condition, making a closed dependency cycle impossible and preventing deadlocks entirely.'
-              : null,
+            : null,
         deepDives: [],
       })),
       suggestedSubTopics: output.suggestedSubTopics

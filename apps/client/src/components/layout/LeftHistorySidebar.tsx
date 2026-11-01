@@ -15,6 +15,7 @@ import {
 import { logout } from '../../store/authSlice.js';
 import { QuotaBadge } from './QuotaBadge.js';
 import { SidebarToggleButton } from './SidebarToggleButton.js';
+import { getModeBadgeClasses } from '../../utils/modeTheme.js';
 
 export const LeftHistorySidebar: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -64,16 +65,7 @@ export const LeftHistorySidebar: React.FC = () => {
   };
 
   const getModeBadgeColor = (mode: LearningMode) => {
-    switch (mode) {
-      case LearningMode.EXPLAIN:
-        return 'bg-blue-50 text-blue-700 border-blue-200';
-      case LearningMode.INTERACT:
-        return 'bg-purple-50 text-purple-700 border-purple-200';
-      case LearningMode.PRACTICE:
-        return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-      default:
-        return 'bg-gray-50 text-gray-700 border-gray-200';
-    }
+    return getModeBadgeClasses(mode);
   };
 
   const renderSidebarContent = () => (
@@ -81,33 +73,35 @@ export const LeftHistorySidebar: React.FC = () => {
       {/* Brand & New Topic Section */}
       <div className="p-4 border-b border-gray-100 space-y-3">
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2.5">
+            <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white font-bold flex items-center justify-center text-sm shadow-md">
+              M
+            </div>
+            <span className="font-bold text-gray-900 tracking-tight text-lg">Mentora</span>
+          </div>
+
+          <div className="flex items-center space-x-1">
+            {/* Desktop sidebar collapse toggle (top-right of sidebar when open) */}
             {isSidebarOpen && (
               <SidebarToggleButton
                 isSidebarOpen={isSidebarOpen}
                 onClick={() => dispatch(toggleSidebar())}
-                className="hidden lg:flex -ml-1"
+                className="hidden lg:flex"
               />
             )}
-            <div className="flex items-center space-x-2.5">
-              <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white font-bold flex items-center justify-center text-sm shadow-md">
-                M
-              </div>
-              <span className="font-bold text-gray-900 tracking-tight text-lg">Mentora</span>
-            </div>
-          </div>
 
-          {/* Close button for mobile drawer */}
-          <button
-            type="button"
-            onClick={() => dispatch(setMobileDrawerOpen(false))}
-            className="lg:hidden p-1 text-gray-600 hover:text-gray-900 rounded-lg border-0 outline-none ring-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-            aria-label="Close sidebar"
-          >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+            {/* Close button for mobile drawer */}
+            <button
+              type="button"
+              onClick={() => dispatch(setMobileDrawerOpen(false))}
+              className="lg:hidden p-1 text-gray-600 hover:text-gray-900 rounded-lg border-0 outline-none ring-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+              aria-label="Close sidebar"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
         </div>
 
         {/* "+ New Topic" Action Button */}

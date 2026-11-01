@@ -75,6 +75,22 @@ export const ExplainInitOutputSchema = z
             path: ['cards', i, 'stepType'],
           });
         }
+        if (card.stepType === ExplainStepType.CHECK_FOR_UNDERSTANDING) {
+          if (!card.checkQuestion || card.checkQuestion.trim().length === 0) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: 'Card 4 (check_for_understanding) must have a non-empty checkQuestion',
+              path: ['cards', i, 'checkQuestion'],
+            });
+          }
+          if (!card.checkAnswer || card.checkAnswer.trim().length === 0) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: 'Card 4 (check_for_understanding) must have a non-empty checkAnswer',
+              path: ['cards', i, 'checkAnswer'],
+            });
+          }
+        }
       }
     } else {
       if (!data.refusalReason || data.refusalReason.trim().length === 0) {
