@@ -22,7 +22,7 @@ Instead of re-explaining your background every time you start a new chat, you se
 
 ---
 
-<p align="center">
+<p>
   <a href="mentoraclient.vercel.app/login">
     <img src="https://img.shields.io/badge/Live_Demo-Visit%20Website-2ea44f?style=for-the-badge" alt="Live Demo">
   </a>
