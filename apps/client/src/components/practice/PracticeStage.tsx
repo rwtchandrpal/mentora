@@ -263,7 +263,7 @@ export const PracticeStage: React.FC = () => {
               Generating 10 Verified {activeTier.toUpperCase()} Questions...
             </h3>
             <p className="text-xs sm:text-sm text-gray-600 font-medium">
-              Mentora is formulating rigorous problems with step-by-step reasoning derivations before answer keys are locked. This may take a few moments.
+              Formulating questions with step-by-step solutions. This may take a few moments.
             </p>
           </div>
 
@@ -336,11 +336,8 @@ export const PracticeStage: React.FC = () => {
             <div className="text-center sm:text-left">
               <span className="text-xs sm:text-sm font-semibold text-gray-900 block">
                 {isComplete
-                  ? 'All 10 questions answered! Ready to submit for instant grading.'
-                  : `Please answer all 10 questions before submitting (${10 - answeredCount} remaining).`}
-              </span>
-              <span className="text-xs text-gray-600 font-medium">
-                Your selections are automatically saved locally as you practice.
+                  ? 'All 10 questions answered. Ready to submit.'
+                  : `${10 - answeredCount} of 10 questions remaining.`}
               </span>
             </div>
 

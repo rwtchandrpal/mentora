@@ -12,10 +12,11 @@ import {
   createSessionThunk,
   clearSessionError,
 } from '../store/sessionSlice.js';
-import { toggleMobileDrawer } from '../store/uiSlice.js';
+import { toggleMobileDrawer, toggleSidebar } from '../store/uiSlice.js';
 import { LeftHistorySidebar } from '../components/layout/LeftHistorySidebar.js';
 import { StickyTopicHeader } from '../components/layout/StickyTopicHeader.js';
 import { ProfileSettingsModal } from '../components/layout/ProfileSettingsModal.js';
+import { SidebarToggleButton } from '../components/layout/SidebarToggleButton.js';
 import { ExplainStage } from '../components/explain/ExplainStage.js';
 import { InteractStage } from '../components/interact/InteractStage.js';
 import { PracticeStage } from '../components/practice/PracticeStage.js';
@@ -23,31 +24,20 @@ import { PracticeStage } from '../components/practice/PracticeStage.js';
 interface ModeOption {
   mode: LearningMode;
   title: string;
-  badge: string;
-  description: string;
 }
 
 const INITIAL_MODE_OPTIONS: ModeOption[] = [
   {
     mode: LearningMode.EXPLAIN,
     title: 'Explain Mode',
-    badge: '4 Progressive Cards',
-    description:
-      'Intuition, core mechanisms, real-world examples, and self-checks with on-demand deep dives.',
   },
   {
     mode: LearningMode.INTERACT,
     title: 'Interact Mode',
-    badge: 'Socratic Dialogue',
-    description:
-      'Structured 3–5 milestone guided discovery with deterministic 3-strike circuit breaker.',
   },
   {
     mode: LearningMode.PRACTICE,
     title: 'Practice Mode',
-    badge: '10-MCQ Batches',
-    description:
-      'Sequential Easy → Medium → Hard mastery batches with step-by-step reasoning derivation.',
   },
 ];
 
@@ -60,6 +50,7 @@ export const WorkspacePage: React.FC = () => {
   const activeMode = useAppSelector((state) => state.session.activeMode);
   const isCreatingSession = useAppSelector((state) => state.session.isCreatingSession);
   const sessionError = useAppSelector((state) => state.session.error);
+  const isSidebarOpen = useAppSelector((state) => state.ui.isSidebarOpen);
 
   const [topicQuery, setTopicQuery] = useState('');
   const [selectedInitialMode, setSelectedInitialMode] = useState<LearningMode>(LearningMode.EXPLAIN);
@@ -126,19 +117,32 @@ export const WorkspacePage: React.FC = () => {
         {/* If no active session, render New Topic Input Stage */}
         {activeSession === null ? (
           <div className="flex-1 flex flex-col">
-            {/* Mobile Top Navbar for Drawer Access */}
-            <div className="lg:hidden bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between shadow-xs">
+            {/* Mobile Top Navbar for Drawer Access / Desktop Navbar for Collapsed Sidebar */}
+            <div
+              className={`${
+                !isSidebarOpen ? 'flex' : 'lg:hidden flex'
+              } bg-white border-b border-gray-200 px-4 py-3 items-center justify-between shadow-xs`}
+            >
               <div className="flex items-center space-x-2">
                 <button
                   type="button"
                   onClick={() => dispatch(toggleMobileDrawer())}
-                  className="p-1.5 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                  className="lg:hidden p-1.5 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 border-0 outline-none ring-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                   aria-label="Open sidebar menu"
                 >
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
                   </svg>
                 </button>
+
+                {!isSidebarOpen && (
+                  <SidebarToggleButton
+                    isSidebarOpen={isSidebarOpen}
+                    onClick={() => dispatch(toggleSidebar())}
+                    className="hidden lg:flex"
+                  />
+                )}
+
                 <span className="font-bold text-gray-900 tracking-tight">Mentora</span>
               </div>
             </div>
@@ -154,9 +158,6 @@ export const WorkspacePage: React.FC = () => {
                   <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">
                     What topic would you like to master?
                   </h1>
-                  <p className="text-sm text-gray-700 max-w-lg mx-auto">
-                    Enter any academic theory, mathematical principle, system architecture, or skill to begin your personalized tutoring session.
-                  </p>
                 </div>
 
                 {/* Educational Guardrail Refusal Notice (Edge Case 2) */}
@@ -221,7 +222,7 @@ export const WorkspacePage: React.FC = () => {
                   {/* Mode Selector */}
                   <div>
                     <span className="block text-sm font-semibold text-gray-800 mb-2">
-                      Select Starting Learning Mode
+                      Select Mode
                     </span>
                     <div
                       role="radiogroup"
@@ -243,35 +244,25 @@ export const WorkspacePage: React.FC = () => {
                                 setSelectedInitialMode(opt.mode);
                               }
                             }}
-                            className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all flex flex-col justify-between ${
+                            className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all flex items-center justify-between ${
                               isSelected
                                 ? 'border-indigo-600 bg-indigo-50/50 shadow-xs'
                                 : 'border-gray-200 hover:border-gray-300 bg-white'
                             }`}
                           >
-                            <div className="space-y-1">
-                              <div className="flex items-center justify-between">
-                                <span className="font-semibold text-xs sm:text-sm text-gray-900">
-                                  {opt.title}
-                                </span>
-                                <div
-                                  className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                                    isSelected
-                                      ? 'border-indigo-600 bg-indigo-600'
-                                      : 'border-gray-300'
-                                  }`}
-                                >
-                                  {isSelected && (
-                                    <div className="w-1.5 h-1.5 rounded-full bg-white" />
-                                  )}
-                                </div>
-                              </div>
-                              <span className="inline-block text-[10px] font-medium text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded">
-                                {opt.badge}
-                              </span>
-                              <p className="text-[11px] text-gray-600 font-medium leading-tight pt-1">
-                                {opt.description}
-                              </p>
+                            <span className="font-semibold text-xs sm:text-sm text-gray-900">
+                              {opt.title}
+                            </span>
+                            <div
+                              className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                                isSelected
+                                  ? 'border-indigo-600 bg-indigo-600'
+                                  : 'border-gray-300'
+                              }`}
+                            >
+                              {isSelected && (
+                                <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                              )}
                             </div>
                           </div>
                         );

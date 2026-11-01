@@ -2,6 +2,7 @@ import React from 'react';
 import { useAppDispatch, useAppSelector } from '../../store/hooks.js';
 import { toggleSidebar, toggleMobileDrawer } from '../../store/uiSlice.js';
 import { ModeSwitcherTabs } from './ModeSwitcherTabs.js';
+import { SidebarToggleButton } from './SidebarToggleButton.js';
 
 export const StickyTopicHeader: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -17,7 +18,7 @@ export const StickyTopicHeader: React.FC = () => {
         <button
           type="button"
           onClick={() => dispatch(toggleMobileDrawer())}
-          className="lg:hidden p-1.5 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          className="lg:hidden p-1.5 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 border-0 outline-none ring-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
           aria-label="Open sidebar menu"
         >
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -25,25 +26,14 @@ export const StickyTopicHeader: React.FC = () => {
           </svg>
         </button>
 
-        {/* Desktop sidebar collapse toggle */}
-        <button
-          type="button"
-          onClick={() => dispatch(toggleSidebar())}
-          className="hidden lg:flex p-1.5 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
-          aria-label={isSidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
-          title={isSidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
-        >
-          <svg
-            className={`w-5 h-5 transition-transform duration-200 ${
-              isSidebarOpen ? '' : 'rotate-180'
-            }`}
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
-          </svg>
-        </button>
+        {/* Desktop sidebar expand toggle (when sidebar is collapsed) */}
+        {!isSidebarOpen && (
+          <SidebarToggleButton
+            isSidebarOpen={isSidebarOpen}
+            onClick={() => dispatch(toggleSidebar())}
+            className="hidden lg:flex"
+          />
+        )}
 
         {/* Active topic title display */}
         <div className="min-w-0">

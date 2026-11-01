@@ -10,9 +10,11 @@ import {
 import {
   setMobileDrawerOpen,
   openProfileModal,
+  toggleSidebar,
 } from '../../store/uiSlice.js';
 import { logout } from '../../store/authSlice.js';
 import { QuotaBadge } from './QuotaBadge.js';
+import { SidebarToggleButton } from './SidebarToggleButton.js';
 
 export const LeftHistorySidebar: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -79,18 +81,27 @@ export const LeftHistorySidebar: React.FC = () => {
       {/* Brand & New Topic Section */}
       <div className="p-4 border-b border-gray-100 space-y-3">
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2.5">
-            <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white font-bold flex items-center justify-center text-sm shadow-md">
-              M
+          <div className="flex items-center space-x-2">
+            {isSidebarOpen && (
+              <SidebarToggleButton
+                isSidebarOpen={isSidebarOpen}
+                onClick={() => dispatch(toggleSidebar())}
+                className="hidden lg:flex -ml-1"
+              />
+            )}
+            <div className="flex items-center space-x-2.5">
+              <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white font-bold flex items-center justify-center text-sm shadow-md">
+                M
+              </div>
+              <span className="font-bold text-gray-900 tracking-tight text-lg">Mentora</span>
             </div>
-            <span className="font-bold text-gray-900 tracking-tight text-lg">Mentora</span>
           </div>
 
           {/* Close button for mobile drawer */}
           <button
             type="button"
             onClick={() => dispatch(setMobileDrawerOpen(false))}
-            className="lg:hidden p-1 text-gray-600 hover:text-gray-900 rounded-lg"
+            className="lg:hidden p-1 text-gray-600 hover:text-gray-900 rounded-lg border-0 outline-none ring-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
             aria-label="Close sidebar"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -128,7 +139,7 @@ export const LeftHistorySidebar: React.FC = () => {
 
         {!isLoadingList && sortedSessions.length === 0 && (
           <div className="p-4 text-center text-xs text-gray-600 font-medium leading-relaxed">
-            No saved topics yet.<br />Click "+ New Topic" above to start your first session.
+            No saved topics yet.
           </div>
         )}
 

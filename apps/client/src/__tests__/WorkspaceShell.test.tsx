@@ -223,6 +223,8 @@ describe('IMP-012: Unified Workspace Shell, Left History Sidebar, & Mode Switche
       const textarea = screen.getByLabelText(/topic or question/i);
       expect(textarea).toBeInTheDocument();
       expect(screen.getByText('0 / 300')).toBeInTheDocument();
+      expect(screen.getByText('Select Mode')).toBeInTheDocument();
+      expect(screen.queryByText(/Enter any academic theory/i)).not.toBeInTheDocument();
 
       expect(screen.getByRole('radio', { name: /explain mode/i })).toBeInTheDocument();
       expect(screen.getByRole('radio', { name: /interact mode/i })).toBeInTheDocument();
@@ -441,10 +443,13 @@ describe('IMP-012: Unified Workspace Shell, Left History Sidebar, & Mode Switche
 
       // Verify Explain stage is rendered
       expect(screen.getByTestId('explain-stage')).toBeInTheDocument();
-      expect(screen.getByRole('tab', { name: /explain/i })).toHaveAttribute('aria-selected', 'true');
+      expect(screen.getByRole('tab', { name: 'Explain Mode' })).toHaveAttribute('aria-selected', 'true');
+      expect(screen.queryByText('4 Cards')).not.toBeInTheDocument();
+      expect(screen.queryByText('Socratic')).not.toBeInTheDocument();
+      expect(screen.queryByText('10 MCQs')).not.toBeInTheDocument();
 
       // Click Interact Tab
-      const interactTab = screen.getByRole('tab', { name: /interact/i });
+      const interactTab = screen.getByRole('tab', { name: 'Interact Mode' });
       fireEvent.click(interactTab);
 
       // Verify mode switched to Interact
@@ -741,7 +746,7 @@ describe('IMP-012: Unified Workspace Shell, Left History Sidebar, & Mode Switche
   // 5. Desktop & Mobile Sidebar Toggles (NFR-004)
   // =========================================================================
   describe('5. Responsive Sidebar Toggles (NFR-004)', () => {
-    it('toggles desktop sidebar state when collapse button is clicked', () => {
+    it('toggles desktop sidebar state with dynamic arrow direction and correct aria attributes', () => {
       const { store } = renderWorkspace(['/workspace'], {
         auth: {
           token: 'mock-token',
@@ -769,11 +774,73 @@ describe('IMP-012: Unified Workspace Shell, Left History Sidebar, & Mode Switche
 
       expect(store.getState().ui.isSidebarOpen).toBe(true);
 
+      // 1. When open: collapse button is in top-left with aria-expanded="true" and left arrow
+      const collapseBtn = screen.getByLabelText(/collapse sidebar/i);
+      expect(collapseBtn).toBeInTheDocument();
+      expect(collapseBtn).toHaveAttribute('aria-expanded', 'true');
+      const leftArrow = collapseBtn.querySelector('svg path');
+      expect(leftArrow).toHaveAttribute('d', 'M15 19l-7-7 7-7');
+
       // Click desktop collapse button
+      fireEvent.click(collapseBtn);
+
+      expect(store.getState().ui.isSidebarOpen).toBe(false);
+
+      // 2. When collapsed: expand button is displayed with aria-expanded="false" and right arrow
+      const expandBtn = screen.getByLabelText(/expand sidebar/i);
+      expect(expandBtn).toBeInTheDocument();
+      expect(expandBtn).toHaveAttribute('aria-expanded', 'false');
+      const rightArrow = expandBtn.querySelector('svg path');
+      expect(rightArrow).toHaveAttribute('d', 'M9 5l7 7-7 7');
+
+      // 3. Click desktop expand button to reopen sidebar
+      fireEvent.click(expandBtn);
+
+      expect(store.getState().ui.isSidebarOpen).toBe(true);
+      expect(screen.getByLabelText(/collapse sidebar/i)).toHaveAttribute('aria-expanded', 'true');
+    });
+
+    it('toggles desktop sidebar state when landing on workspace with no active session', () => {
+      const { store } = renderWorkspace(['/workspace'], {
+        auth: {
+          token: 'mock-token',
+          user: mockUser,
+          quota: null,
+          authStatus: 'authenticated',
+          error: null,
+        },
+        session: {
+          sessionList: [],
+          activeSession: null,
+          activeMode: LearningMode.EXPLAIN,
+          isLoadingList: false,
+          isLoadingSession: false,
+          isCreatingSession: false,
+          error: null,
+          streamingState: {
+            isStreaming: false,
+            streamBuffer: '',
+            streamError: null,
+            activeTurnId: null,
+          },
+        },
+      });
+
+      expect(store.getState().ui.isSidebarOpen).toBe(true);
+
+      // Collapse sidebar from sidebar header
       const collapseBtn = screen.getByLabelText(/collapse sidebar/i);
       fireEvent.click(collapseBtn);
 
       expect(store.getState().ui.isSidebarOpen).toBe(false);
+
+      // Expand sidebar from workspace top navbar
+      const expandBtn = screen.getByLabelText(/expand sidebar/i);
+      expect(expandBtn).toBeInTheDocument();
+      expect(expandBtn).toHaveAttribute('aria-expanded', 'false');
+      fireEvent.click(expandBtn);
+
+      expect(store.getState().ui.isSidebarOpen).toBe(true);
     });
 
     it('opens mobile drawer when mobile menu button is clicked', () => {

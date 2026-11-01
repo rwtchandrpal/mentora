@@ -134,10 +134,10 @@ export const CardControls: React.FC<CardControlsProps> = ({
           <div className="bg-gradient-to-r from-indigo-50 via-purple-50 to-emerald-50 rounded-2xl p-4 sm:p-5 border border-indigo-100 space-y-3">
             <div className="space-y-1">
               <h4 className="text-sm font-bold text-gray-900">
-                You have completed the foundational 4-step explanation!
+                4-Step Explanation Complete
               </h4>
               <p className="text-xs text-gray-700 font-medium">
-                Deepen your mastery with conversational inquiry or test your retrieval through tiered MCQ assessment:
+                Continue with guided inquiry or test your retrieval with practice questions:
               </p>
             </div>
 

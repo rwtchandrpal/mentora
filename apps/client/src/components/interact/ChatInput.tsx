@@ -91,10 +91,10 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             rows={3}
             placeholder={
               disabled
-                ? 'All milestones completed. Start Practice Mode or review above.'
+                ? 'All milestones completed.'
                 : isStreaming
                   ? 'Mentora is streaming a response...'
-                  : 'Respond to Mentora or explain your thinking... (Press Enter to send, Shift+Enter for new line)'
+                  : 'Type your response... (Enter to send, Shift+Enter for newline)'
             }
             className="w-full resize-none p-3 text-sm text-gray-900 placeholder-gray-500 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed transition-all"
           />

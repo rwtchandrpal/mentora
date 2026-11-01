@@ -72,10 +72,10 @@ export const RegisterPage: React.FC = () => {
             M
           </div>
           <h1 className="mt-4 text-3xl font-extrabold text-gray-900 tracking-tight">
-            Create your Mentora account
+            Create your account
           </h1>
           <p className="mt-2 text-sm text-gray-700">
-            Start mastering complex topics with your personal Socratic tutor
+            Start mastering complex topics with personal AI tutoring
           </p>
         </div>
 
