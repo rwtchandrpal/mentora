@@ -4,17 +4,12 @@ import { LoginRequestSchema } from '@mentora/shared';
 import { useAppDispatch, useAppSelector } from '../store/hooks.js';
 import { loginThunk, clearAuthError } from '../store/authSlice.js';
 
-export const DEMO_CREDENTIALS = {
-  email: 'jhon@email.com',
-  password: 'Jhon1234',
-} as const;
-
 export const LoginPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const { authStatus, error: apiError } = useAppSelector((state) => state.auth);
 
-  const [email, setEmail] = useState<string>(DEMO_CREDENTIALS.email);
-  const [password, setPassword] = useState<string>(DEMO_CREDENTIALS.password);
+  const [email, setEmail] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
   const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
 
   useEffect(() => {
@@ -23,15 +18,6 @@ export const LoginPage: React.FC = () => {
       dispatch(clearAuthError());
     };
   }, [dispatch]);
-
-  const handleResetToDemo = () => {
-    setEmail(DEMO_CREDENTIALS.email);
-    setPassword(DEMO_CREDENTIALS.password);
-    setFieldErrors({});
-    if (apiError) {
-      dispatch(clearAuthError());
-    }
-  };
 
   const handleInputChange = (field: 'email' | 'password', value: string) => {
     if (field === 'email') setEmail(value);
@@ -83,25 +69,6 @@ export const LoginPage: React.FC = () => {
           <p className="mt-2 text-sm text-gray-700">
             Sign in to continue your personalized AI tutoring sessions
           </p>
-        </div>
-
-        {/* Demo Credentials Helper Badge & Reset Button */}
-        <div className="flex items-center justify-between p-3 bg-indigo-50 border border-indigo-100 rounded-xl text-xs text-indigo-900 font-medium">
-          <div className="flex items-center space-x-2">
-            <span
-              className="inline-block w-2 h-2 rounded-full bg-indigo-600 animate-pulse"
-              aria-hidden="true"
-            />
-            <span className="font-semibold">Demo Credentials Pre-filled</span>
-          </div>
-          <button
-            type="button"
-            onClick={handleResetToDemo}
-            aria-label="Reset to Demo Account"
-            className="text-indigo-700 hover:text-indigo-900 font-bold underline focus:outline-none focus:ring-1 focus:ring-indigo-500 rounded px-1 transition-colors"
-          >
-            Reset to Demo Account
-          </button>
         </div>
 
         {apiError && (
