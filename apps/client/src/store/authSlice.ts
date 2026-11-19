@@ -248,4 +248,8 @@ export const authSlice = createSlice({
 });
 
 export const { setQuota, clearAuthError, logout } = authSlice.actions;
+
+export const selectIsGuest = (state: { auth: AuthState }): boolean =>
+  !state.auth.token && state.auth.user === null;
+
 export default authSlice.reducer;

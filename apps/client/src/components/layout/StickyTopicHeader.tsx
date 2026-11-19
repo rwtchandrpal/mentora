@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../store/hooks.js';
 import { toggleSidebar, toggleMobileDrawer } from '../../store/uiSlice.js';
 import { ModeSwitcherTabs } from './ModeSwitcherTabs.js';
@@ -6,6 +7,8 @@ import { SidebarToggleButton } from './SidebarToggleButton.js';
 
 export const StickyTopicHeader: React.FC = () => {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
+  const user = useAppSelector((state) => state.auth.user);
   const activeSession = useAppSelector((state) => state.session.activeSession);
   const isSidebarOpen = useAppSelector((state) => state.ui.isSidebarOpen);
 
@@ -46,9 +49,19 @@ export const StickyTopicHeader: React.FC = () => {
         </div>
       </div>
 
-      {/* Mode switcher tabs */}
-      <div className="flex-shrink-0">
+      {/* Mode switcher tabs & Top-Right Get Started CTA for guests */}
+      <div className="flex-shrink-0 flex items-center space-x-3">
         <ModeSwitcherTabs />
+
+        {!user && (
+          <button
+            type="button"
+            onClick={() => navigate('/login')}
+            className="inline-flex items-center justify-center py-1.5 px-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs shadow-xs transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          >
+            Get Started
+          </button>
+        )}
       </div>
     </header>
   );

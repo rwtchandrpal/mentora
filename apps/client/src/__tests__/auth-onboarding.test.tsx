@@ -102,7 +102,7 @@ describe('IMP-011: Route Guards, Auth Pages, Mandatory Onboarding & Profile Sett
   // 1. Unauthenticated Route Guard (AC-1)
   // =========================================================================
   describe('1. Unauthenticated Guard (AC-1)', () => {
-    it('redirects unauthenticated users visiting /workspace to /login', () => {
+    it('allows unauthenticated users (guest mode) to land directly on /workspace', () => {
       renderWithAppRouter(['/workspace'], {
         auth: {
           token: null,
@@ -113,15 +113,15 @@ describe('IMP-011: Route Guards, Auth Pages, Mandatory Onboarding & Profile Sett
         },
       });
 
-      // Verification: LoginPage is rendered
+      // Verification: WorkspacePage is rendered in Guest Mode (bypasses login)
       expect(
-        screen.getByRole('heading', { name: /welcome back to mentora/i })
+        screen.getByRole('heading', { name: /what topic would you like to master/i })
       ).toBeInTheDocument();
-      expect(screen.getByLabelText(/email address/i)).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument();
+      expect(screen.getByText(/no history in guest mode/i)).toBeInTheDocument();
+      expect(screen.getAllByRole('button', { name: /get started/i }).length).toBeGreaterThan(0);
     });
 
-    it('redirects unauthenticated users visiting /workspace/:sessionId to /login', () => {
+    it('allows unauthenticated users (guest mode) to access /workspace/:sessionId without redirecting to /login', () => {
       renderWithAppRouter(['/workspace/session-123'], {
         auth: {
           token: null,
@@ -132,9 +132,11 @@ describe('IMP-011: Route Guards, Auth Pages, Mandatory Onboarding & Profile Sett
         },
       });
 
+      // Verification: Bypasses login screen
       expect(
-        screen.getByRole('heading', { name: /welcome back to mentora/i })
-      ).toBeInTheDocument();
+        screen.queryByRole('heading', { name: /welcome back to mentora/i })
+      ).not.toBeInTheDocument();
+      expect(screen.getByText(/no history in guest mode/i)).toBeInTheDocument();
     });
 
     it('displays loading screen while token is being hydrated before route decision', () => {

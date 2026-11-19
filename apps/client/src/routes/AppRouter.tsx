@@ -40,10 +40,12 @@ export const AppRouter: React.FC = () => {
             )
           }
         />
-        <Route element={<OnboardingGuard />}>
-          <Route path="/workspace" element={<WorkspacePage />} />
-          <Route path="/workspace/:sessionId" element={<WorkspacePage />} />
-        </Route>
+      </Route>
+
+      {/* Workspace routes: Accessible to guests and authenticated users */}
+      <Route element={<OnboardingGuard />}>
+        <Route path="/workspace" element={<WorkspacePage />} />
+        <Route path="/workspace/:sessionId" element={<WorkspacePage />} />
       </Route>
 
       {/* Fallback routes */}

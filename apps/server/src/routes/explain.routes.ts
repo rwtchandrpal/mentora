@@ -5,7 +5,7 @@ import {
 } from '@mentora/shared';
 import { explainController } from '../controllers/explain.controller.js';
 import {
-  requireAuth,
+  optionalAuth,
   requireCompletedProfile,
 } from '../middlewares/auth.middleware.js';
 import { quotaMiddleware } from '../middlewares/quota.middleware.js';
@@ -14,7 +14,7 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 
 export const explainRouter = Router();
 
-explainRouter.use(requireAuth, requireCompletedProfile);
+explainRouter.use(optionalAuth, requireCompletedProfile);
 
 explainRouter.post(
   '/:id/explain/init',

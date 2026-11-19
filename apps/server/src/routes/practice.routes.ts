@@ -5,7 +5,7 @@ import {
 } from '@mentora/shared';
 import { practiceController } from '../controllers/practice.controller.js';
 import {
-  requireAuth,
+  optionalAuth,
   requireCompletedProfile,
 } from '../middlewares/auth.middleware.js';
 import { quotaMiddleware } from '../middlewares/quota.middleware.js';
@@ -14,7 +14,7 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 
 export const practiceRouter = Router();
 
-practiceRouter.use(requireAuth, requireCompletedProfile);
+practiceRouter.use(optionalAuth, requireCompletedProfile);
 
 practiceRouter.post(
   '/:id/practice/generate',

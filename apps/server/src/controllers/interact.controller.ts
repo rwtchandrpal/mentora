@@ -2,7 +2,11 @@ import { Request, Response } from 'express';
 import { ApiSuccessEnvelope, TopicSessionDTO } from '@mentora/shared';
 import { interactService, InteractService } from '../services/interact.service.js';
 import { userRepository } from '../repositories/user.repository.js';
-import { toQuotaMetaDTO } from '../middlewares/quota.middleware.js';
+import {
+  toQuotaMetaDTO,
+  incrementGuestQuota,
+  getGuestIdentifier,
+} from '../middlewares/quota.middleware.js';
 import { SseWriter } from '../utils/sse.helper.js';
 
 const extractSessionId = (req: Request): string => {
@@ -21,12 +25,17 @@ export class InteractController {
     res: Response<ApiSuccessEnvelope<TopicSessionDTO>>
   ): Promise<void> => {
     const sessionId = extractSessionId(req);
-    const result = await this.service.initializeInteract(req.user!.id, sessionId);
+    const userId = req.user?.id;
+    const result = await this.service.initializeInteract(userId, sessionId);
 
-    let quotaMeta = req.quota;
-    const user = await userRepository.findById(req.user!.id);
-    if (user) {
-      quotaMeta = toQuotaMetaDTO(user.usageQuota);
+    let quotaMeta = result.quota ?? req.quota;
+    if (userId) {
+      const user = await userRepository.findById(userId);
+      if (user) {
+        quotaMeta = toQuotaMetaDTO(user.usageQuota);
+      }
+    } else if (!result.quota) {
+      quotaMeta = incrementGuestQuota(getGuestIdentifier(req));
     }
 
     res.status(200).json({
@@ -41,19 +50,22 @@ export class InteractController {
     res: Response
   ): Promise<void> => {
     const sessionId = extractSessionId(req);
+    const userId = req.user?.id;
+    const guestId = !userId ? getGuestIdentifier(req) : undefined;
 
     // Validate prerequisites (throws standard operational AppError before flushing SSE headers)
-    await this.service.validateTurnPreconditions(req.user!.id, sessionId);
+    await this.service.validateTurnPreconditions(userId, sessionId);
 
     // Establish unbuffered SSE stream
     const sseWriter = new SseWriter(res);
 
     try {
       await this.service.processTurnStream(
-        req.user!.id,
+        userId,
         sessionId,
         req.body,
-        sseWriter
+        sseWriter,
+        guestId
       );
     } finally {
       sseWriter.close();

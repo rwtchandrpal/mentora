@@ -37,6 +37,43 @@ const toUserProfileDTO = (user: IUserDocument): UserProfileStateDTO => {
   };
 };
 
+export const optionalAuth = async (
+  req: Request,
+  _res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      req.user = undefined;
+      return next();
+    }
+
+    const token = authHeader.slice(7).trim();
+    if (!token) {
+      req.user = undefined;
+      return next();
+    }
+
+    const payload = verifyAccessToken(token);
+
+    const user = await userRepository.findById(payload.sub);
+    if (!user) {
+      throw new AppError(401, ErrorCode.UNAUTHORIZED, 'Account no longer exists');
+    }
+
+    req.user = {
+      id: user._id.toString(),
+      email: user.email,
+      profile: toUserProfileDTO(user),
+    };
+
+    next();
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const requireAuth = async (
   req: Request,
   _res: Response,
@@ -81,7 +118,7 @@ export const requireCompletedProfile = (
 ): void => {
   try {
     if (!req.user) {
-      throw new AppError(401, ErrorCode.UNAUTHORIZED, 'Authentication required');
+      return next();
     }
 
     if (

@@ -6,7 +6,11 @@ import {
 } from '@mentora/shared';
 import { sessionService, SessionService } from '../services/session.service.js';
 import { userRepository } from '../repositories/user.repository.js';
-import { toQuotaMetaDTO } from '../middlewares/quota.middleware.js';
+import {
+  toQuotaMetaDTO,
+  incrementGuestQuota,
+  getGuestIdentifier,
+} from '../middlewares/quota.middleware.js';
 
 const extractParamId = (param: string | string[] | undefined): string => {
   if (Array.isArray(param)) {
@@ -33,11 +37,16 @@ export class SessionController {
     req: Request,
     res: Response<ApiSuccessEnvelope<TopicSessionDTO>>
   ): Promise<void> => {
-    const data = await this.service.createSession(req.user!.id, req.body);
+    const userId = req.user?.id;
+    const data = await this.service.createSession(userId, req.body);
     let quotaMeta = req.quota;
-    const user = await userRepository.findById(req.user!.id);
-    if (user) {
-      quotaMeta = toQuotaMetaDTO(user.usageQuota);
+    if (userId) {
+      const user = await userRepository.findById(userId);
+      if (user) {
+        quotaMeta = toQuotaMetaDTO(user.usageQuota);
+      }
+    } else {
+      quotaMeta = incrementGuestQuota(getGuestIdentifier(req));
     }
     res.status(201).json({
       success: true,
@@ -51,7 +60,7 @@ export class SessionController {
     res: Response<ApiSuccessEnvelope<TopicSessionDTO>>
   ): Promise<void> => {
     const sessionId = extractParamId(req.params.id);
-    const data = await this.service.getSessionById(req.user!.id, sessionId);
+    const data = await this.service.getSessionById(req.user?.id, sessionId);
     res.status(200).json({
       success: true,
       data,
@@ -64,7 +73,7 @@ export class SessionController {
   ): Promise<void> => {
     const sessionId = extractParamId(req.params.id);
     const data = await this.service.switchMode(
-      req.user!.id,
+      req.user?.id,
       sessionId,
       req.body.mode
     );
@@ -79,7 +88,7 @@ export class SessionController {
     res: Response<ApiSuccessEnvelope<{ deletedId: string }>>
   ): Promise<void> => {
     const sessionId = extractParamId(req.params.id);
-    const data = await this.service.deleteSession(req.user!.id, sessionId);
+    const data = await this.service.deleteSession(req.user?.id, sessionId);
     res.status(200).json({
       success: true,
       data,

@@ -91,7 +91,9 @@ export interface IPracticeState {
 }
 
 export interface ITopicSession {
-  userId: mongoose.Types.ObjectId;
+  userId?: mongoose.Types.ObjectId | null;
+  isGuest?: boolean;
+  expiresAt?: Date | null;
   topicQuery: string;
   normalizedTitle: string;
   lastActiveMode: LearningMode;
@@ -295,8 +297,18 @@ export const TopicSessionSchema = new Schema<ITopicSessionDocument>(
     userId: {
       type: Schema.Types.ObjectId,
       ref: 'User',
-      required: true,
+      required: false,
+      default: null,
       index: true,
+    },
+    isGuest: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    expiresAt: {
+      type: Date,
+      default: null,
     },
     topicQuery: {
       type: String,
@@ -374,6 +386,7 @@ export const TopicSessionSchema = new Schema<ITopicSessionDocument>(
 
 TopicSessionSchema.index({ userId: 1, updatedAt: -1 });
 TopicSessionSchema.index({ _id: 1, userId: 1 });
+TopicSessionSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 export const TopicSession =
   (mongoose.models.TopicSession as TopicSessionModel) ||

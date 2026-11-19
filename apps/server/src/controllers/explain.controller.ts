@@ -2,7 +2,11 @@ import { Request, Response } from 'express';
 import { ApiSuccessEnvelope, TopicSessionDTO } from '@mentora/shared';
 import { explainService, ExplainService } from '../services/explain.service.js';
 import { userRepository } from '../repositories/user.repository.js';
-import { toQuotaMetaDTO } from '../middlewares/quota.middleware.js';
+import {
+  toQuotaMetaDTO,
+  incrementGuestQuota,
+  getGuestIdentifier,
+} from '../middlewares/quota.middleware.js';
 
 const extractSessionId = (req: Request): string => {
   const param = req.params.sessionId ?? req.params.id;
@@ -20,12 +24,17 @@ export class ExplainController {
     res: Response<ApiSuccessEnvelope<TopicSessionDTO>>
   ): Promise<void> => {
     const sessionId = extractSessionId(req);
-    const data = await this.service.initializeExplain(req.user!.id, sessionId);
+    const userId = req.user?.id;
+    const data = await this.service.initializeExplain(userId, sessionId);
 
     let quotaMeta = req.quota;
-    const user = await userRepository.findById(req.user!.id);
-    if (user) {
-      quotaMeta = toQuotaMetaDTO(user.usageQuota);
+    if (userId) {
+      const user = await userRepository.findById(userId);
+      if (user) {
+        quotaMeta = toQuotaMetaDTO(user.usageQuota);
+      }
+    } else {
+      quotaMeta = incrementGuestQuota(getGuestIdentifier(req));
     }
 
     res.status(200).json({
@@ -46,7 +55,7 @@ export class ExplainController {
         : req.body.currentStepIndex;
 
     const data = await this.service.advanceStep(
-      req.user!.id,
+      req.user?.id,
       sessionId,
       stepIndex
     );
@@ -63,17 +72,22 @@ export class ExplainController {
   ): Promise<void> => {
     const sessionId = extractSessionId(req);
     const stepNumber = req.body.stepNumber;
+    const userId = req.user?.id;
 
     const data = await this.service.generateDeepDive(
-      req.user!.id,
+      userId,
       sessionId,
       stepNumber
     );
 
     let quotaMeta = req.quota;
-    const user = await userRepository.findById(req.user!.id);
-    if (user) {
-      quotaMeta = toQuotaMetaDTO(user.usageQuota);
+    if (userId) {
+      const user = await userRepository.findById(userId);
+      if (user) {
+        quotaMeta = toQuotaMetaDTO(user.usageQuota);
+      }
+    } else {
+      quotaMeta = incrementGuestQuota(getGuestIdentifier(req));
     }
 
     res.status(200).json({

@@ -2,7 +2,11 @@ import { Request, Response } from 'express';
 import { ApiSuccessEnvelope, TopicSessionDTO } from '@mentora/shared';
 import { practiceService, PracticeService } from '../services/practice.service.js';
 import { userRepository } from '../repositories/user.repository.js';
-import { toQuotaMetaDTO } from '../middlewares/quota.middleware.js';
+import {
+  toQuotaMetaDTO,
+  incrementGuestQuota,
+  getGuestIdentifier,
+} from '../middlewares/quota.middleware.js';
 
 const extractSessionId = (req: Request): string => {
   const param = req.params.sessionId ?? req.params.id;
@@ -20,13 +24,18 @@ export class PracticeController {
     res: Response<ApiSuccessEnvelope<TopicSessionDTO>>
   ): Promise<void> => {
     const sessionId = extractSessionId(req);
+    const userId = req.user?.id;
     const { tier } = req.body;
-    const data = await this.service.generateBatch(req.user!.id, sessionId, tier);
+    const data = await this.service.generateBatch(userId, sessionId, tier);
 
     let quotaMeta = req.quota;
-    const user = await userRepository.findById(req.user!.id);
-    if (user) {
-      quotaMeta = toQuotaMetaDTO(user.usageQuota);
+    if (userId) {
+      const user = await userRepository.findById(userId);
+      if (user) {
+        quotaMeta = toQuotaMetaDTO(user.usageQuota);
+      }
+    } else {
+      quotaMeta = incrementGuestQuota(getGuestIdentifier(req));
     }
 
     res.status(200).json({
@@ -43,7 +52,7 @@ export class PracticeController {
     const sessionId = extractSessionId(req);
     const { tier, answers } = req.body;
     const data = await this.service.submitBatch(
-      req.user!.id,
+      req.user?.id,
       sessionId,
       tier,
       answers

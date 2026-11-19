@@ -11,6 +11,7 @@ import {
   ExplainInitOutputSchema,
   ExplainDeepDiveOutputSchema,
   StaticLearnerProfile,
+  DEFAULT_GUEST_PROFILE,
 } from '@mentora/shared';
 import { AppError } from '../utils/AppError.js';
 import {
@@ -42,10 +43,10 @@ export class ExplainService {
    * Otherwise, generates 4 progressive cards, updates session, and increments user quota.
    */
   async initializeExplain(
-    userId: string,
+    userId: string | undefined,
     sessionId: string
   ): Promise<TopicSessionDTO> {
-    const session = await this.sessionRepo.findByIdAndUserId(sessionId, userId);
+    const session = await this.sessionRepo.findSession(sessionId, userId);
     if (!session) {
       throw new AppError(
         404,
@@ -59,25 +60,29 @@ export class ExplainService {
       return toTopicSessionDTO(session);
     }
 
-    // Retrieve user and validate profile completion
-    const user = await this.userRepo.findById(userId);
-    if (
-      !user ||
-      !user.profile.isCompleted ||
-      !user.profile.educationLevel ||
-      !user.profile.preferredStyle
-    ) {
-      throw new AppError(
-        403,
-        ErrorCode.PROFILE_INCOMPLETE,
-        'Learner profile is incomplete.'
-      );
-    }
+    let profile: StaticLearnerProfile = DEFAULT_GUEST_PROFILE;
 
-    const profile: StaticLearnerProfile = {
-      educationLevel: user.profile.educationLevel,
-      preferredStyle: user.profile.preferredStyle,
-    };
+    if (userId) {
+      // Retrieve user and validate profile completion
+      const user = await this.userRepo.findById(userId);
+      if (
+        !user ||
+        !user.profile.isCompleted ||
+        !user.profile.educationLevel ||
+        !user.profile.preferredStyle
+      ) {
+        throw new AppError(
+          403,
+          ErrorCode.PROFILE_INCOMPLETE,
+          'Learner profile is incomplete.'
+        );
+      }
+
+      profile = {
+        educationLevel: user.profile.educationLevel,
+        preferredStyle: user.profile.preferredStyle,
+      };
+    }
 
     const systemInstruction = PromptBuilder.buildSystemInstruction(
       profile,
@@ -119,7 +124,9 @@ export class ExplainService {
     };
 
     const savedSession = await this.sessionRepo.save(session);
-    await this.userRepo.incrementUserQuota(userId);
+    if (userId) {
+      await this.userRepo.incrementUserQuota(userId);
+    }
 
     return toTopicSessionDTO(savedSession);
   }
@@ -129,7 +136,7 @@ export class ExplainService {
    * Progression is local and MUST NOT increment user quota (AC-EXP-02, BR-04).
    */
   async advanceStep(
-    userId: string,
+    userId: string | undefined,
     sessionId: string,
     stepIndex: number
   ): Promise<TopicSessionDTO> {
@@ -146,7 +153,7 @@ export class ExplainService {
       );
     }
 
-    const session = await this.sessionRepo.findByIdAndUserId(sessionId, userId);
+    const session = await this.sessionRepo.findSession(sessionId, userId);
     if (!session) {
       throw new AppError(
         404,
@@ -167,7 +174,7 @@ export class ExplainService {
    * preserves currentStepIndex, and increments user quota (AC-EXP-03, BR-04).
    */
   async generateDeepDive(
-    userId: string,
+    userId: string | undefined,
     sessionId: string,
     stepNumber: number
   ): Promise<TopicSessionDTO> {
@@ -184,7 +191,7 @@ export class ExplainService {
       );
     }
 
-    const session = await this.sessionRepo.findByIdAndUserId(sessionId, userId);
+    const session = await this.sessionRepo.findSession(sessionId, userId);
     if (!session) {
       throw new AppError(
         404,
@@ -225,24 +232,28 @@ export class ExplainService {
       );
     }
 
-    const user = await this.userRepo.findById(userId);
-    if (
-      !user ||
-      !user.profile.isCompleted ||
-      !user.profile.educationLevel ||
-      !user.profile.preferredStyle
-    ) {
-      throw new AppError(
-        403,
-        ErrorCode.PROFILE_INCOMPLETE,
-        'Learner profile is incomplete.'
-      );
-    }
+    let profile: StaticLearnerProfile = DEFAULT_GUEST_PROFILE;
 
-    const profile: StaticLearnerProfile = {
-      educationLevel: user.profile.educationLevel,
-      preferredStyle: user.profile.preferredStyle,
-    };
+    if (userId) {
+      const user = await this.userRepo.findById(userId);
+      if (
+        !user ||
+        !user.profile.isCompleted ||
+        !user.profile.educationLevel ||
+        !user.profile.preferredStyle
+      ) {
+        throw new AppError(
+          403,
+          ErrorCode.PROFILE_INCOMPLETE,
+          'Learner profile is incomplete.'
+        );
+      }
+
+      profile = {
+        educationLevel: user.profile.educationLevel,
+        preferredStyle: user.profile.preferredStyle,
+      };
+    }
 
     const systemInstruction = PromptBuilder.buildSystemInstruction(
       profile,
@@ -277,7 +288,9 @@ export class ExplainService {
     targetCard.deepDives.push(newSubCard);
 
     const savedSession = await this.sessionRepo.save(session);
-    await this.userRepo.incrementUserQuota(userId);
+    if (userId) {
+      await this.userRepo.incrementUserQuota(userId);
+    }
 
     return toTopicSessionDTO(savedSession);
   }

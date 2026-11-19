@@ -8,6 +8,7 @@ import {
   PracticeBatchGenerationDTO,
   PracticeBatchGenerationSchema,
   StaticLearnerProfile,
+  DEFAULT_GUEST_PROFILE,
 } from '@mentora/shared';
 import { AppError } from '../utils/AppError.js';
 import {
@@ -38,11 +39,11 @@ export class PracticeService {
    * - Saves questions with status = 'in_progress', increments user quota, and returns masked DTO (BR-03).
    */
   async generateBatch(
-    userId: string,
+    userId: string | undefined,
     sessionId: string,
     tier: PracticeTier
   ): Promise<TopicSessionDTO> {
-    const session = await this.sessionRepo.findByIdAndUserId(sessionId, userId);
+    const session = await this.sessionRepo.findSession(sessionId, userId);
     if (!session) {
       throw new AppError(
         404,
@@ -87,25 +88,29 @@ export class PracticeService {
       return toTopicSessionDTO(session);
     }
 
-    // Validate learner profile completion (BR-01)
-    const user = await this.userRepo.findById(userId);
-    if (
-      !user ||
-      !user.profile.isCompleted ||
-      !user.profile.educationLevel ||
-      !user.profile.preferredStyle
-    ) {
-      throw new AppError(
-        403,
-        ErrorCode.PROFILE_INCOMPLETE,
-        'Learner profile is incomplete.'
-      );
-    }
+    let profile: StaticLearnerProfile = DEFAULT_GUEST_PROFILE;
 
-    const profile: StaticLearnerProfile = {
-      educationLevel: user.profile.educationLevel,
-      preferredStyle: user.profile.preferredStyle,
-    };
+    if (userId) {
+      // Validate learner profile completion (BR-01)
+      const user = await this.userRepo.findById(userId);
+      if (
+        !user ||
+        !user.profile.isCompleted ||
+        !user.profile.educationLevel ||
+        !user.profile.preferredStyle
+      ) {
+        throw new AppError(
+          403,
+          ErrorCode.PROFILE_INCOMPLETE,
+          'Learner profile is incomplete.'
+        );
+      }
+
+      profile = {
+        educationLevel: user.profile.educationLevel,
+        preferredStyle: user.profile.preferredStyle,
+      };
+    }
 
     const systemInstruction = PromptBuilder.buildSystemInstruction(
       profile,
@@ -153,7 +158,9 @@ export class PracticeService {
 
     session.markModified('practiceState');
     const savedSession = await this.sessionRepo.save(session);
-    await this.userRepo.incrementUserQuota(userId);
+    if (userId) {
+      await this.userRepo.incrementUserQuota(userId);
+    }
 
     return toTopicSessionDTO(savedSession);
   }
@@ -168,12 +175,12 @@ export class PracticeService {
    * - Returns unmasked TopicSessionDTO with full solutionExplanation and correctOptionIndex (BR-03).
    */
   async submitBatch(
-    userId: string,
+    userId: string | undefined,
     sessionId: string,
     tier: PracticeTier,
     answers: number[]
   ): Promise<TopicSessionDTO> {
-    const session = await this.sessionRepo.findByIdAndUserId(sessionId, userId);
+    const session = await this.sessionRepo.findSession(sessionId, userId);
     if (!session) {
       throw new AppError(
         404,

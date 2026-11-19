@@ -7,16 +7,20 @@ import { sessionController } from '../controllers/session.controller.js';
 import { explainRouter } from './explain.routes.js';
 import { interactRouter } from './interact.routes.js';
 import { practiceRouter } from './practice.routes.js';
-import { requireAuth, requireCompletedProfile } from '../middlewares/auth.middleware.js';
+import {
+  optionalAuth,
+  requireAuth,
+  requireCompletedProfile,
+} from '../middlewares/auth.middleware.js';
 import { quotaMiddleware } from '../middlewares/quota.middleware.js';
 import { validateRequest } from '../middlewares/validate.middleware.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
 export const sessionRouter = Router();
 
-sessionRouter.use(requireAuth, requireCompletedProfile);
+sessionRouter.use(optionalAuth, requireCompletedProfile);
 
-sessionRouter.get('/', asyncHandler(sessionController.listSessions));
+sessionRouter.get('/', requireAuth, asyncHandler(sessionController.listSessions));
 
 sessionRouter.post(
   '/',

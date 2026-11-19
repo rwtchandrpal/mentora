@@ -94,7 +94,8 @@ export const toTopicSessionDTO = (
   const rawDto = {
     id: doc._id.toString(),
     _id: doc._id.toString(),
-    userId: doc.userId.toString(),
+    userId: doc.userId ? doc.userId.toString() : null,
+    isGuest: doc.isGuest ?? false,
     topicQuery: doc.topicQuery,
     normalizedTitle: doc.normalizedTitle,
     lastActiveMode: doc.lastActiveMode,
@@ -164,12 +165,13 @@ export class SessionService {
   ) {}
 
   async createSession(
-    userId: string,
+    userId: string | undefined,
     input: CreateSessionRequestDTO
   ): Promise<TopicSessionDTO> {
     const normalizedTitle = input.topicQuery.trim();
     const sessionDoc = await this.repository.create({
       userId,
+      isGuest: !userId,
       topicQuery: input.topicQuery,
       normalizedTitle,
       initialMode: input.initialMode,
@@ -206,8 +208,8 @@ export class SessionService {
     return docs.map(toSessionSummaryDTO);
   }
 
-  async getSessionById(userId: string, sessionId: string): Promise<TopicSessionDTO> {
-    const doc = await this.repository.findByIdAndUserId(sessionId, userId);
+  async getSessionById(userId: string | undefined, sessionId: string): Promise<TopicSessionDTO> {
+    const doc = await this.repository.findSession(sessionId, userId);
     if (!doc) {
       throw new AppError(404, ErrorCode.RESOURCE_NOT_FOUND, 'Topic session not found');
     }
@@ -215,7 +217,7 @@ export class SessionService {
   }
 
   async switchMode(
-    userId: string,
+    userId: string | undefined,
     sessionId: string,
     mode: LearningMode
   ): Promise<TopicSessionDTO> {
@@ -227,7 +229,7 @@ export class SessionService {
   }
 
   async deleteSession(
-    userId: string,
+    userId: string | undefined,
     sessionId: string
   ): Promise<{ deletedId: string }> {
     const deleted = await this.repository.deleteByIdAndUserId(sessionId, userId);

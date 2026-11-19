@@ -13,6 +13,7 @@ import {
   MentoraStreamControlHeaderSchema,
   StaticLearnerProfile,
   QuotaMetaDTO,
+  DEFAULT_GUEST_PROFILE,
 } from '@mentora/shared';
 import { AppError } from '../utils/AppError.js';
 import { logger } from '../config/logger.js';
@@ -37,7 +38,10 @@ import {
   ITopicSessionDocument,
 } from '../models/TopicSession.model.js';
 import { IUserDocument } from '../models/User.model.js';
-import { toQuotaMetaDTO } from '../middlewares/quota.middleware.js';
+import {
+  toQuotaMetaDTO,
+  incrementGuestQuota,
+} from '../middlewares/quota.middleware.js';
 import { SseWriter } from '../utils/sse.helper.js';
 
 export interface ComputeNextInteractStateParams {
@@ -265,10 +269,10 @@ export class InteractService {
    * Throws standard operational AppErrors before SSE headers are flushed.
    */
   async validateTurnPreconditions(
-    userId: string,
+    userId: string | undefined,
     sessionId: string
-  ): Promise<{ session: ITopicSessionDocument; user: IUserDocument }> {
-    const session = await this.sessionRepo.findByIdAndUserId(sessionId, userId);
+  ): Promise<{ session: ITopicSessionDocument; user?: IUserDocument }> {
+    const session = await this.sessionRepo.findSession(sessionId, userId);
     if (!session) {
       throw new AppError(
         404,
@@ -289,21 +293,24 @@ export class InteractService {
       );
     }
 
-    const user = await this.userRepo.findById(userId);
-    if (
-      !user ||
-      !user.profile.isCompleted ||
-      !user.profile.educationLevel ||
-      !user.profile.preferredStyle
-    ) {
-      throw new AppError(
-        403,
-        ErrorCode.PROFILE_INCOMPLETE,
-        'Learner profile is incomplete.'
-      );
+    if (userId) {
+      const user = await this.userRepo.findById(userId);
+      if (
+        !user ||
+        !user.profile.isCompleted ||
+        !user.profile.educationLevel ||
+        !user.profile.preferredStyle
+      ) {
+        throw new AppError(
+          403,
+          ErrorCode.PROFILE_INCOMPLETE,
+          'Learner profile is incomplete.'
+        );
+      }
+      return { session, user };
     }
 
-    return { session, user };
+    return { session, user: undefined };
   }
 
   /**
@@ -311,10 +318,10 @@ export class InteractService {
    * Idempotent: If already initialized, returns existing state without calling Gemini or incrementing quota.
    */
   async initializeInteract(
-    userId: string,
+    userId: string | undefined,
     sessionId: string
   ): Promise<{ session: TopicSessionDTO; quota?: QuotaMetaDTO }> {
-    const session = await this.sessionRepo.findByIdAndUserId(sessionId, userId);
+    const session = await this.sessionRepo.findSession(sessionId, userId);
     if (!session) {
       throw new AppError(
         404,
@@ -329,32 +336,39 @@ export class InteractService {
       session.interactState.status !== InteractStatus.NOT_STARTED &&
       session.interactState.milestones.length >= 3
     ) {
-      const user = await this.userRepo.findById(userId);
-      const quotaMeta = user ? toQuotaMetaDTO(user.usageQuota) : undefined;
+      let quotaMeta: QuotaMetaDTO | undefined;
+      if (userId) {
+        const user = await this.userRepo.findById(userId);
+        quotaMeta = user ? toQuotaMetaDTO(user.usageQuota) : undefined;
+      }
       return {
         session: toTopicSessionDTO(session),
         quota: quotaMeta,
       };
     }
 
-    const user = await this.userRepo.findById(userId);
-    if (
-      !user ||
-      !user.profile.isCompleted ||
-      !user.profile.educationLevel ||
-      !user.profile.preferredStyle
-    ) {
-      throw new AppError(
-        403,
-        ErrorCode.PROFILE_INCOMPLETE,
-        'Learner profile is incomplete.'
-      );
-    }
+    let profile: StaticLearnerProfile = DEFAULT_GUEST_PROFILE;
 
-    const profile: StaticLearnerProfile = {
-      educationLevel: user.profile.educationLevel,
-      preferredStyle: user.profile.preferredStyle,
-    };
+    if (userId) {
+      const user = await this.userRepo.findById(userId);
+      if (
+        !user ||
+        !user.profile.isCompleted ||
+        !user.profile.educationLevel ||
+        !user.profile.preferredStyle
+      ) {
+        throw new AppError(
+          403,
+          ErrorCode.PROFILE_INCOMPLETE,
+          'Learner profile is incomplete.'
+        );
+      }
+
+      profile = {
+        educationLevel: user.profile.educationLevel,
+        preferredStyle: user.profile.preferredStyle,
+      };
+    }
 
     const systemInstruction = PromptBuilder.buildSystemInstruction(
       profile,
@@ -401,8 +415,11 @@ export class InteractService {
     session.lastActiveMode = LearningMode.INTERACT;
 
     const savedSession = await this.sessionRepo.save(session);
-    const updatedUser = await this.userRepo.incrementUserQuota(userId);
-    const quotaMeta = updatedUser ? toQuotaMetaDTO(updatedUser.usageQuota) : undefined;
+    let quotaMeta: QuotaMetaDTO | undefined;
+    if (userId) {
+      const updatedUser = await this.userRepo.incrementUserQuota(userId);
+      quotaMeta = updatedUser ? toQuotaMetaDTO(updatedUser.usageQuota) : undefined;
+    }
 
     return {
       session: toTopicSessionDTO(savedSession),
@@ -416,10 +433,11 @@ export class InteractService {
    * On failure mid-flight, leaves MongoDB state unchanged and emits event: error (Edge Case 4).
    */
   async processTurnStream(
-    userId: string,
+    userId: string | undefined,
     sessionId: string,
     payload: InteractStreamRequestDTO,
-    sseWriter: SseWriter
+    sseWriter: SseWriter,
+    guestId?: string
   ): Promise<void> {
     const { session, user } = await this.validateTurnPreconditions(
       userId,
@@ -435,10 +453,12 @@ export class InteractService {
       activeMilestoneIndex,
     });
 
-    const profile: StaticLearnerProfile = {
-      educationLevel: user.profile.educationLevel!,
-      preferredStyle: user.profile.preferredStyle!,
-    };
+    const profile: StaticLearnerProfile = user
+      ? {
+          educationLevel: user.profile.educationLevel!,
+          preferredStyle: user.profile.preferredStyle!,
+        }
+      : DEFAULT_GUEST_PROFILE;
 
     const systemInstruction = PromptBuilder.buildSystemInstruction(
       profile,
@@ -547,10 +567,15 @@ export class InteractService {
 
     // 4. Save and increment quota atomically on turn success
     await this.sessionRepo.save(session);
-    const updatedUser = await this.userRepo.incrementUserQuota(userId);
-    const quotaMeta = updatedUser
-      ? toQuotaMetaDTO(updatedUser.usageQuota)
-      : undefined;
+    let quotaMeta: QuotaMetaDTO | undefined;
+    if (userId) {
+      const updatedUser = await this.userRepo.incrementUserQuota(userId);
+      quotaMeta = updatedUser
+        ? toQuotaMetaDTO(updatedUser.usageQuota)
+        : undefined;
+    } else if (guestId) {
+      quotaMeta = incrementGuestQuota(guestId);
+    }
 
     // 5. Emit metadata and done frames
     sseWriter.sendMetadata({

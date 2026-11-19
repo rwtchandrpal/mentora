@@ -1,20 +1,37 @@
 import mongoose from 'mongoose';
-import { LearningMode } from '@mentora/shared';
+import { LearningMode, ErrorCode, GUEST_SESSION_TTL_SECONDS } from '@mentora/shared';
 import { TopicSession, ITopicSessionDocument } from '../models/TopicSession.model.js';
+import { AppError } from '../utils/AppError.js';
+
+export interface CreateSessionData {
+  userId?: string | null;
+  isGuest?: boolean;
+  expiresAt?: Date | null;
+  topicQuery: string;
+  normalizedTitle: string;
+  initialMode: LearningMode;
+}
 
 export class SessionRepository {
-  async create(data: {
-    userId: string;
-    topicQuery: string;
-    normalizedTitle: string;
-    initialMode: LearningMode;
-  }): Promise<ITopicSessionDocument> {
-    if (!mongoose.isValidObjectId(data.userId)) {
-      throw new Error(`Invalid userId ObjectId: ${data.userId}`);
+  async create(data: CreateSessionData): Promise<ITopicSessionDocument> {
+    const isGuest = data.isGuest ?? !data.userId;
+    let userObjectId: mongoose.Types.ObjectId | null = null;
+
+    if (data.userId) {
+      if (!mongoose.isValidObjectId(data.userId)) {
+        throw new Error(`Invalid userId ObjectId: ${data.userId}`);
+      }
+      userObjectId = new mongoose.Types.ObjectId(data.userId);
     }
 
+    const expiresAt = isGuest
+      ? (data.expiresAt ?? new Date(Date.now() + GUEST_SESSION_TTL_SECONDS * 1000))
+      : null;
+
     const session = await TopicSession.create({
-      userId: new mongoose.Types.ObjectId(data.userId),
+      userId: userObjectId,
+      isGuest,
+      expiresAt,
       topicQuery: data.topicQuery.trim(),
       normalizedTitle: data.normalizedTitle.trim(),
       lastActiveMode: data.initialMode,
@@ -36,6 +53,33 @@ export class SessionRepository {
     }).exec();
   }
 
+  async findGuestSessionById(sessionId: string): Promise<ITopicSessionDocument | null> {
+    if (!mongoose.isValidObjectId(sessionId)) {
+      return null;
+    }
+    return TopicSession.findOne({
+      _id: new mongoose.Types.ObjectId(sessionId),
+      isGuest: true,
+    }).exec();
+  }
+
+  async findSession(
+    sessionId: string,
+    userId?: string
+  ): Promise<ITopicSessionDocument | null> {
+    if (userId) {
+      return this.findByIdAndUserId(sessionId, userId);
+    }
+    if (!mongoose.isValidObjectId(sessionId)) {
+      throw new AppError(401, ErrorCode.UNAUTHORIZED, 'Authentication required');
+    }
+    const session = await TopicSession.findById(new mongoose.Types.ObjectId(sessionId)).exec();
+    if (!session || !session.isGuest) {
+      throw new AppError(401, ErrorCode.UNAUTHORIZED, 'Authentication required');
+    }
+    return session;
+  }
+
   async listSummariesByUserId(userId: string): Promise<ITopicSessionDocument[]> {
     if (!mongoose.isValidObjectId(userId)) {
       return [];
@@ -49,16 +93,40 @@ export class SessionRepository {
 
   async updateLastActiveMode(
     sessionId: string,
-    userId: string,
+    userId: string | undefined,
     mode: LearningMode
   ): Promise<ITopicSessionDocument | null> {
-    if (!mongoose.isValidObjectId(sessionId) || !mongoose.isValidObjectId(userId)) {
+    if (!mongoose.isValidObjectId(sessionId)) {
+      if (!userId) {
+        throw new AppError(401, ErrorCode.UNAUTHORIZED, 'Authentication required');
+      }
       return null;
     }
+    if (userId) {
+      if (!mongoose.isValidObjectId(userId)) {
+        return null;
+      }
+      return TopicSession.findOneAndUpdate(
+        {
+          _id: new mongoose.Types.ObjectId(sessionId),
+          userId: new mongoose.Types.ObjectId(userId),
+        },
+        {
+          $set: { lastActiveMode: mode },
+        },
+        { returnDocument: 'after' }
+      ).exec();
+    }
+
+    const session = await TopicSession.findById(new mongoose.Types.ObjectId(sessionId)).exec();
+    if (!session || !session.isGuest) {
+      throw new AppError(401, ErrorCode.UNAUTHORIZED, 'Authentication required');
+    }
+
     return TopicSession.findOneAndUpdate(
       {
         _id: new mongoose.Types.ObjectId(sessionId),
-        userId: new mongoose.Types.ObjectId(userId),
+        isGuest: true,
       },
       {
         $set: { lastActiveMode: mode },
@@ -67,13 +135,32 @@ export class SessionRepository {
     ).exec();
   }
 
-  async deleteByIdAndUserId(sessionId: string, userId: string): Promise<boolean> {
-    if (!mongoose.isValidObjectId(sessionId) || !mongoose.isValidObjectId(userId)) {
+  async deleteByIdAndUserId(sessionId: string, userId?: string): Promise<boolean> {
+    if (!mongoose.isValidObjectId(sessionId)) {
+      if (!userId) {
+        throw new AppError(401, ErrorCode.UNAUTHORIZED, 'Authentication required');
+      }
       return false;
     }
+    if (userId) {
+      if (!mongoose.isValidObjectId(userId)) {
+        return false;
+      }
+      const result = await TopicSession.deleteOne({
+        _id: new mongoose.Types.ObjectId(sessionId),
+        userId: new mongoose.Types.ObjectId(userId),
+      }).exec();
+      return result.deletedCount === 1;
+    }
+
+    const session = await TopicSession.findById(new mongoose.Types.ObjectId(sessionId)).exec();
+    if (!session || !session.isGuest) {
+      throw new AppError(401, ErrorCode.UNAUTHORIZED, 'Authentication required');
+    }
+
     const result = await TopicSession.deleteOne({
       _id: new mongoose.Types.ObjectId(sessionId),
-      userId: new mongoose.Types.ObjectId(userId),
+      isGuest: true,
     }).exec();
 
     return result.deletedCount === 1;

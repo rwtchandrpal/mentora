@@ -185,7 +185,7 @@ describe('IMP-005: User and TopicSession Repositories', () => {
       });
 
       expect(session).toBeDefined();
-      expect(session.userId.toString()).toBe(userAId);
+      expect(session.userId?.toString()).toBe(userAId);
       expect(session.topicQuery).toBe('Deadlocks in Distributed Systems');
       expect(session.lastActiveMode).toBe(LearningMode.EXPLAIN);
 

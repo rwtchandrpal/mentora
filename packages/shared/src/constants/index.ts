@@ -1,4 +1,8 @@
+import { EducationLevel, ExplanationStyle } from '../enums/index.js';
+
 export const DAILY_AI_QUOTA_LIMIT = 50 as const;
+export const GUEST_DAILY_AI_QUOTA_LIMIT = 15 as const;
+export const GUEST_SESSION_TTL_SECONDS = 7200 as const;
 export const MAX_SOCRATIC_STRIKES = 3 as const;
 export const MCQ_BATCH_SIZE = 10 as const;
 export const MCQ_OPTIONS_COUNT = 4 as const;
@@ -12,3 +16,8 @@ export const MIN_USER_NAME_LENGTH = 2 as const;
 export const MAX_USER_NAME_LENGTH = 80 as const;
 export const MIN_PASSWORD_LENGTH = 8 as const;
 export const MAX_PASSWORD_LENGTH = 128 as const;
+
+export const DEFAULT_GUEST_PROFILE = {
+  educationLevel: EducationLevel.UNDERGRADUATE,
+  preferredStyle: ExplanationStyle.VISUAL,
+} as const;

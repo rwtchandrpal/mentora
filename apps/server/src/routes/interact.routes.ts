@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { InteractStreamRequestSchema } from '@mentora/shared';
 import { interactController } from '../controllers/interact.controller.js';
 import {
-  requireAuth,
+  optionalAuth,
   requireCompletedProfile,
 } from '../middlewares/auth.middleware.js';
 import { quotaMiddleware } from '../middlewares/quota.middleware.js';
@@ -11,7 +11,7 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 
 export const interactRouter = Router();
 
-interactRouter.use(requireAuth, requireCompletedProfile);
+interactRouter.use(optionalAuth, requireCompletedProfile);
 
 interactRouter.post(
   '/:id/interact/init',

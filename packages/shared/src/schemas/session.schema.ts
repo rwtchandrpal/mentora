@@ -33,7 +33,8 @@ export const SessionSummaryDTOSchema = z.object({
 export const TopicSessionDTOSchema = z.object({
   id: z.string().min(1),
   _id: z.string().min(1).optional(),
-  userId: z.string().min(1),
+  userId: z.string().min(1).nullable().optional(),
+  isGuest: z.boolean().optional(),
   topicQuery: z.string(),
   normalizedTitle: z.string(),
   lastActiveMode: LearningModeSchema,
@@ -47,7 +48,8 @@ export const TopicSessionDTOSchema = z.object({
 export const TopicSessionFullSchema = z.object({
   id: z.string().min(1),
   _id: z.string().min(1).optional(),
-  userId: z.string().min(1),
+  userId: z.string().min(1).nullable().optional(),
+  isGuest: z.boolean().optional(),
   topicQuery: z.string(),
   normalizedTitle: z.string(),
   lastActiveMode: LearningModeSchema,

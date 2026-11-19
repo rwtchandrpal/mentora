@@ -52,15 +52,18 @@ export const WorkspacePage: React.FC = () => {
   const isCreatingSession = useAppSelector((state) => state.session.isCreatingSession);
   const sessionError = useAppSelector((state) => state.session.error);
   const isSidebarOpen = useAppSelector((state) => state.ui.isSidebarOpen);
+  const user = useAppSelector((state) => state.auth.user);
 
   const [topicQuery, setTopicQuery] = useState('');
   const [selectedInitialMode, setSelectedInitialMode] = useState<LearningMode>(LearningMode.EXPLAIN);
   const [clientValidationError, setClientValidationError] = useState<string | null>(null);
 
-  // 1. Initial sessions list hydration on mount
+  // 1. Initial sessions list hydration on mount (only for authenticated users)
   useEffect(() => {
-    void dispatch(fetchSessionsThunk());
-  }, [dispatch]);
+    if (user) {
+      void dispatch(fetchSessionsThunk());
+    }
+  }, [dispatch, user]);
 
   // 2. Direct session deep-link hydration (/workspace/:sessionId)
   useEffect(() => {
@@ -118,10 +121,10 @@ export const WorkspacePage: React.FC = () => {
         {/* If no active session, render New Topic Input Stage */}
         {activeSession === null ? (
           <div className="flex-1 flex flex-col">
-            {/* Mobile Top Navbar for Drawer Access / Desktop Navbar for Collapsed Sidebar */}
+            {/* Mobile Top Navbar for Drawer Access / Desktop Navbar for Collapsed Sidebar or Guest Mode */}
             <div
               className={`${
-                !isSidebarOpen ? 'flex' : 'lg:hidden flex'
+                !isSidebarOpen || !user ? 'flex' : 'lg:hidden flex'
               } bg-white border-b border-gray-200 px-4 py-3 items-center justify-between shadow-xs`}
             >
               <div className="flex items-center space-x-2">
@@ -146,6 +149,17 @@ export const WorkspacePage: React.FC = () => {
 
                 <span className="font-bold text-gray-900 tracking-tight">Mentora</span>
               </div>
+
+              {/* Top right "Get Started" button for guest users */}
+              {!user && (
+                <button
+                  type="button"
+                  onClick={() => navigate('/login')}
+                  className="inline-flex items-center justify-center py-1.5 px-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs shadow-xs transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  Get Started
+                </button>
+              )}
             </div>
 
             {/* New Topic Stage Hero Form */}
