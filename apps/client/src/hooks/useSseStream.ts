@@ -8,7 +8,7 @@ import {
   applyInteractMetadata,
 } from '../store/sessionSlice.js';
 import { setQuota } from '../store/authSlice.js';
-import { getStoredToken } from '../services/apiClient.js';
+import { buildAuthHeaders } from '../services/apiClient.js';
 import { env } from '../config/env.js';
 import type {
   SseStartEventDTO,
@@ -78,7 +78,6 @@ export const useSseStream = (sessionId: string | undefined): UseSseStreamReturn 
         })
       );
 
-      const token = getStoredToken();
       const url = `${env.VITE_API_BASE_URL}/sessions/${sessionId}/interact/stream`;
 
       try {
@@ -86,7 +85,7 @@ export const useSseStream = (sessionId: string | undefined): UseSseStreamReturn 
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            ...buildAuthHeaders(`/sessions/${sessionId}/interact/stream`),
           },
           body: JSON.stringify({
             message: effectiveMessage,

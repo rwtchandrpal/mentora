@@ -11,6 +11,7 @@ import {
   optionalAuth,
   requireAuth,
   requireCompletedProfile,
+  requireSessionAccess,
 } from '../middlewares/auth.middleware.js';
 import { quotaMiddleware } from '../middlewares/quota.middleware.js';
 import { validateRequest } from '../middlewares/validate.middleware.js';
@@ -19,6 +20,10 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 export const sessionRouter = Router();
 
 sessionRouter.use(optionalAuth, requireCompletedProfile);
+
+// Every per-session route (including the nested explain/interact/practice routers below)
+// is restricted to the session's owner: the user, or the guest holding its guest token.
+sessionRouter.use('/:id', requireSessionAccess);
 
 sessionRouter.get('/', requireAuth, asyncHandler(sessionController.listSessions));
 

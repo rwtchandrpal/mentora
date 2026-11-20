@@ -1,5 +1,5 @@
 import axios, { type InternalAxiosRequestConfig } from 'axios';
-import type { ErrorCode } from '@mentora/shared';
+import { GUEST_TOKEN_HEADER, type ErrorCode } from '@mentora/shared';
 import { env } from '../config/env.js';
 
 export const TOKEN_STORAGE_KEY = 'mentora_auth_token';
@@ -63,7 +63,95 @@ export const clearStoredToken = (): void => {
   }
 };
 
-const mapStatusCodeToErrorCode = (status: number): ClientApiErrorCode => {
+/**
+ * Guest session access tokens, keyed by session ID. A guest token grants access to
+ * exactly one ephemeral session and is issued when a guest creates that session.
+ * Stored in localStorage so a guest can reopen their session in a new tab until it expires.
+ */
+export const GUEST_TOKENS_STORAGE_KEY = 'mentora_guest_tokens';
+
+type GuestTokenMap = Record<string, string>;
+
+/** Reads the `exp` claim (seconds) from a JWT without verifying it. */
+const getJwtExpiryMs = (token: string): number | null => {
+  try {
+    const payloadSegment = token.split('.')[1];
+    if (!payloadSegment) return null;
+    const base64 = payloadSegment.replace(/-/g, '+').replace(/_/g, '/');
+    const payload = JSON.parse(atob(base64)) as { exp?: unknown };
+    return typeof payload.exp === 'number' ? payload.exp * 1000 : null;
+  } catch {
+    return null;
+  }
+};
+
+const readGuestTokens = (): GuestTokenMap => {
+  try {
+    if (typeof window === 'undefined' || !window.localStorage) return {};
+    const raw = window.localStorage.getItem(GUEST_TOKENS_STORAGE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as unknown;
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+    const now = Date.now();
+    const valid: GuestTokenMap = {};
+    for (const [sessionId, token] of Object.entries(parsed as Record<string, unknown>)) {
+      if (typeof token !== 'string') continue;
+      const expiry = getJwtExpiryMs(token);
+      if (expiry !== null && expiry <= now) continue; // drop expired tokens
+      valid[sessionId] = token;
+    }
+    return valid;
+  } catch {
+    return {};
+  }
+};
+
+const writeGuestTokens = (tokens: GuestTokenMap): void => {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.setItem(GUEST_TOKENS_STORAGE_KEY, JSON.stringify(tokens));
+    }
+  } catch {
+    // Safe fallback if localStorage is disabled or throws
+  }
+};
+
+export const getGuestToken = (sessionId: string): string | null => {
+  return readGuestTokens()[sessionId] ?? null;
+};
+
+export const setGuestToken = (sessionId: string, token: string): void => {
+  writeGuestTokens({ ...readGuestTokens(), [sessionId]: token });
+};
+
+export const removeGuestToken = (sessionId: string): void => {
+  const tokens = readGuestTokens();
+  delete tokens[sessionId];
+  writeGuestTokens(tokens);
+};
+
+/** Extracts the session ID from API paths such as `/sessions/:id` or `/sessions/:id/explain/init`. */
+export const extractSessionIdFromUrl = (url: string | undefined): string | null => {
+  if (!url) return null;
+  const match = /\/sessions\/([^/?#]+)/.exec(url);
+  return match?.[1] ? decodeURIComponent(match[1]) : null;
+};
+
+/**
+ * Builds the auth headers for a request: the user's bearer token when signed in,
+ * otherwise the guest token for the session the URL targets (if this browser has one).
+ */
+export const buildAuthHeaders = (url: string | undefined): Record<string, string> => {
+  const token = getStoredToken();
+  if (token) {
+    return { Authorization: `Bearer ${token}` };
+  }
+  const sessionId = extractSessionIdFromUrl(url);
+  const guestToken = sessionId ? getGuestToken(sessionId) : null;
+  return guestToken ? { [GUEST_TOKEN_HEADER]: guestToken } : {};
+};
+
+const mapStatusCodeToErrorCode =(status: number): ClientApiErrorCode => {
   switch (status) {
     case 400:
       return 'VALIDATION_ERROR';
@@ -177,9 +265,8 @@ export const apiClient = axios.create({
 
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const token = getStoredToken();
-    if (token) {
-      config.headers.set('Authorization', `Bearer ${token}`);
+    for (const [name, value] of Object.entries(buildAuthHeaders(config.url))) {
+      config.headers.set(name, value);
     }
     return config;
   },

@@ -35,7 +35,7 @@ export class InteractController {
         quotaMeta = toQuotaMetaDTO(user.usageQuota);
       }
     } else if (!result.quota) {
-      quotaMeta = incrementGuestQuota(getGuestIdentifier(req));
+      quotaMeta = await incrementGuestQuota(getGuestIdentifier(req));
     }
 
     res.status(200).json({

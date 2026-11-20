@@ -574,7 +574,7 @@ export class InteractService {
         ? toQuotaMetaDTO(updatedUser.usageQuota)
         : undefined;
     } else if (guestId) {
-      quotaMeta = incrementGuestQuota(guestId);
+      quotaMeta = await incrementGuestQuota(guestId);
     }
 
     // 5. Emit metadata and done frames

@@ -2,6 +2,7 @@ import express, { Express } from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
 import { rateLimit } from 'express-rate-limit';
+import { GUEST_TOKEN_HEADER } from '@mentora/shared';
 import { env } from './config/env.js';
 import { healthRouter } from './routes/health.routes.js';
 import { authRouter } from './routes/auth.routes.js';
@@ -22,7 +23,7 @@ export const createApp = (customRoutes?: (app: Express) => void): Express => {
     cors({
       origin: env.CLIENT_ORIGIN,
       credentials: true,
-      allowedHeaders: ['Content-Type', 'Authorization'],
+      allowedHeaders: ['Content-Type', 'Authorization', GUEST_TOKEN_HEADER],
     })
   );
 

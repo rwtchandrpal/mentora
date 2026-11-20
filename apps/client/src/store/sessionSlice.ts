@@ -12,6 +12,8 @@ import {
 import {
   apiClient,
   normalizeAxiosError,
+  setGuestToken,
+  removeGuestToken,
   type NormalizedApiErrorData,
 } from '../services/apiClient.js';
 import { setQuota, logout, type QuotaMetadata } from './authSlice.js';
@@ -102,6 +104,9 @@ export const createSessionThunk = createAsyncThunk<
       '/sessions',
       payload
     );
+    if (response.data.meta?.guestToken) {
+      setGuestToken(response.data.data.id, response.data.meta.guestToken);
+    }
     if (response.data.meta?.quota) {
       dispatch(setQuota(response.data.meta.quota));
     }
@@ -173,6 +178,7 @@ export const deleteSessionThunk = createAsyncThunk<
     const response = await apiClient.delete<ApiSuccessEnvelope<{ deleted: boolean }>>(
       `/sessions/${id}`
     );
+    removeGuestToken(id);
     if (response.data.meta?.quota) {
       dispatch(setQuota(response.data.meta.quota));
     }

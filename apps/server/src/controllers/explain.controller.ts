@@ -34,7 +34,7 @@ export class ExplainController {
         quotaMeta = toQuotaMetaDTO(user.usageQuota);
       }
     } else {
-      quotaMeta = incrementGuestQuota(getGuestIdentifier(req));
+      quotaMeta = await incrementGuestQuota(getGuestIdentifier(req));
     }
 
     res.status(200).json({
@@ -87,7 +87,7 @@ export class ExplainController {
         quotaMeta = toQuotaMetaDTO(user.usageQuota);
       }
     } else {
-      quotaMeta = incrementGuestQuota(getGuestIdentifier(req));
+      quotaMeta = await incrementGuestQuota(getGuestIdentifier(req));
     }
 
     res.status(200).json({

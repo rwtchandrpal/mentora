@@ -5,6 +5,7 @@ import {
   TopicSessionDTO,
 } from '@mentora/shared';
 import { sessionService, SessionService } from '../services/session.service.js';
+import { signGuestToken } from '../services/auth.service.js';
 import { userRepository } from '../repositories/user.repository.js';
 import {
   toQuotaMetaDTO,
@@ -40,18 +41,24 @@ export class SessionController {
     const userId = req.user?.id;
     const data = await this.service.createSession(userId, req.body);
     let quotaMeta = req.quota;
+    let guestToken: string | undefined;
     if (userId) {
       const user = await userRepository.findById(userId);
       if (user) {
         quotaMeta = toQuotaMetaDTO(user.usageQuota);
       }
     } else {
-      quotaMeta = incrementGuestQuota(getGuestIdentifier(req));
+      quotaMeta = await incrementGuestQuota(getGuestIdentifier(req));
+      guestToken = signGuestToken(data.id);
     }
+    const meta = {
+      ...(quotaMeta ? { quota: quotaMeta } : {}),
+      ...(guestToken ? { guestToken } : {}),
+    };
     res.status(201).json({
       success: true,
       data,
-      ...(quotaMeta ? { meta: { quota: quotaMeta } } : {}),
+      ...(Object.keys(meta).length > 0 ? { meta } : {}),
     });
   };
 
