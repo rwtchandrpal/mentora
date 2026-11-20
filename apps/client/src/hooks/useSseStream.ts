@@ -108,11 +108,13 @@ export const useSseStream = (sessionId: string | undefined): UseSseStreamReturn 
             // Non-JSON error body fallback
           }
           dispatch(setStreamError(errorMsg));
+          dispatch(finishStreaming());
           return;
         }
 
         if (!response.body) {
           dispatch(setStreamError('No response body received from server'));
+          dispatch(finishStreaming());
           return;
         }
 

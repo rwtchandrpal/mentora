@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
@@ -10,6 +10,7 @@ import {
   ExplainStepType,
   InteractStatus,
   PracticeTier,
+  BatchStatus,
   type TopicSessionDTO,
   type UserDTO,
   EducationLevel,
@@ -218,7 +219,7 @@ describe('Guest Mode Frontend UI Integration Tests', () => {
           batches: {
             easy: {
               tier: PracticeTier.EASY,
-              status: 'not_started' as any,
+              status: BatchStatus.NOT_STARTED,
               score: null,
               questions: [],
               userAnswers: [],
@@ -226,7 +227,7 @@ describe('Guest Mode Frontend UI Integration Tests', () => {
             },
             medium: {
               tier: PracticeTier.MEDIUM,
-              status: 'locked' as any,
+              status: BatchStatus.LOCKED,
               score: null,
               questions: [],
               userAnswers: [],
@@ -234,7 +235,7 @@ describe('Guest Mode Frontend UI Integration Tests', () => {
             },
             hard: {
               tier: PracticeTier.HARD,
-              status: 'locked' as any,
+              status: BatchStatus.LOCKED,
               score: null,
               questions: [],
               userAnswers: [],

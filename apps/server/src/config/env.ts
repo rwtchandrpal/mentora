@@ -11,7 +11,7 @@ export const EnvSchema = z.object({
   CLIENT_ORIGIN: z.string().url('CLIENT_ORIGIN must be a valid URL'),
   GEMINI_API_KEY: z.string().trim().min(1, 'GEMINI_API_KEY is required'),
   GEMINI_FAST_MODEL: z.string().trim().min(1).default('gemini-3.5-flash-lite'),
-  GEMINI_REASONING_MODEL: z.string().trim().min(1).default('gemini-3.6-pro'),
+  GEMINI_REASONING_MODEL: z.string().trim().min(1).default('gemini-3.5-flash-lite'),
   DAILY_AI_QUOTA_LIMIT: z.coerce.number().int().positive().default(DAILY_AI_QUOTA_LIMIT),
 });
 

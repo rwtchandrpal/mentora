@@ -15,6 +15,8 @@ import { notFoundMiddleware, errorMiddleware } from './middlewares/error.middlew
 export const createApp = (customRoutes?: (app: Express) => void): Express => {
   const app = express();
 
+  app.set('trust proxy', 1);
+
   app.use(helmet());
   app.use(
     cors({
@@ -30,6 +32,15 @@ export const createApp = (customRoutes?: (app: Express) => void): Express => {
     standardHeaders: 'draft-8',
     legacyHeaders: false,
     skip: () => env.NODE_ENV === 'test',
+    handler: (_req, res) => {
+      res.status(429).json({
+        success: false,
+        error: {
+          code: 'RATE_LIMIT_EXCEEDED',
+          message: 'Too many requests from this IP, please try again later.',
+        },
+      });
+    },
   });
   app.use('/api', apiLimiter);
 

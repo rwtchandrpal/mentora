@@ -195,7 +195,9 @@ export const initializeExplainThunk = createAsyncThunk<
 >('session/initializeExplain', async (sessionId, { dispatch, rejectWithValue }) => {
   try {
     const response = await apiClient.post<ApiSuccessEnvelope<TopicSessionDTO>>(
-      `/sessions/${sessionId}/explain/init`
+      `/sessions/${sessionId}/explain/init`,
+      undefined,
+      { timeout: 30000 }
     );
     if (response.data.meta?.quota) {
       dispatch(setQuota(response.data.meta.quota));
@@ -245,7 +247,8 @@ export const generateDeepDiveThunk = createAsyncThunk<
   try {
     const response = await apiClient.post<ApiSuccessEnvelope<TopicSessionDTO>>(
       `/sessions/${sessionId}/explain/deeper`,
-      { stepNumber }
+      { stepNumber },
+      { timeout: 30000 }
     );
     if (response.data.meta?.quota) {
       dispatch(setQuota(response.data.meta.quota));
@@ -269,7 +272,9 @@ export const initializeInteractThunk = createAsyncThunk<
 >('session/initializeInteract', async (sessionId, { dispatch, rejectWithValue }) => {
   try {
     const response = await apiClient.post<ApiSuccessEnvelope<TopicSessionDTO>>(
-      `/sessions/${sessionId}/interact/init`
+      `/sessions/${sessionId}/interact/init`,
+      undefined,
+      { timeout: 30000 }
     );
     if (response.data.meta?.quota) {
       dispatch(setQuota(response.data.meta.quota));
@@ -295,7 +300,7 @@ export const generatePracticeBatchThunk = createAsyncThunk<
     const response = await apiClient.post<ApiSuccessEnvelope<TopicSessionDTO>>(
       `/sessions/${sessionId}/practice/generate`,
       { tier },
-      { timeout: 45000 }
+      { timeout: 60000 }
     );
     if (response.data.meta?.quota) {
       dispatch(setQuota(response.data.meta.quota));

@@ -74,9 +74,20 @@ export const generateStructuredOutput = async <T>(
   for (let attempt = 1; attempt <= MAX_STRUCTURED_RETRY_ATTEMPTS; attempt++) {
     try {
       const client = getGeminiClient();
+      let correctionNote = '';
+      if (attempt > 1 && lastError instanceof Error) {
+        if (operation === AiOperation.EXPLAIN_INIT) {
+          correctionNote = ' If isEducationalValid is true, "cards" MUST have EXACTLY 4 cards: step 1 (intuition), step 2 (core_mechanism), step 3 (example), step 4 (check_for_understanding with non-empty checkQuestion and checkAnswer). Never return more or less than 4 cards.';
+        } else if (operation === AiOperation.PRACTICE_GENERATE) {
+          correctionNote = ' If isEducationalValid is true, "questions" MUST contain EXACTLY 10 questions numbered 1 to 10 in sequential order with solutionExplanation derived before correctOptionIndex.';
+        } else if (operation === AiOperation.INTERACT_INIT) {
+          correctionNote = ' If isEducationalValid is true, "milestones" MUST contain 3 to 5 milestones and openingQuestion must be non-empty.';
+        }
+      }
+
       const currentPrompt =
         attempt > 1 && lastError instanceof Error
-          ? `${prompt}\n\n[CRITICAL CORRECTION ON ATTEMPT ${attempt}]: Your previous attempt failed schema validation: ${lastError.message}. You MUST return valid JSON adhering strictly to the schema. If isEducationalValid is true, "cards" MUST have EXACTLY 4 cards: step 1 (intuition), step 2 (core_mechanism), step 3 (example), step 4 (check_for_understanding). Never return more or less than 4 cards.`
+          ? `${prompt}\n\n[CRITICAL CORRECTION ON ATTEMPT ${attempt}]: Your previous attempt failed schema validation: ${lastError.message}. You MUST return valid JSON adhering strictly to the schema.${correctionNote}`
           : prompt;
 
       const response = await client.models.generateContent({
