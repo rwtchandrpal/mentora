@@ -299,12 +299,11 @@ export const TopicSessionSchema = new Schema<ITopicSessionDocument>(
       ref: 'User',
       required: false,
       default: null,
-      index: true,
+      // No single-field index: { userId, updatedAt } below covers userId lookups (A-24).
     },
     isGuest: {
       type: Boolean,
       default: false,
-      index: true,
     },
     expiresAt: {
       type: Date,
@@ -384,8 +383,9 @@ export const TopicSessionSchema = new Schema<ITopicSessionDocument>(
   }
 );
 
+// Serves list-by-user and any userId prefix lookup. Lookups by _id already use
+// the default _id index, so no { _id, userId } compound is needed (A-24).
 TopicSessionSchema.index({ userId: 1, updatedAt: -1 });
-TopicSessionSchema.index({ _id: 1, userId: 1 });
 TopicSessionSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 export const TopicSession =

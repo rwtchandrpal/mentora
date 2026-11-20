@@ -6,19 +6,7 @@ import {
 } from '@mentora/shared';
 import { sessionService, SessionService } from '../services/session.service.js';
 import { signGuestToken } from '../services/auth.service.js';
-import { userRepository } from '../repositories/user.repository.js';
-import {
-  toQuotaMetaDTO,
-  incrementGuestQuota,
-  getGuestIdentifier,
-} from '../middlewares/quota.middleware.js';
-
-const extractParamId = (param: string | string[] | undefined): string => {
-  if (Array.isArray(param)) {
-    return param[0] ?? '';
-  }
-  return param ?? '';
-};
+import { extractSessionId } from '../utils/request.js';
 
 export class SessionController {
   constructor(private readonly service: SessionService = sessionService) {}
@@ -39,18 +27,10 @@ export class SessionController {
     res: Response<ApiSuccessEnvelope<TopicSessionDTO>>
   ): Promise<void> => {
     const userId = req.user?.id;
-    const data = await this.service.createSession(userId, req.body);
-    let quotaMeta = req.quota;
-    let guestToken: string | undefined;
-    if (userId) {
-      const user = await userRepository.findById(userId);
-      if (user) {
-        quotaMeta = toQuotaMetaDTO(user.usageQuota);
-      }
-    } else {
-      quotaMeta = await incrementGuestQuota(getGuestIdentifier(req));
-      guestToken = signGuestToken(data.id);
-    }
+    const result = await this.service.createSession(req.user, req.body, req.quotaReservation);
+    const data = result.session;
+    const quotaMeta = result.quota ?? req.quota;
+    const guestToken = userId ? undefined : signGuestToken(data.id);
     const meta = {
       ...(quotaMeta ? { quota: quotaMeta } : {}),
       ...(guestToken ? { guestToken } : {}),
@@ -66,7 +46,7 @@ export class SessionController {
     req: Request,
     res: Response<ApiSuccessEnvelope<TopicSessionDTO>>
   ): Promise<void> => {
-    const sessionId = extractParamId(req.params.id);
+    const sessionId = extractSessionId(req);
     const data = await this.service.getSessionById(req.user?.id, sessionId);
     res.status(200).json({
       success: true,
@@ -78,7 +58,7 @@ export class SessionController {
     req: Request,
     res: Response<ApiSuccessEnvelope<TopicSessionDTO>>
   ): Promise<void> => {
-    const sessionId = extractParamId(req.params.id);
+    const sessionId = extractSessionId(req);
     const data = await this.service.switchMode(
       req.user?.id,
       sessionId,
@@ -94,7 +74,7 @@ export class SessionController {
     req: Request,
     res: Response<ApiSuccessEnvelope<{ deletedId: string }>>
   ): Promise<void> => {
-    const sessionId = extractParamId(req.params.id);
+    const sessionId = extractSessionId(req);
     const data = await this.service.deleteSession(req.user?.id, sessionId);
     res.status(200).json({
       success: true,

@@ -10,6 +10,7 @@ import { logger } from '../config/logger.js';
 export class SseWriter {
   private heartbeatInterval: NodeJS.Timeout | null = null;
   private isClosed = false;
+  private readonly abortController = new AbortController();
 
   constructor(private readonly res: Response) {
     // Mandatory SSE Headers (architecture.md Sections G.3 & H.2, AGENTS.md Section M)
@@ -26,9 +27,24 @@ export class SseWriter {
       this.isClosed = true;
     };
 
-    this.res.on('close', cleanup);
+    this.res.on('close', () => {
+      // 'close' without a completed response means the client went away.
+      if (!this.res.writableFinished) {
+        this.abortController.abort();
+      }
+      cleanup();
+    });
     this.res.on('finish', cleanup);
     this.res.on('error', cleanup);
+  }
+
+  /** Fires when the client disconnects before the response is finished. */
+  get signal(): AbortSignal {
+    return this.abortController.signal;
+  }
+
+  get isAborted(): boolean {
+    return this.abortController.signal.aborted;
   }
 
   private startHeartbeat(): void {

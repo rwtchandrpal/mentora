@@ -24,7 +24,7 @@ services:
       - key: GEMINI_FAST_MODEL
         value: gemini-3.5-flash-lite
       - key: GEMINI_REASONING_MODEL
-        value: gemini-3.6-pro
+        value: gemini-3.5-flash-lite
       - key: DAILY_AI_QUOTA_LIMIT
         value: "50"
       - key: MONGOMS_DISABLE_POSTINSTALL

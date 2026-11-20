@@ -397,8 +397,9 @@ describe('IMP-020: Frontend SSE Client Hook (useSseStream) & Interact Mode UI St
 
     renderStage();
 
-    // Find chat input textarea
-    const textarea = screen.getByTestId('chat-input-textarea');
+    // Find chat input textarea by its accessible name (A-20)
+    const textarea = screen.getByRole('textbox', { name: 'Your response to Mentora' });
+    expect(textarea).toBe(screen.getByTestId('chat-input-textarea'));
     fireEvent.change(textarea, {
       target: { value: 'When heartbeats stop after an election timeout' },
     });

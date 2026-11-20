@@ -10,6 +10,7 @@ import type { GoogleGenAI } from '@google/genai';
 import { AppError } from '../utils/AppError.js';
 import {
   generateStructuredOutput,
+  streamContent,
   setGeminiClient,
   resetGeminiClient,
 } from '../ai/gemini.client.js';
@@ -284,6 +285,9 @@ describe('IMP-014: Gemini Structured Output Schemas & Validation Runner', () => 
         const appErr = err as AppError;
         expect(appErr.statusCode).toBe(502);
         expect(appErr.errorCode).toBe(ErrorCode.AI_UPSTREAM_FAILURE);
+        // A-17: SDK error text stays in server logs, never in client-facing details.
+        expect(appErr.details).toEqual({ operation: AiOperation.PRACTICE_GENERATE });
+        expect(JSON.stringify(appErr.details)).not.toContain('503 Service Unavailable');
       }
 
       expect(mockGenerateContent).toHaveBeenCalledTimes(2);
@@ -314,6 +318,33 @@ describe('IMP-014: Gemini Structured Output Schemas & Validation Runner', () => 
 
       expect(mockGenerateContent).toHaveBeenCalledTimes(2);
       expect(result.value).toBe('recovered');
+    });
+  });
+
+  describe('4b. Streaming failures do not leak SDK error text (A-17)', () => {
+    it('throws a generic AppError without the SDK message in details', async () => {
+      const generateContentStream = vi
+        .fn()
+        .mockRejectedValue(new Error('API key not valid: secret-internal-detail'));
+      setGeminiClient({
+        models: { generateContentStream },
+      } as unknown as GoogleGenAI);
+
+      try {
+        const gen = streamContent({
+          operation: AiOperation.INTERACT_STREAM,
+          systemInstruction: 'System',
+          prompt: 'Prompt',
+        });
+        await gen.next();
+        expect.fail('Should have thrown AppError');
+      } catch (err) {
+        expect(err).toBeInstanceOf(AppError);
+        const appErr = err as AppError;
+        expect(appErr.errorCode).toBe(ErrorCode.AI_UPSTREAM_FAILURE);
+        expect(appErr.message).not.toContain('secret-internal-detail');
+        expect(JSON.stringify(appErr.details ?? {})).not.toContain('secret-internal-detail');
+      }
     });
   });
 

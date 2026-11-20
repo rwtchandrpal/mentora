@@ -1,22 +1,34 @@
 import React, { useEffect, useState, useId } from 'react';
-import mermaid from 'mermaid';
+import type { Mermaid } from 'mermaid';
 
-let isMermaidInitialized = false;
+// Mermaid (and its diagram engines) is large, so it is loaded on demand the first time a
+// diagram renders instead of shipping in the entry chunk (A-16). The promise is cached so
+// the module is fetched and initialised once.
+let mermaidPromise: Promise<Mermaid> | null = null;
 
-const initializeMermaidOnce = (): void => {
-  if (!isMermaidInitialized) {
-    try {
-      mermaid.initialize({
-        startOnLoad: false,
-        securityLevel: 'strict',
-        theme: 'default',
-        fontFamily: 'ui-sans-serif, system-ui, sans-serif',
+const loadMermaid = (): Promise<Mermaid> => {
+  if (!mermaidPromise) {
+    mermaidPromise = import('mermaid')
+      .then(({ default: mermaid }) => {
+        try {
+          mermaid.initialize({
+            startOnLoad: false,
+            securityLevel: 'strict',
+            theme: 'default',
+            fontFamily: 'ui-sans-serif, system-ui, sans-serif',
+          });
+        } catch {
+          // Ignore re-initialization warnings in tests
+        }
+        return mermaid;
+      })
+      .catch((error: unknown) => {
+        // Allow a retry on the next render (e.g. after a transient chunk-load failure).
+        mermaidPromise = null;
+        throw error;
       });
-      isMermaidInitialized = true;
-    } catch {
-      // Ignore re-initialization warnings in tests
-    }
   }
+  return mermaidPromise;
 };
 
 export interface MermaidDiagramProps {
@@ -43,12 +55,12 @@ export const MermaidDiagram: React.FC<MermaidDiagramProps> = ({
       return;
     }
 
-    initializeMermaidOnce();
-
     const renderDiagram = async (): Promise<void> => {
       try {
         setIsLoading(true);
         setHasError(false);
+
+        const mermaid = await loadMermaid();
 
         // Edge Case 3: Validate diagram syntax prior to full render
         await mermaid.parse(trimmedCode);

@@ -4,7 +4,6 @@ import { LearningMode, type SessionSummaryDTO } from '@mentora/shared';
 import { useAppDispatch, useAppSelector } from '../../store/hooks.js';
 import {
   clearActiveSession,
-  fetchSessionByIdThunk,
   deleteSessionThunk,
 } from '../../store/sessionSlice.js';
 import {
@@ -46,7 +45,7 @@ export const LeftHistorySidebar: React.FC = () => {
       dispatch(setMobileDrawerOpen(false));
       return;
     }
-    void dispatch(fetchSessionByIdThunk(sessionId));
+    // WorkspacePage fetches the session for the new route, so only navigate (A-19).
     navigate(`/workspace/${sessionId}`);
     dispatch(setMobileDrawerOpen(false));
   };
@@ -54,7 +53,11 @@ export const LeftHistorySidebar: React.FC = () => {
   const handleDeleteSession = async (e: React.MouseEvent, sessionId: string) => {
     e.stopPropagation();
     try {
-      await dispatch(deleteSessionThunk(sessionId));
+      const result = await dispatch(deleteSessionThunk(sessionId));
+      // On failure the slice records the error; keep the session open (A-18).
+      if (!deleteSessionThunk.fulfilled.match(result)) {
+        return;
+      }
       if (activeSession?.id === sessionId || activeSession?._id === sessionId) {
         dispatch(clearActiveSession());
         navigate('/workspace');

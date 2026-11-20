@@ -138,6 +138,38 @@ describe('IMP-027: Deployment Artifacts & Configuration Verification', () => {
     });
   });
 
+  describe('3b. Gemini Model Configuration Alignment (A-10)', () => {
+    const MODEL_KEYS = ['GEMINI_FAST_MODEL', 'GEMINI_REASONING_MODEL'] as const;
+
+    const readRenderValue = (key: string): string | undefined => {
+      const content = fs.readFileSync(path.join(REPO_ROOT, 'render.yaml'), 'utf-8');
+      const match = new RegExp('key: ' + key + '\\s*\\n\\s*value:\\s*"?([^"\\n]+)"?').exec(content);
+      return match?.[1]?.trim();
+    };
+
+    const readEnvExampleValue = (key: string): string | undefined => {
+      const content = fs.readFileSync(path.join(REPO_ROOT, 'apps/server/.env.example'), 'utf-8');
+      const match = new RegExp(`^${key}=(.*)$`, 'm').exec(content);
+      return match?.[1]?.trim();
+    };
+
+    const readReadmeValue = (key: string): string | undefined => {
+      const content = fs.readFileSync(path.join(REPO_ROOT, 'README.md'), 'utf-8');
+      const match = new RegExp(`^${key}=(.*)$`, 'm').exec(content);
+      return match?.[1]?.trim();
+    };
+
+    it.each(MODEL_KEYS)(
+      '%s: code default, render.yaml, .env.example and README name the same model',
+      (key) => {
+        const codeDefault = EnvSchema.shape[key].parse(undefined);
+        expect(readRenderValue(key)).toBe(codeDefault);
+        expect(readEnvExampleValue(key)).toBe(codeDefault);
+        expect(readReadmeValue(key)).toBe(codeDefault);
+      }
+    );
+  });
+
   describe('4. Git Secret Hygiene (.gitignore)', () => {
     const gitignorePath = path.join(REPO_ROOT, '.gitignore');
 

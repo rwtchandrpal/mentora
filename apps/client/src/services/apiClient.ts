@@ -275,10 +275,42 @@ apiClient.interceptors.request.use(
   }
 );
 
+/**
+ * Called when a request that carried the user's bearer token is rejected with 401,
+ * i.e. the stored token has expired or been revoked (A-09). The store registers a
+ * handler that logs the user out; it lives here as a setter to avoid a circular
+ * import between the API client and the store.
+ */
+type UnauthorizedHandler = () => void;
+let unauthorizedHandler: UnauthorizedHandler | null = null;
+
+export const setUnauthorizedHandler = (handler: UnauthorizedHandler | null): void => {
+  unauthorizedHandler = handler;
+};
+
+export const notifyUnauthorized = (): void => {
+  unauthorizedHandler?.();
+};
+
+const sentBearerToken = (error: unknown): boolean => {
+  if (!axios.isAxiosError(error)) return false;
+  const headers = error.config?.headers;
+  if (!headers) return false;
+  const value =
+    typeof headers.get === 'function' ? headers.get('Authorization') : headers['Authorization'];
+  return typeof value === 'string' && value.startsWith('Bearer ');
+};
+
 apiClient.interceptors.response.use(
   (response) => response,
   (error: unknown) => {
-    return Promise.reject(normalizeAxiosError(error));
+    const normalized = normalizeAxiosError(error);
+    // Only a rejected bearer token means the session expired. A 401 without one
+    // (wrong password, missing guest token) must not log anyone out.
+    if (normalized.statusCode === 401 && sentBearerToken(error)) {
+      notifyUnauthorized();
+    }
+    return Promise.reject(normalized);
   }
 );
 

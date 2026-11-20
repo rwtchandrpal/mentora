@@ -3,6 +3,15 @@ import { LearningMode, ErrorCode, GUEST_SESSION_TTL_SECONDS } from '@mentora/sha
 import { TopicSession, ITopicSessionDocument } from '../models/TopicSession.model.js';
 import { AppError } from '../utils/AppError.js';
 
+/** Fields needed for the sidebar history list; mode states are never loaded (A-12). */
+export const SESSION_SUMMARY_FIELDS =
+  'topicQuery normalizedTitle lastActiveMode createdAt updatedAt' as const;
+
+export type SessionSummaryRecord = Pick<
+  ITopicSessionDocument,
+  '_id' | 'topicQuery' | 'normalizedTitle' | 'lastActiveMode' | 'createdAt' | 'updatedAt'
+>;
+
 export interface CreateSessionData {
   userId?: string | null;
   isGuest?: boolean;
@@ -80,14 +89,16 @@ export class SessionRepository {
     return session;
   }
 
-  async listSummariesByUserId(userId: string): Promise<ITopicSessionDocument[]> {
+  async listSummariesByUserId(userId: string): Promise<SessionSummaryRecord[]> {
     if (!mongoose.isValidObjectId(userId)) {
       return [];
     }
     return TopicSession.find({
       userId: new mongoose.Types.ObjectId(userId),
     })
+      .select(SESSION_SUMMARY_FIELDS)
       .sort({ updatedAt: -1 })
+      .lean<SessionSummaryRecord[]>()
       .exec();
   }
 
@@ -168,6 +179,31 @@ export class SessionRepository {
 
   async save(session: ITopicSessionDocument): Promise<ITopicSessionDocument> {
     return session.save();
+  }
+
+  /**
+   * Applies `$set` only while the session still matches `guard` (A-07). Used after an
+   * AI generation so that, when two requests generate concurrently, only the first
+   * write lands. Returns null if this request lost the race (the guard no longer
+   * matched), in which case the caller should re-read the winning document.
+   */
+  async setIfMatches(
+    sessionId: mongoose.Types.ObjectId | string,
+    guard: Record<string, unknown>,
+    set: Record<string, unknown>
+  ): Promise<ITopicSessionDocument | null> {
+    return TopicSession.findOneAndUpdate(
+      { _id: sessionId, ...guard },
+      { $set: set },
+      { returnDocument: 'after', runValidators: true }
+    ).exec();
+  }
+
+  async findById(sessionId: mongoose.Types.ObjectId | string): Promise<ITopicSessionDocument | null> {
+    if (!mongoose.isValidObjectId(sessionId)) {
+      return null;
+    }
+    return TopicSession.findById(sessionId).exec();
   }
 }
 

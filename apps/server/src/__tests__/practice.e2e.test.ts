@@ -332,6 +332,17 @@ describe('IMP-024: Backend End-to-End Practice Mode Progression (Easy -> Medium 
         (finalPracticeState.batches.medium.score || 0) +
         (finalPracticeState.batches.hard.score || 0);
       expect(totalScore).toBe(27); // 27 / 30 (90%)
+
+      // Re-submitting a completed tier is rejected and does not change the stored result (A-05)
+      const resubmitRes = await request(app)
+        .post(`/api/v1/sessions/${sessionId}/practice/submit`)
+        .set('Authorization', `Bearer ${user.token}`)
+        .send({ tier: PracticeTier.HARD, answers: [0, 1, 2, 3, 0, 1, 2, 3, 0, 1] });
+      expect(resubmitRes.status).toBe(409);
+      expect(resubmitRes.body.error.code).toBe(ErrorCode.VALIDATION_ERROR);
+      const dbAfterResubmit = await TopicSession.findById(sessionId);
+      expect(dbAfterResubmit!.practiceState.batches.hard.score).toBe(8);
+      expect([...dbAfterResubmit!.practiceState.batches.hard.userAnswers]).toEqual(hardAnswers);
     });
   });
 

@@ -376,6 +376,36 @@ describe('IMP-022: Backend Practice Mode Service (Reasoning-First Generation, Ma
       expect(dbUser!.usageQuota.dailyCount).toBe(0);
     });
 
+    it('rejects re-submission of a completed batch with 409 and leaves score and answers unchanged (A-05)', async () => {
+      const user = await setupUser('Rita', 'rita@test.com');
+      const session = await createTestSession(user.userId);
+      session.practiceState.activeTier = PracticeTier.EASY;
+      session.practiceState.batches.easy.status = BatchStatus.IN_PROGRESS;
+      session.practiceState.batches.easy.questions = createMockQuestions();
+      await sessionRepository.save(session);
+
+      const firstAnswers = [0, 1, 2, 3, 0, 1, 2, 3, 3, 3];
+      const first = await request(app)
+        .post(`/api/v1/sessions/${session._id.toString()}/practice/submit`)
+        .set('Authorization', `Bearer ${user.token}`)
+        .send({ tier: PracticeTier.EASY, answers: firstAnswers });
+      expect(first.status).toBe(200);
+      expect(first.body.data.practiceState.batches.easy.score).toBe(8);
+
+      // Second submit with the now-revealed correct answers must be rejected.
+      const second = await request(app)
+        .post(`/api/v1/sessions/${session._id.toString()}/practice/submit`)
+        .set('Authorization', `Bearer ${user.token}`)
+        .send({ tier: PracticeTier.EASY, answers: [0, 1, 2, 3, 0, 1, 2, 3, 0, 1] });
+      expect(second.status).toBe(409);
+      expect(second.body.success).toBe(false);
+      expect(second.body.error.code).toBe(ErrorCode.VALIDATION_ERROR);
+
+      const dbSession = await TopicSession.findById(session._id);
+      expect(dbSession!.practiceState.batches.easy.score).toBe(8);
+      expect([...dbSession!.practiceState.batches.easy.userAnswers]).toEqual(firstAnswers);
+    });
+
     it('rejects submissions with fewer than 10 answers with 400 VALIDATION_ERROR (BR-03)', async () => {
       const user = await setupUser('Ian', 'ian@test.com');
       const session = await createTestSession(user.userId);

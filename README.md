@@ -48,7 +48,7 @@ Instead of re-explaining your background every time you start a new chat, you se
 
 ### Backend (`@mentora/server`)
 - **Node.js 20 LTS, Express.js & TypeScript:** Runs the REST and streaming API server.
-- **Google Gen AI SDK (`@google/genai`):** Connects to Google Gemini models—using `gemini-3.5-flash-lite` for fast chat and initial cards, and `gemini-3.6-pro` for deep dives and 10-question quizzes.
+- **Google Gen AI SDK (`@google/genai`):** Connects to Google Gemini models—with two configurable model slots: `GEMINI_FAST_MODEL` for fast chat and initial cards, and `GEMINI_REASONING_MODEL` for deep dives and 10-question quizzes. Both default to `gemini-3.5-flash-lite` for stability; point `GEMINI_REASONING_MODEL` at a larger model (e.g. `gemini-3.6-pro`) if you need deeper reasoning.
 - **JSON Web Tokens (`jsonwebtoken`) & `bcryptjs`:** Secures user accounts with hashed passwords and stateless login tokens.
 - **Zod:** Validates user inputs, environment variables, and AI JSON responses before saving them.
 - **Pino, Helmet, CORS & `express-rate-limit`:** Provides structured server logs, security headers, and protection against spam requests.
@@ -134,7 +134,7 @@ JWT_EXPIRES_IN=7d
 CLIENT_ORIGIN=http://localhost:5173
 GEMINI_API_KEY=your-google-ai-studio-api-key
 GEMINI_FAST_MODEL=gemini-3.5-flash-lite
-GEMINI_REASONING_MODEL=gemini-3.6-pro
+GEMINI_REASONING_MODEL=gemini-3.5-flash-lite
 DAILY_AI_QUOTA_LIMIT=50
 ```
 
@@ -196,7 +196,7 @@ All backend endpoints are prefixed with `/api/v1`:
 
 | Endpoint | Method | Description |
 | :--- | :--- | :--- |
-| `/api/v1/health` | `GET` | Checks server status and database connection. |
+| `/api/v1/health` | `GET` | Returns `200` with `{ status: 'ok', db: true, uptime }`, or `503` when the database is disconnected. |
 | `/api/v1/auth/register` | `POST` | Creates a new user account. |
 | `/api/v1/auth/login` | `POST` | Logs in a user and returns a JWT token. |
 | `/api/v1/auth/me` | `GET` | Fetches the logged-in user's profile and remaining daily quota. |
@@ -207,6 +207,22 @@ All backend endpoints are prefixed with `/api/v1`:
 | `/api/v1/sessions/:id/explain/*` | `POST` / `PATCH` | Generates the 4 Explain cards, advances steps, or generates `Go Deeper` sub-cards. |
 | `/api/v1/sessions/:id/interact/*` | `POST` | Generates learning milestones and streams Socratic chat replies over SSE. |
 | `/api/v1/sessions/:id/practice/*` | `POST` | Generates 10-question MCQ batches and grades submitted answers. |
+
+### Guest Mode
+
+Visitors can try Mentora without an account. Guest sessions are deliberately limited:
+
+| | Guest | Signed-in user |
+| :--- | :--- | :--- |
+| Learner profile | Fixed default profile | Your saved profile |
+| Daily AI actions | 15 per IP address | 50 per account (`DAILY_AI_QUOTA_LIMIT`) |
+| Session lifetime | Deleted 2 hours after creation | Kept until you delete it |
+| Session history (`GET /sessions`) | Not available (`401`) | Available |
+
+- **Creating a session:** `POST /api/v1/sessions` without an `Authorization` header creates a guest session. The response carries a signed guest token in `meta.guestToken`.
+- **Using the session:** every later request for that session (`GET`, `PATCH /mode`, `DELETE`, and the `explain`, `interact` and `practice` endpoints) must send the token in the `X-Guest-Token` header. A token only unlocks the one session it was issued for. A request without a token returns `401`; a token for another session returns `404`.
+- **Token storage:** the client keeps a `sessionId → guestToken` map in `sessionStorage`, so a guest session belongs to the browser tab that created it. Opening the same URL in another browser is denied.
+- **Quota:** guest usage is counted per client IP (as resolved by Express with `trust proxy`) in the `guestquotas` MongoDB collection, so it survives restarts. A guest is charged only when AI work actually runs.
 
 ---
 

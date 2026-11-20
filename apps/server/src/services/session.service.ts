@@ -5,6 +5,7 @@ import {
   PracticeTier,
   SessionSummaryDTO,
   TopicSessionDTO,
+  QuotaMetaDTO,
   CreateSessionRequestDTO,
   PracticeBatchDTO,
   SessionSummaryDTOSchema,
@@ -15,6 +16,7 @@ import { AppError } from '../utils/AppError.js';
 import {
   sessionRepository,
   SessionRepository,
+  SessionSummaryRecord,
 } from '../repositories/session.repository.js';
 import {
   ITopicSessionDocument,
@@ -23,6 +25,8 @@ import {
 import { explainService, ExplainService } from './explain.service.js';
 import { interactService, InteractService } from './interact.service.js';
 import { practiceService, PracticeService } from './practice.service.js';
+import { QuotaReservation } from '../middlewares/quota.middleware.js';
+import { LearnerRef, learnerIdOf } from './learner-profile.js';
 
 const toIsoString = (val: Date | string | null | undefined): string => {
   if (!val) return new Date().toISOString();
@@ -74,7 +78,7 @@ export const sanitizePracticeBatch = (
 };
 
 export const toSessionSummaryDTO = (
-  doc: ITopicSessionDocument
+  doc: SessionSummaryRecord
 ): SessionSummaryDTO => {
   const rawSummary = {
     id: doc._id.toString(),
@@ -164,10 +168,16 @@ export class SessionService {
     private readonly practiceServ: PracticeService = practiceService
   ) {}
 
+  /**
+   * Creates a session and, unless `autoInitialize === false`, runs the initial mode's AI
+   * generation. The reserved quota unit is kept only when that generation ran (A-06).
+   */
   async createSession(
-    userId: string | undefined,
-    input: CreateSessionRequestDTO
-  ): Promise<TopicSessionDTO> {
+    learner: LearnerRef,
+    input: CreateSessionRequestDTO,
+    reservation?: QuotaReservation
+  ): Promise<{ session: TopicSessionDTO; quota?: QuotaMetaDTO }> {
+    const userId = learnerIdOf(learner);
     const normalizedTitle = input.topicQuery.trim();
     const sessionDoc = await this.repository.create({
       userId,
@@ -178,25 +188,25 @@ export class SessionService {
     });
 
     if (input.autoInitialize === false) {
-      return toTopicSessionDTO(sessionDoc);
+      return { session: toTopicSessionDTO(sessionDoc), quota: await reservation?.release() };
     }
 
     const sessionId = sessionDoc._id.toString();
 
     try {
       if (input.initialMode === LearningMode.EXPLAIN) {
-        return await this.explainServ.initializeExplain(userId, sessionId);
+        return await this.explainServ.initializeExplain(learner, sessionId, reservation);
       } else if (input.initialMode === LearningMode.INTERACT) {
-        const result = await this.interactServ.initializeInteract(userId, sessionId);
-        return result.session;
+        return await this.interactServ.initializeInteract(learner, sessionId, reservation);
       } else if (input.initialMode === LearningMode.PRACTICE) {
         return await this.practiceServ.generateBatch(
-          userId,
+          learner,
           sessionId,
-          PracticeTier.EASY
+          PracticeTier.EASY,
+          reservation
         );
       }
-      return toTopicSessionDTO(sessionDoc);
+      return { session: toTopicSessionDTO(sessionDoc), quota: await reservation?.release() };
     } catch (error) {
       await this.repository.deleteByIdAndUserId(sessionId, userId);
       throw error;

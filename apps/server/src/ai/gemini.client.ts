@@ -255,10 +255,8 @@ export const generateStructuredOutput = async <T>(
     502,
     ErrorCode.AI_UPSTREAM_FAILURE,
     'Failed to generate a valid structured AI response after retry.',
-    {
-      operation,
-      cause: lastError instanceof Error ? lastError.message : String(lastError),
-    }
+    // A-17: the underlying cause is logged above; clients only see the operation.
+    { operation }
   );
 };
 
@@ -267,6 +265,8 @@ export interface StreamContentOptions {
   systemInstruction: string;
   prompt: string;
   temperature?: number;
+  /** Cancels the upstream request (e.g. when the SSE client disconnects). */
+  abortSignal?: AbortSignal;
 }
 
 /**
@@ -276,7 +276,7 @@ export interface StreamContentOptions {
 export async function* streamContent(
   options: StreamContentOptions
 ): AsyncGenerator<string, void, unknown> {
-  const { operation, systemInstruction, prompt, temperature } = options;
+  const { operation, systemInstruction, prompt, temperature, abortSignal } = options;
   const model = ModelRouter.getModelForOperation(operation);
   const client = getGeminiClient();
 
@@ -287,16 +287,24 @@ export async function* streamContent(
       config: {
         systemInstruction,
         ...(temperature !== undefined ? { temperature } : {}),
+        ...(abortSignal ? { abortSignal } : {}),
       },
     });
 
     for await (const chunk of responseStream) {
+      if (abortSignal?.aborted) {
+        return;
+      }
       const text = typeof chunk === 'string' ? chunk : chunk?.text;
       if (text && text.length > 0) {
         yield text;
       }
     }
   } catch (err) {
+    if (abortSignal?.aborted) {
+      // Cancelled by the caller; not an upstream failure.
+      return;
+    }
     if (err instanceof AppError) {
       throw err;
     }
@@ -314,10 +322,8 @@ export async function* streamContent(
       502,
       ErrorCode.AI_UPSTREAM_FAILURE,
       'Failed to stream AI response from Gemini.',
-      {
-        operation,
-        cause: err instanceof Error ? err.message : String(err),
-      }
+      // A-17: the underlying cause is logged above; clients only see the operation.
+      { operation }
     );
   }
 }

@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import request from 'supertest';
+import http from 'node:http';
+import type { AddressInfo } from 'node:net';
 import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import type { GoogleGenAI } from '@google/genai';
@@ -10,6 +12,7 @@ import {
   InteractStatus,
   MilestoneStatus,
   ErrorCode,
+  MAX_INTERACT_PROMPT_HISTORY,
 } from '@mentora/shared';
 import { app } from '../app.js';
 import { User } from '../models/User.model.js';
@@ -18,6 +21,7 @@ import {
   setGeminiClient,
   resetGeminiClient,
 } from '../ai/gemini.client.js';
+import { sessionRepository } from '../repositories/session.repository.js';
 
 describe('IMP-021: Backend End-to-End Interact Mode Lifecycle & 3-Strike Circuit Breaker Verification', () => {
   let mongoServer: MongoMemoryServer;
@@ -454,5 +458,208 @@ describe('IMP-021: Backend End-to-End Interact Mode Lifecycle & 3-Strike Circuit
     expect(dbSession?.interactState.strikeCount).toBe(1);
     expect(dbSession?.interactState.messages).toHaveLength(1); // Unchanged
   });
-});
 
+  const seedActiveInteractSession = async (userId: string) =>
+    TopicSession.create({
+      userId: new mongoose.Types.ObjectId(userId),
+      topicQuery: 'Post-stream Failure in Raft',
+      normalizedTitle: 'Post-stream Failure in Raft',
+      lastActiveMode: LearningMode.INTERACT,
+      interactState: {
+        status: InteractStatus.ACTIVE,
+        activeMilestoneIndex: 0,
+        strikeCount: 1,
+        milestones: [
+          { milestoneNumber: 1, title: 'M1', description: 'D1', status: MilestoneStatus.ACTIVE },
+        ],
+        messages: [
+          {
+            id: 'm-1',
+            role: 'assistant',
+            content: 'Opening question.',
+            milestoneNumber: 1,
+            strikeNumberAtTurn: 0,
+            isCircuitBreakerExplanation: false,
+            createdAt: new Date().toISOString(),
+          },
+        ],
+      },
+    });
+
+  const mockStream = (chunks: string[]) =>
+    setGeminiClient({
+      models: {
+        generateContent: vi.fn(),
+        generateContentStream: vi.fn().mockImplementation(async function* () {
+          for (const text of chunks) {
+            yield { text };
+          }
+        }),
+      },
+    } as unknown as GoogleGenAI);
+
+  it('T2.2: sends an SSE error, skips persistence and quota when the tutor reply is empty', async () => {
+    const user = await registerAndProfileUser('Empty Reply', 'empty-reply@example.com');
+    const session = await seedActiveInteractSession(user.userId);
+    mockStream(['<<MENTORA_STATE:{"outcome":"STRIKE"}>>']);
+
+    const streamRes = await request(app)
+      .post(`/api/v1/sessions/${session._id.toString()}/interact/stream`)
+      .set('Authorization', `Bearer ${user.token}`)
+      .send({ message: 'My probe answer' });
+
+    expect(streamRes.status).toBe(200);
+    expect(streamRes.text).toContain('event: error');
+    expect(streamRes.text).not.toContain('event: metadata');
+    expect(streamRes.text).not.toContain('event: done');
+
+    const dbSession = await TopicSession.findById(session._id);
+    expect(dbSession?.interactState.strikeCount).toBe(1);
+    expect(dbSession?.interactState.messages).toHaveLength(1);
+
+    const dbUser = await User.findById(user.userId);
+    expect(dbUser?.usageQuota.dailyCount ?? 0).toBe(0);
+  });
+
+  it('T2.2: sends an SSE error (not ERR_HTTP_HEADERS_SENT) when saving the turn fails', async () => {
+    const user = await registerAndProfileUser('Save Failure', 'save-failure@example.com');
+    const session = await seedActiveInteractSession(user.userId);
+    mockStream(['<<MENTORA_STATE:{"outcome":"STRIKE"}>>\n', 'Think about terms again.']);
+    vi.spyOn(sessionRepository, 'save').mockRejectedValueOnce(
+      new Error('Mongo write concern failure: secret-host:27017')
+    );
+
+    const streamRes = await request(app)
+      .post(`/api/v1/sessions/${session._id.toString()}/interact/stream`)
+      .set('Authorization', `Bearer ${user.token}`)
+      .send({ message: 'My probe answer' });
+
+    expect(streamRes.status).toBe(200);
+    expect(streamRes.text).toContain('event: error');
+    expect(streamRes.text).toContain(ErrorCode.INTERNAL_SERVER_ERROR);
+    expect(streamRes.text).not.toContain('secret-host');
+    expect(streamRes.text).not.toContain('event: metadata');
+
+    const dbSession = await TopicSession.findById(session._id);
+    expect(dbSession?.interactState.strikeCount).toBe(1);
+    expect(dbSession?.interactState.messages).toHaveLength(1);
+
+    const dbUser = await User.findById(user.userId);
+    expect(dbUser?.usageQuota.dailyCount ?? 0).toBe(0);
+  });
+
+  it('T2.3: aborts the upstream stream and skips persistence and quota when the client disconnects', async () => {
+    const user = await registerAndProfileUser('Disconnecting Client', 'disconnect@example.com');
+    const session = await seedActiveInteractSession(user.userId);
+
+    let upstreamSignal: AbortSignal | undefined;
+    let generatorFinished = false;
+    setGeminiClient({
+      models: {
+        generateContent: vi.fn(),
+        generateContentStream: vi.fn().mockImplementation(async function* (params: {
+          config?: { abortSignal?: AbortSignal };
+        }) {
+          upstreamSignal = params.config?.abortSignal;
+          yield { text: '<<MENTORA_STATE:{"outcome":"ADVANCE"}>>\n' };
+          yield { text: 'First part of the reply. ' };
+          await new Promise((resolve) => setTimeout(resolve, 300));
+          yield { text: 'Second part after the client left.' };
+          generatorFinished = true;
+        }),
+      },
+    } as unknown as GoogleGenAI);
+
+    const server = app.listen(0);
+    try {
+      const { port } = server.address() as AddressInfo;
+      await new Promise<void>((resolve, reject) => {
+        const req = http.request(
+          {
+            host: '127.0.0.1',
+            port,
+            method: 'POST',
+            path: `/api/v1/sessions/${session._id.toString()}/interact/stream`,
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${user.token}`,
+            },
+          },
+          (res) => {
+            res.on('data', (chunk: Buffer) => {
+              if (chunk.toString().includes('event: token')) {
+                req.destroy();
+                resolve();
+              }
+            });
+          }
+        );
+        req.on('error', (err: NodeJS.ErrnoException) => {
+          if (err.code !== 'ECONNRESET') reject(err);
+        });
+        req.end(JSON.stringify({ message: 'My probe answer' }));
+      });
+
+      // Give the server time to finish the (mock) generator if it was not aborted.
+      await new Promise((resolve) => setTimeout(resolve, 700));
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
+
+    expect(upstreamSignal).toBeDefined();
+    expect(upstreamSignal?.aborted).toBe(true);
+    expect(generatorFinished).toBe(false);
+
+    const dbSession = await TopicSession.findById(session._id);
+    expect(dbSession?.interactState.activeMilestoneIndex).toBe(0);
+    expect(dbSession?.interactState.messages).toHaveLength(1);
+
+    const dbUser = await User.findById(user.userId);
+    expect(dbUser?.usageQuota.dailyCount ?? 0).toBe(0);
+  });
+
+  it('T4.1: sends only the last MAX_INTERACT_PROMPT_HISTORY messages to the model', async () => {
+    const user = await registerAndProfileUser('Long Chat', 'long-chat@example.com');
+    const session = await seedActiveInteractSession(user.userId);
+    session.interactState.messages = Array.from({ length: 100 }, (_, i) => ({
+      id: `m-${i}`,
+      role: i % 2 === 0 ? 'assistant' : 'user',
+      content: `history-line-${i}`,
+      milestoneNumber: 1,
+      strikeNumberAtTurn: 0,
+      isCircuitBreakerExplanation: false,
+      createdAt: new Date().toISOString(),
+    })) as typeof session.interactState.messages;
+    session.markModified('interactState');
+    await session.save();
+
+    const prompts: string[] = [];
+    setGeminiClient({
+      models: {
+        generateContent: vi.fn(),
+        generateContentStream: vi.fn().mockImplementation(async function* (args: {
+          contents: string;
+        }) {
+          prompts.push(args.contents);
+          yield { text: '<<MENTORA_STATE:{"outcome":"STRIKE"}>>\nTry again.' };
+        }),
+      },
+    } as unknown as GoogleGenAI);
+
+    const streamRes = await request(app)
+      .post(`/api/v1/sessions/${session._id.toString()}/interact/stream`)
+      .set('Authorization', `Bearer ${user.token}`)
+      .send({ message: 'My probe answer' });
+
+    expect(streamRes.status).toBe(200);
+    expect(prompts).toHaveLength(1);
+    const historyLines = prompts[0]!
+      .split('\n')
+      .filter((line) => /^(USER|ASSISTANT): history-line-\d+$/.test(line));
+    expect(historyLines).toHaveLength(MAX_INTERACT_PROMPT_HISTORY);
+    expect(historyLines[0]).toMatch(
+      new RegExp(`: history-line-${100 - MAX_INTERACT_PROMPT_HISTORY}$`)
+    );
+    expect(historyLines.at(-1)).toBe('USER: history-line-99');
+  });
+});

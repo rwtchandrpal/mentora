@@ -1,8 +1,10 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import request from 'supertest';
 import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
+import type { GoogleGenAI } from '@google/genai';
 import {
+  ExplainStepType,
   LearningMode,
   GUEST_DAILY_AI_QUOTA_LIMIT,
   GUEST_TOKEN_HEADER,
@@ -18,6 +20,35 @@ import {
   syncGuestQuotaWindow,
 } from '../middlewares/quota.middleware.js';
 import { signAccessToken, signGuestToken } from '../services/auth.service.js';
+import { setGeminiClient, resetGeminiClient } from '../ai/gemini.client.js';
+
+const explainInitPayload = {
+  isEducationalValid: true,
+  normalizedTitle: 'Guest Topic',
+  cards: [
+    ExplainStepType.INTUITION,
+    ExplainStepType.CORE_MECHANISM,
+    ExplainStepType.EXAMPLE,
+    ExplainStepType.CHECK_FOR_UNDERSTANDING,
+  ].map((stepType, idx) => ({
+    stepNumber: idx + 1,
+    stepType,
+    title: `Card ${idx + 1}`,
+    contentMarkdown: `Content for card ${idx + 1}.`,
+    checkQuestion: idx === 3 ? 'Why?' : null,
+    checkAnswer: idx === 3 ? 'Because.' : null,
+    deepDives: [],
+  })),
+  suggestedSubTopics: ['Next Topic'],
+};
+
+const mockExplainGemini = () => {
+  const generateContent = vi.fn().mockImplementation(async () => ({
+    text: JSON.stringify(explainInitPayload),
+  }));
+  setGeminiClient({ models: { generateContent } } as unknown as GoogleGenAI);
+  return generateContent;
+};
 
 const createGuestSession = async (
   topicQuery: string,
@@ -48,6 +79,7 @@ describe('Guest Mode Backend Integration Tests', () => {
   });
 
   beforeEach(async () => {
+    resetGeminiClient();
     await TopicSession.deleteMany({});
     await User.deleteMany({});
     await clearGuestQuotaStore();
@@ -252,7 +284,8 @@ describe('Guest Mode Backend Integration Tests', () => {
 
   describe('3. Guest Quota Rate Limiting', () => {
     it('enforces GUEST_DAILY_AI_QUOTA_LIMIT and blocks with 429 when quota is exceeded', async () => {
-      // Simulate exhausting guest quota
+      mockExplainGemini();
+      // Simulate exhausting guest quota with charged (auto-initialized) creates
       for (let i = 0; i < GUEST_DAILY_AI_QUOTA_LIMIT; i++) {
         const res = await request(app)
           .post('/api/v1/sessions')
@@ -260,7 +293,6 @@ describe('Guest Mode Backend Integration Tests', () => {
           .send({
             topicQuery: `Guest Topic ${i}`,
             initialMode: LearningMode.EXPLAIN,
-            autoInitialize: false,
           });
         expect(res.status).toBe(201);
       }
@@ -284,6 +316,7 @@ describe('Guest Mode Backend Integration Tests', () => {
       // The proxy appends the real client IP as the right-most entry; everything to its
       // left is client-controlled and must not create a fresh quota bucket.
       const realClientIp = '198.51.100.7';
+      mockExplainGemini();
       for (let i = 0; i < GUEST_DAILY_AI_QUOTA_LIMIT; i++) {
         const res = await request(app)
           .post('/api/v1/sessions')
@@ -291,7 +324,6 @@ describe('Guest Mode Backend Integration Tests', () => {
           .send({
             topicQuery: `Spoof Attempt ${i}`,
             initialMode: LearningMode.EXPLAIN,
-            autoInitialize: false,
           });
         expect(res.status).toBe(201);
       }
@@ -340,6 +372,64 @@ describe('Guest Mode Backend Integration Tests', () => {
         Array.from({ length: 5 }, () => syncGuestQuotaWindow('203.0.113.12'))
       );
       expect(await GuestQuota.countDocuments({ _id: '203.0.113.12' })).toBe(1);
+    });
+  });
+
+  describe('5. Guest Charging Matches User Charging (A-06)', () => {
+    const guestIp = '192.0.2.50';
+
+    it('does not charge for a session created with autoInitialize:false', async () => {
+      const res = await request(app)
+        .post('/api/v1/sessions')
+        .set('X-Forwarded-For', guestIp)
+        .send({ topicQuery: 'No Charge', initialMode: LearningMode.EXPLAIN, autoInitialize: false });
+
+      expect(res.status).toBe(201);
+      expect(res.body.meta.quota.used).toBe(0);
+      const record = await GuestQuota.findById(guestIp).lean();
+      expect(record?.count ?? 0).toBe(0);
+    });
+
+    it('charges explain/init once and the idempotent repeat call not at all', async () => {
+      const generateContent = mockExplainGemini();
+      const createRes = await request(app)
+        .post('/api/v1/sessions')
+        .set('X-Forwarded-For', guestIp)
+        .send({ topicQuery: 'Charge Once', initialMode: LearningMode.EXPLAIN, autoInitialize: false });
+      const { id: sessionId } = createRes.body.data;
+      const { guestToken } = createRes.body.meta;
+
+      const first = await request(app)
+        .post(`/api/v1/sessions/${sessionId}/explain/init`)
+        .set('X-Forwarded-For', guestIp)
+        .set(GUEST_TOKEN_HEADER, guestToken);
+      expect(first.status).toBe(200);
+      expect(first.body.meta.quota.used).toBe(1);
+
+      const second = await request(app)
+        .post(`/api/v1/sessions/${sessionId}/explain/init`)
+        .set('X-Forwarded-For', guestIp)
+        .set(GUEST_TOKEN_HEADER, guestToken);
+      expect(second.status).toBe(200);
+      expect(second.body.meta.quota.used).toBe(1);
+
+      expect(generateContent).toHaveBeenCalledTimes(1);
+      const record = await GuestQuota.findById(guestIp).lean();
+      expect(record?.count).toBe(1);
+    });
+
+    it('does not charge a guest when AI generation fails', async () => {
+      const generateContent = vi.fn().mockRejectedValue(new Error('upstream down'));
+      setGeminiClient({ models: { generateContent } } as unknown as GoogleGenAI);
+
+      const res = await request(app)
+        .post('/api/v1/sessions')
+        .set('X-Forwarded-For', guestIp)
+        .send({ topicQuery: 'Failing Topic', initialMode: LearningMode.EXPLAIN });
+
+      expect(res.status).toBeGreaterThanOrEqual(500);
+      const record = await GuestQuota.findById(guestIp).lean();
+      expect(record?.count ?? 0).toBe(0);
     });
   });
 });

@@ -607,7 +607,7 @@ describe('IMP-012: Unified Workspace Shell, Left History Sidebar, & Mode Switche
         if (config.url === `/sessions/${mockSummary1.id}` && config.method === 'delete') {
           deleteSessionCalled = true;
           return {
-            data: { success: true, data: { deleted: true } },
+            data: { success: true, data: { deletedId: mockSummary1.id } },
             status: 200,
             statusText: 'OK',
             headers: {},
@@ -667,6 +667,104 @@ describe('IMP-012: Unified Workspace Shell, Left History Sidebar, & Mode Switche
       // Session is removed and active session cleared
       expect(store.getState().session.sessionList).toHaveLength(0);
       expect(store.getState().session.activeSession).toBeNull();
+    });
+
+    it('issues exactly one GET /sessions/:id per sidebar click (A-19)', async () => {
+      let getSessionCalls = 0;
+      const mockAdapter: AxiosAdapter = async (config: InternalAxiosRequestConfig) => {
+        if (config.url === `/sessions/${mockSummary2.id}` && config.method === 'get') {
+          getSessionCalls += 1;
+          return {
+            data: {
+              success: true,
+              data: { ...mockActiveSession, id: mockSummary2.id, _id: mockSummary2.id },
+            },
+            status: 200,
+            statusText: 'OK',
+            headers: {},
+            config,
+          };
+        }
+        return {
+          data: { success: true, data: [mockSummary1, mockSummary2] },
+          status: 200,
+          statusText: 'OK',
+          headers: {},
+          config,
+        };
+      };
+      apiClient.defaults.adapter = mockAdapter;
+
+      const { store } = renderWorkspace(['/workspace'], {
+        auth: {
+          token: 'mock-token',
+          user: mockUser,
+          quota: null,
+          authStatus: 'authenticated',
+          error: null,
+        },
+        session: {
+          sessionList: [mockSummary1, mockSummary2],
+          activeSession: null,
+        },
+      });
+
+      fireEvent.click(screen.getByText('Eigenvalues and Eigenvectors'));
+
+      await waitFor(() => {
+        expect(store.getState().session.activeSession?.id).toBe(mockSummary2.id);
+      });
+      // Let any duplicate in-flight fetch settle before counting.
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      expect(getSessionCalls).toBe(1);
+    });
+
+    it('keeps the active session open when the delete request fails (A-18)', async () => {
+      const mockAdapter: AxiosAdapter = async (config: InternalAxiosRequestConfig) => {
+        if (config.url === `/sessions/${mockSummary1.id}` && config.method === 'delete') {
+          throw new AxiosError('Server error', 'ERR_BAD_RESPONSE', config, null, {
+            data: {
+              success: false,
+              error: { code: 'INTERNAL_SERVER_ERROR', message: 'Delete failed' },
+            },
+            status: 500,
+            statusText: 'Internal Server Error',
+            headers: {},
+            config,
+          });
+        }
+        return {
+          data: { success: true, data: [mockSummary1] },
+          status: 200,
+          statusText: 'OK',
+          headers: {},
+          config,
+        };
+      };
+      apiClient.defaults.adapter = mockAdapter;
+
+      const { store } = renderWorkspace([`/workspace/${mockSummary1.id}`], {
+        auth: {
+          token: 'mock-token',
+          user: mockUser,
+          quota: null,
+          authStatus: 'authenticated',
+          error: null,
+        },
+        session: {
+          sessionList: [mockSummary1],
+          activeSession: { ...mockActiveSession },
+        },
+      });
+
+      fireEvent.click(screen.getByLabelText(`Delete session ${mockSummary1.normalizedTitle}`));
+      fireEvent.click(screen.getByLabelText(`Confirm delete ${mockSummary1.normalizedTitle}`));
+
+      await waitFor(() => {
+        expect(store.getState().session.error).not.toBeNull();
+      });
+      expect(store.getState().session.activeSession?.id).toBe(mockActiveSession.id);
+      expect(store.getState().session.sessionList).toHaveLength(1);
     });
 
     it('clears active session and returns to New Topic stage when New Topic button is clicked', () => {

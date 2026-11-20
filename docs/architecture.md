@@ -16,7 +16,7 @@ Mentora is architected as a decoupled, type-safe, cloud-native **Single-Page App
 The architecture is divided into four strict boundary layers:
 1. **Presentation & Client State Layer (Frontend — Vercel):** A React 18+ TypeScript SPA styled with Tailwind CSS and managed via Redux Toolkit. It handles routing, progressive Explain card disclosure, real-time Server-Sent Events (SSE) stream consumption for Interact Mode, local mid-quiz draft persistence (`localStorage`), and rich technical rendering (Markdown, KaTeX for $\LaTeX$ math, syntax-highlighted code blocks, and Mermaid.js diagrams).
 2. **Application & Pedagogical Orchestration Layer (Backend — Render):** A stateless Node.js + Express.js (TypeScript) server following a strict **Controller $\rightarrow$ Service $\rightarrow$ Repository / Provider** pattern. It enforces JWT authentication, daily per-user usage quotas, educational scope guardrails, and deterministic pedagogical state machines (such as the **3-Strike Socratic Circuit Breaker** and sequential **Easy $\rightarrow$ Medium $\rightarrow$ Hard** Practice tier unlocking).
-3. **AI Tutoring & Structured Generation Layer (Google Gemini API):** An isolated integration boundary wrapping the official `@google/genai` SDK. It routes latency-sensitive conversational turns to `GEMINI_FAST_MODEL` (`gemini-3.5-flash-lite`) and complex STEM/assessment workloads to `GEMINI_REASONING_MODEL` (`gemini-3.6-pro`), enforcing strict JSON schemas (including Reasoning-First MCQ generation) and SSE streaming.
+3. **AI Tutoring & Structured Generation Layer (Google Gemini API):** An isolated integration boundary wrapping the official `@google/genai` SDK. It routes latency-sensitive conversational turns to `GEMINI_FAST_MODEL` (`gemini-3.5-flash-lite`) and complex STEM/assessment workloads to `GEMINI_REASONING_MODEL` (default `gemini-3.5-flash-lite`; can be pointed at `gemini-3.6-pro`), enforcing strict JSON schemas (including Reasoning-First MCQ generation) and SSE streaming.
 4. **Persistence Layer (Database — MongoDB Atlas):** A managed MongoDB cluster storing `User` accounts (with embedded Static Learner Profiles and rolling daily quota counters) and `TopicSession` documents (encapsulating Explain cards, Interact milestones/transcripts, and Practice MCQ batches).
 
 ### A.2 High-Level System Architecture Diagram
@@ -58,7 +58,7 @@ flowchart TB
     subgraph ExternalTier["Managed Data & AI Services"]
         MongoAtlas[("MongoDB Atlas (Users & TopicSessions)")]
         GeminiFast["Google Gemini API (gemini-3.5-flash-lite — Low-Latency SSE & Init)"]
-        GeminiPro["Google Gemini API (gemini-3.6-pro — Deep Derivations & 10-MCQ Batches)"]
+        GeminiPro["Google Gemini API (GEMINI_REASONING_MODEL — Deep Derivations & 10-MCQ Batches)"]
     end
 
     Browser --> ReactSPA
@@ -240,6 +240,19 @@ Mentora implements two complementary rate-limiting layers:
 
 ---
 
+### D.4 Guest Mode
+
+Unauthenticated visitors can create and use **guest sessions**. The same routes serve users and guests; `optionalAuth` decides which one a request is.
+
+* **Identity:** `POST /api/v1/sessions` without a bearer token creates a `TopicSession` with `isGuest: true`, `userId: null` and `expiresAt = now + GUEST_SESSION_TTL_SECONDS` (2 h). A TTL index on `expiresAt` deletes it afterwards.
+* **Guest token:** the create response returns `meta.guestToken`, a JWT `{ sid, typ: 'guest' }` signed with `JWT_SECRET` and expiring with the session. Its `typ` differs from user tokens, so neither can be used as the other.
+* **Access check:** clients send the token as `X-Guest-Token` (allowed in CORS). `optionalAuth` verifies it and sets `req.guest = { sessionId }`. `requireSessionAccess` guards every `/sessions/:id/...` route: no user and no valid token returns `401`; a token for a different session returns `404`, so the response doesn't reveal whether the ID exists.
+* **Profile:** guests use `DEFAULT_GUEST_PROFILE` for prompt building; `requireCompletedProfile` only applies to users.
+* **Quota:** guests get `GUEST_DAILY_AI_QUOTA_LIMIT` (15) AI actions per 24 h window, keyed by `req.ip` (resolved by Express with `trust proxy`, which must equal the number of proxy hops). Counters live in the `guestquotas` collection (`{ _id: guestId, count, windowResetAt }`, TTL on `windowResetAt`) and are reserved atomically, then released if no AI work runs.
+* **Client:** `sessionStorage` holds a `sessionId → guestToken` map, so a guest session belongs to the tab that created it. Both the axios interceptor and the SSE `fetch` attach the header. Guests have no session history (`GET /sessions` requires auth).
+
+---
+
 ## E. AI Tutoring Architecture
 
 ### E.1 Shared Pedagogical Context & Prompt Engineering Engine
@@ -257,10 +270,10 @@ Every call to the Google Gemini API is constructed by the **`PromptBuilder`** se
 | Mode & Operation | Routed Model (`env`) | Default Gemini Model ID | Output Mode | Architectural Rationale |
 | :--- | :--- | :--- | :--- | :--- |
 | **Explain Mode — 4-Card Init** | `GEMINI_FAST_MODEL` | `gemini-3.5-flash-lite` | Structured JSON (`responseSchema`) | Generates all 4 core cards in a single call within ~3–5s so subsequent `Next` clicks have zero latency. |
-| **Explain Mode — `Go Deeper`** | `GEMINI_REASONING_MODEL` | `gemini-3.6-pro` | Structured JSON (`responseSchema`) | Requires deep technical derivations, formal proofs, or architectural diagrams for a specific card. |
+| **Explain Mode — `Go Deeper`** | `GEMINI_REASONING_MODEL` | `gemini-3.5-flash-lite` (default) | Structured JSON (`responseSchema`) | Requires deep technical derivations, formal proofs, or architectural diagrams for a specific card. |
 | **Interact Mode — Milestone Init** | `GEMINI_FAST_MODEL` | `gemini-3.5-flash-lite` | Structured JSON (`responseSchema`) | Decomposes the topic into 3–5 sequential milestones and crafts the opening diagnostic question. |
 | **Interact Mode — Socratic Turn** | `GEMINI_FAST_MODEL` | `gemini-3.5-flash-lite` | Streaming (`generateContentStream`) | Guarantees P90 Time-to-First-Token (TTFT) $< 2.0\text{s}$ (`NFR-001`) during live conversation. |
-| **Practice Mode — 10-MCQ Batch** | `GEMINI_REASONING_MODEL` | `gemini-3.6-pro` | Structured JSON (`responseSchema`) | Requires multi-step derivation verification across 10 questions to guarantee $\ge 99\%$ answer key validity (`NFR-003`). |
+| **Practice Mode — 10-MCQ Batch** | `GEMINI_REASONING_MODEL` | `gemini-3.5-flash-lite` (default) | Structured JSON (`responseSchema`) | Requires multi-step derivation verification across 10 questions to guarantee $\ge 99\%$ answer key validity (`NFR-003`). |
 
 ### E.3 Mode 1: Explain Mode Engine (`FR-007`, `FR-008`)
 * **Responsibility:** Encode knowledge progressively across 4 deterministic pedagogical steps (`1. Intuition` $\rightarrow$ `2. Core Mechanism` $\rightarrow$ `3. Example` $\rightarrow$ `4. Check-for-Understanding`) with on-demand vertical depth (`Go Deeper`).
@@ -433,7 +446,7 @@ All endpoints are prefixed with `/api/v1`.
 
 | Group | Method & Path | Auth & Guards | Responsibility |
 | :--- | :--- | :--- | :--- |
-| **System** | `GET /api/v1/health` | Public | Returns `{ status: 'ok', uptime }` to wake Render instance and verify MongoDB connectivity. |
+| **System** | `GET /api/v1/health` | Public | Returns `200 { status: 'ok', db: true, uptime }`, or `503` when MongoDB is disconnected (reads `mongoose.connection.readyState` only; no query). |
 | **Auth** | `POST /api/v1/auth/register` | Public | Registers user (`name`, `email`, `password`), returns JWT + `UserDTO` (`profile.isCompleted: false`). |
 | **Auth** | `POST /api/v1/auth/login` | Public | Verifies credentials, returns JWT + `UserDTO`. |
 | **Auth** | `GET /api/v1/auth/me` | JWT | Returns current authenticated `UserDTO` and live `usageQuota` counter. |

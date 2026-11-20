@@ -1,18 +1,14 @@
 import { Router } from 'express';
 import { InteractStreamRequestSchema } from '@mentora/shared';
 import { interactController } from '../controllers/interact.controller.js';
-import {
-  optionalAuth,
-  requireCompletedProfile,
-} from '../middlewares/auth.middleware.js';
 import { quotaMiddleware } from '../middlewares/quota.middleware.js';
 import { validateRequest } from '../middlewares/validate.middleware.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
 export const interactRouter = Router();
 
-interactRouter.use(optionalAuth, requireCompletedProfile);
-
+// Mounted only inside sessionRouter, which already runs optionalAuth,
+// requireCompletedProfile and requireSessionAccess for every route here.
 interactRouter.post(
   '/:id/interact/init',
   quotaMiddleware,

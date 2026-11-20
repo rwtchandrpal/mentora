@@ -116,6 +116,13 @@ export const verifyAccessToken = (token: string): { sub: string; email: string }
   }
 };
 
+/**
+ * Valid bcrypt hash (cost 12) of a random throwaway string. Login compares
+ * against it when the email is unknown, so response time doesn't reveal
+ * whether an account exists (A-28).
+ */
+const DUMMY_PASSWORD_HASH = bcrypt.hashSync('mentora-timing-equalizer', 12);
+
 export class AuthService {
   constructor(private readonly userRepo: UserRepository = userRepository) {}
 
@@ -169,12 +176,12 @@ export class AuthService {
   async login(input: LoginRequestDTO): Promise<AuthResponseDataDTO> {
     const normalizedEmail = input.email.toLowerCase().trim();
     const user = await this.userRepo.findByEmailWithPassword(normalizedEmail);
-    if (!user) {
-      throw new AppError(401, ErrorCode.UNAUTHORIZED, 'Invalid email or password');
-    }
-
-    const isMatch = await bcrypt.compare(input.password, user.passwordHash);
-    if (!isMatch) {
+    // Always pay the bcrypt cost, even for unknown emails (A-28).
+    const isMatch = await bcrypt.compare(
+      input.password,
+      user?.passwordHash ?? DUMMY_PASSWORD_HASH
+    );
+    if (!user || !isMatch) {
       throw new AppError(401, ErrorCode.UNAUTHORIZED, 'Invalid email or password');
     }
 

@@ -158,6 +158,18 @@ describe('IMP-005: User and TopicSession Repositories', () => {
   });
 
   describe('TopicSession Model & Repository (BR-02 & NFR-005)', () => {
+    it('declares only the non-redundant TopicSession indexes (A-24)', async () => {
+      const indexes = await TopicSession.collection.indexes();
+      const keys = indexes.map((idx) => JSON.stringify(idx.key)).sort();
+      expect(keys).toEqual(
+        [
+          JSON.stringify({ _id: 1 }),
+          JSON.stringify({ userId: 1, updatedAt: -1 }),
+          JSON.stringify({ expiresAt: 1 }),
+        ].sort()
+      );
+    });
+
     let userAId: string;
     let userBId: string;
 
@@ -242,6 +254,28 @@ describe('IMP-005: User and TopicSession Repositories', () => {
       const listB = await sessionRepository.listSummariesByUserId(userBId);
       expect(listB.length).toBe(1);
       expect(listB[0]?.topicQuery).toBe('Topic B1');
+    });
+
+    it('listSummariesByUserId loads only summary fields, not mode states (A-12)', async () => {
+      await sessionRepository.create({
+        userId: userAId,
+        topicQuery: 'Lean Topic',
+        normalizedTitle: 'Lean Topic',
+        initialMode: LearningMode.EXPLAIN,
+      });
+
+      const [summary] = await sessionRepository.listSummariesByUserId(userAId);
+      expect(summary).toBeDefined();
+      expect(summary).toMatchObject({
+        topicQuery: 'Lean Topic',
+        normalizedTitle: 'Lean Topic',
+        lastActiveMode: LearningMode.EXPLAIN,
+      });
+      expect(summary!.createdAt).toBeInstanceOf(Date);
+      expect(summary!.updatedAt).toBeInstanceOf(Date);
+      expect(summary).not.toHaveProperty('explainState');
+      expect(summary).not.toHaveProperty('interactState');
+      expect(summary).not.toHaveProperty('practiceState');
     });
 
     it('enforces multi-tenant ownership isolation (NFR-005)', async () => {
