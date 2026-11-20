@@ -135,7 +135,7 @@ export class PromptBuilder {
       '  - Every code snippet MUST use triple-backtick fenced blocks with an explicit language identifier (e.g., ```python, ```typescript, ```sql, ```bash).',
       '- Mermaid.js Diagrams:',
       '  - Every Mermaid diagram MUST be in a ```mermaid fenced code block.',
-      '  - Node Labels: Node labels containing spaces, parentheses, brackets, quotes, or punctuation MUST be enclosed in double quotes (e.g., A["Client Application (Browser)"] --> B["API Gateway"]).',
+      '  - Node Labels: Node labels containing spaces, parentheses, brackets, quotes, or punctuation MUST be enclosed in double quotes (e.g., A["Client Application (Browser)"] --> B["API Gateway"]). In JSON strings, ensure double quotes are properly escaped or single-quoted to prevent string parsing collisions.',
       '  - Diagram Types: Only use standard supported diagram types (graph TD, graph LR, sequenceDiagram, stateDiagram-v2, classDiagram, erDiagram).',
       '  - Strict Syntax: Do not use HTML tags or inline style attributes inside node labels to ensure client-side mermaid.parse() never fails.',
     ].join('\n');
@@ -212,7 +212,7 @@ export class PromptBuilder {
       '- cards[0]: stepNumber: 1, stepType: "intuition" (Intuition: High-level mental model and motivation)',
       '- cards[1]: stepNumber: 2, stepType: "core_mechanism" (Core Mechanism: Formal rules, theory, equations, or architecture)',
       '- cards[2]: stepNumber: 3, stepType: "example" (Example: Concrete applied scenario or annotated code walkthrough)',
-      `- cards[3]: stepNumber: 4, stepType: "check_for_understanding" (CFU: "checkQuestion" MUST contain a targeted reflection question specifically testing comprehension of "${topicQuery}". "checkAnswer" MUST contain the direct, accurate explanatory answer directly solving that exact "checkQuestion". Both fields must be non-empty strings specifically authored for "${topicQuery}" and directly matching each other)`,
+      `- cards[3]: stepNumber: 4, stepType: "check_for_understanding" (CFU: Card 4 MUST contain BOTH "checkQuestion" AND "checkAnswer" within the SAME card object. "checkQuestion" tests comprehension of "${topicQuery}", and "checkAnswer" is the accurate explanatory answer reveal. checkAnswer MUST NOT BE NULL. Do NOT create a separate 5th card for the answer — the total cards array length MUST be exactly 4).`,
       'Never omit any card, never combine cards, and never add extra cards. The "cards" array length must be exactly 4.',
       'Ensure every card is calibrated strictly to the system instruction profile and formatting rules.',
     ].join('\n');

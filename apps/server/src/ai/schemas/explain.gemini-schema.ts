@@ -57,11 +57,11 @@ export const explainInitGeminiSchema: Schema = {
           },
           checkAnswer: {
             type: Type.STRING,
-            description: 'Accurate, explanatory answer reveal for Step 4 (CFU) directly answering checkQuestion, or null for steps 1-3.',
+            description: 'Accurate, explanatory answer reveal for Step 4 (CFU) directly answering checkQuestion. Required non-empty string on Step 4; null for steps 1-3.',
             nullable: true,
           },
         },
-        required: ['stepNumber', 'stepType', 'title', 'contentMarkdown'],
+        required: ['stepNumber', 'stepType', 'title', 'contentMarkdown', 'checkQuestion', 'checkAnswer'],
       },
     },
     suggestedSubTopics: {
