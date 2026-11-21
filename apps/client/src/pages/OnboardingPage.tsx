@@ -149,8 +149,8 @@ export const OnboardingPage: React.FC = () => {
           </h1>
           <p className="mt-2 text-sm text-gray-700">
             {step === 1
-              ? 'Mentora calibrates vocabulary, mathematical depth, and problem context based on your background.'
-              : 'Choose the pedagogical presentation style that best resonates with your mental models.'}
+              ? 'We tailor depth and vocabulary to your level.'
+              : 'Pick the style that works best for you.'}
           </p>
         </div>
 

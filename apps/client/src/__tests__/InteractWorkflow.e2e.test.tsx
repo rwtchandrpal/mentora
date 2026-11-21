@@ -373,7 +373,7 @@ describe('IMP-021: Frontend End-to-End Interact Mode Workflow & 3-Strike Verific
 
         // Step B: Submit New Topic with Interact Mode selected
         const topicInput = screen.getByPlaceholderText(
-          /e\.g\. Distributed Consensus/i
+          /Enter any topic to learn/i
         );
         fireEvent.change(topicInput, {
           target: { value: 'Distributed Consensus in Raft' },

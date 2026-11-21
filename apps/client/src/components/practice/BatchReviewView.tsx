@@ -80,10 +80,10 @@ export const BatchReviewView: React.FC<BatchReviewViewProps> = ({
           </h2>
           <p className="text-sm text-gray-700">
             {percentage >= 80
-              ? 'Outstanding performance! You have demonstrated strong conceptual mastery for this tier.'
+              ? 'Outstanding! Strong mastery of this tier.'
               : percentage >= 60
-              ? 'Solid effort! Review the step-by-step rationales below to solidify any missing concepts.'
-              : 'Keep going! Review each detailed derivation below before taking on the next difficulty tier.'}
+              ? 'Solid effort! Review the rationales below to fill any gaps.'
+              : 'Keep going! Review the solutions below before the next tier.'}
           </p>
         </div>
 

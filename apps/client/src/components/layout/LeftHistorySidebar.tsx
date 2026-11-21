@@ -285,11 +285,7 @@ export const LeftHistorySidebar: React.FC = () => {
               );
             })}
           </>
-        ) : (
-          <div className="p-4 text-center text-xs text-gray-500 font-medium leading-relaxed">
-            No history in guest mode.
-          </div>
-        )}
+        ) : null}
       </div>
 
       {/* Quota Badge & User Profile Footer */}
@@ -299,7 +295,7 @@ export const LeftHistorySidebar: React.FC = () => {
           <div className="space-y-1">
             <p className="text-xs font-semibold text-gray-900">Personalized Learning</p>
             <p className="text-[11px] text-gray-600 leading-relaxed">
-              For personalized learning, saving your topics, and tracking progress, sign up or log in.
+              Sign up to save topics and track progress.
             </p>
           </div>
           <button

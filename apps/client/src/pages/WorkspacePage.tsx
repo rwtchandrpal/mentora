@@ -86,8 +86,16 @@ export const WorkspacePage: React.FC = () => {
     }
   };
 
+  const handleTopicKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key !== 'Enter' || e.shiftKey || e.nativeEvent.isComposing) return;
+    e.preventDefault();
+    if (!topicQuery.trim() || isCreatingSession) return;
+    e.currentTarget.form?.requestSubmit();
+  };
+
   const handleCreateSession = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isCreatingSession) return;
     setClientValidationError(null);
 
     const validation = CreateSessionRequestSchema.safeParse({
@@ -139,8 +147,7 @@ export const WorkspacePage: React.FC = () => {
             >
               <h1 className="text-xl font-bold text-gray-900">Session not found</h1>
               <p className="text-sm text-gray-700">
-                This session doesn&apos;t exist or isn&apos;t available to you. It may have been
-                deleted, or it belongs to a different browser or account.
+                This session doesn&apos;t exist or isn&apos;t available to you.
               </p>
               <button
                 type="button"
@@ -222,7 +229,7 @@ export const WorkspacePage: React.FC = () => {
                     </div>
                     <p className="text-xs text-red-700 leading-relaxed">
                       {sessionError?.message ||
-                        'Mentora is calibrated exclusively for educational concepts, theories, and academic topics. Please rephrase your query around an educational learning subject.'}
+                        'Mentora only covers educational topics. Please rephrase your query.'}
                     </p>
                   </div>
                 )}
@@ -258,7 +265,8 @@ export const WorkspacePage: React.FC = () => {
                         maxLength={MAX_TOPIC_QUERY_LENGTH}
                         value={topicQuery}
                         onChange={(e) => handleInputChange(e.target.value)}
-                        placeholder="e.g. Distributed Consensus in Raft, Eigenvalues & Eigenvectors, or RNA Splicing..."
+                        onKeyDown={handleTopicKeyDown}
+                        placeholder="Enter any topic to learn, e.g., Photosynthesis, Binary Search, or Macroeconomics..."
                         className="block w-full p-3.5 border border-gray-300 rounded-xl shadow-xs text-sm sm:text-base focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 placeholder-gray-500 transition-all resize-none"
                       />
                       <div className="absolute right-3 bottom-2.5 text-[11px] font-semibold text-gray-600">

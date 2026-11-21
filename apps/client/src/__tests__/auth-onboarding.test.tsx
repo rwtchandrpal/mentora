@@ -117,7 +117,7 @@ describe('IMP-011: Route Guards, Auth Pages, Mandatory Onboarding & Profile Sett
       expect(
         await screen.findByRole('heading', { name: /what topic would you like to master/i })
       ).toBeInTheDocument();
-      expect(screen.getByText(/no history in guest mode/i)).toBeInTheDocument();
+      expect(screen.queryByText(/no history in guest mode/i)).not.toBeInTheDocument();
       expect(screen.getAllByRole('button', { name: /get started/i }).length).toBeGreaterThan(0);
     });
 
@@ -136,7 +136,8 @@ describe('IMP-011: Route Guards, Auth Pages, Mandatory Onboarding & Profile Sett
       expect(
         screen.queryByRole('heading', { name: /welcome back to mentora/i })
       ).not.toBeInTheDocument();
-      expect(screen.getByText(/no history in guest mode/i)).toBeInTheDocument();
+      expect(screen.queryByText(/no history in guest mode/i)).not.toBeInTheDocument();
+      expect(screen.getAllByRole('button', { name: /get started/i }).length).toBeGreaterThan(0);
     });
 
     it('displays loading screen while token is being hydrated before route decision', () => {
@@ -187,7 +188,7 @@ describe('IMP-011: Route Guards, Auth Pages, Mandatory Onboarding & Profile Sett
       expect(store.getState().auth.authStatus).toBe('unauthenticated');
       expect(getStoredToken()).toBeNull();
       expect(
-        await screen.findByText(/no history in guest mode/i)
+        (await screen.findAllByRole('button', { name: /get started/i }))[0]
       ).toBeInTheDocument();
     });
 

@@ -331,6 +331,71 @@ describe('IMP-012: Unified Workspace Shell, Left History Sidebar, & Mode Switche
       expect(store.getState().session.activeSession?.id).toBe('session-101');
     });
 
+    it('submits the topic on Enter, but not on Shift+Enter, empty input, or IME composition', async () => {
+      const postCalls: unknown[] = [];
+      const mockAdapter: AxiosAdapter = async (config: InternalAxiosRequestConfig) => {
+        if (config.url === '/sessions' && config.method === 'post') {
+          postCalls.push(JSON.parse(config.data as string));
+          return {
+            data: { success: true, data: mockActiveSession, meta: { quota: mockQuotaMeta } },
+            status: 201,
+            statusText: 'Created',
+            headers: {},
+            config,
+          };
+        }
+        return {
+          data: { success: true, data: [] },
+          status: 200,
+          statusText: 'OK',
+          headers: {},
+          config,
+        };
+      };
+      apiClient.defaults.adapter = mockAdapter;
+
+      renderWorkspace(['/workspace'], {
+        auth: {
+          token: 'mock-token',
+          user: mockUser,
+          quota: null,
+          authStatus: 'authenticated',
+          error: null,
+        },
+      });
+
+      const textarea = screen.getByLabelText(/topic or question/i);
+      expect(textarea).toHaveAttribute(
+        'placeholder',
+        'Enter any topic to learn, e.g., Photosynthesis, Binary Search, or Macroeconomics...'
+      );
+
+      // Empty input: Enter does nothing
+      fireEvent.keyDown(textarea, { key: 'Enter' });
+
+      fireEvent.change(textarea, { target: { value: 'Photosynthesis' } });
+
+      // Shift+Enter is not intercepted (default newline allowed) and does not submit
+      const shiftEnterAllowed = fireEvent.keyDown(textarea, { key: 'Enter', shiftKey: true });
+      expect(shiftEnterAllowed).toBe(true);
+
+      // IME composition: Enter does not submit
+      fireEvent.keyDown(textarea, { key: 'Enter', isComposing: true });
+
+      await new Promise((r) => setTimeout(r, 0));
+      expect(postCalls).toHaveLength(0);
+
+      // Plain Enter prevents the newline and submits
+      const enterAllowed = fireEvent.keyDown(textarea, { key: 'Enter' });
+      expect(enterAllowed).toBe(false);
+
+      await waitFor(() => {
+        expect(postCalls).toEqual([
+          { topicQuery: 'Photosynthesis', initialMode: LearningMode.EXPLAIN },
+        ]);
+      });
+    });
+
     it('displays educational scope refusal banner when non-educational topic is refused (Edge Case 2)', async () => {
       const mockAdapter: AxiosAdapter = async (config: InternalAxiosRequestConfig) => {
         if (config.url === '/sessions' && config.method === 'post') {

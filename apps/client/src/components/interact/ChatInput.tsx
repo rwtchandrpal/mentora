@@ -95,7 +95,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                 ? 'All milestones completed.'
                 : isStreaming
                   ? 'Mentora is streaming a response...'
-                  : 'Type your response... (Enter to send, Shift+Enter for newline)'
+                  : 'Type your response...'
             }
             className="w-full resize-none p-3 text-sm text-gray-900 placeholder-gray-500 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed transition-all"
           />

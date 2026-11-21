@@ -28,7 +28,6 @@ export const ExplainStage: React.FC = () => {
     (state) => state.session.deepDiveLoadingStep
   );
   const explainError = useAppSelector((state) => state.session.explainError);
-  const user = useAppSelector((state) => state.auth.user);
 
   const sessionId = activeSession?.id ?? activeSession?._id;
   const explainState = activeSession?.explainState;
@@ -169,11 +168,11 @@ export const ExplainStage: React.FC = () => {
               Breaking down topic into 4 progressive learning cards...
             </h3>
             <p className="text-xs sm:text-sm text-gray-700 max-w-md mx-auto">
-              Calibrating conceptual intuition, mechanisms, and examples for{' '}
+              Tailoring{' '}
               <span className="font-semibold text-gray-900">
                 "{activeSession.normalizedTitle || activeSession.topicQuery}"
               </span>{' '}
-              to your learner profile ({user?.profile?.educationLevel?.replace('_', ' ') || 'learner'}).
+              to your level.
             </p>
           </div>
         </div>

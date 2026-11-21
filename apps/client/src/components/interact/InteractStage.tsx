@@ -106,7 +106,7 @@ export const InteractStage: React.FC = () => {
             Decomposing topic into conceptual milestones...
           </p>
           <p className="text-xs text-gray-600 font-medium max-w-md text-center">
-            Mentora is calibrating the Socratic dialogue and crafting an opening diagnostic question.
+            Preparing your first question.
           </p>
         </div>
 
@@ -195,8 +195,7 @@ export const InteractStage: React.FC = () => {
               </h3>
             </div>
             <p className="text-xs text-emerald-800 leading-relaxed max-w-xl">
-              You completed the guided Socratic dialogue for this topic. Ready to test your
-              understanding with tiered MCQs or review the core concepts?
+              Test yourself with practice questions or review the concepts.
             </p>
           </div>
 

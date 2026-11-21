@@ -142,7 +142,7 @@ export const ProfileSettingsModal: React.FC = () => {
                 Learner Profile Settings
               </h2>
               <p className="text-xs text-gray-600 font-medium mt-0.5">
-                Update how Mentora personalizes explanations across all sessions
+                Personalize how topics are explained
               </p>
             </div>
             <button

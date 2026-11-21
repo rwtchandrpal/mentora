@@ -71,7 +71,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             </div>
             <h1 className="text-xl font-bold text-gray-900">Something went wrong</h1>
             <p className="text-sm text-gray-700">
-              An unexpected error occurred while rendering the interface. You can reload the page to resume your session.
+              Reload the page to continue.
             </p>
             {this.state.error?.message && (
               <pre className="text-xs text-left bg-gray-100 p-3 rounded text-red-800 overflow-x-auto max-h-32">

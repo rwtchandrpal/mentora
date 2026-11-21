@@ -137,7 +137,7 @@ export const CardControls: React.FC<CardControlsProps> = ({
                 4-Step Explanation Complete
               </h4>
               <p className="text-xs text-gray-700 font-medium">
-                Continue with guided inquiry or test your retrieval with practice questions:
+                Discuss it or test yourself next:
               </p>
             </div>
 
