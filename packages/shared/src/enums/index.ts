@@ -159,6 +159,8 @@ export const SocraticOutcome = {
   ADVANCE: 'ADVANCE',
   STRIKE: 'STRIKE',
   CIRCUIT_BREAKER_ACK: 'CIRCUIT_BREAKER_ACK',
+  /** Learner message was off-topic, nonsensical, or a refusal-worthy request (L-06). Does not count as a strike. */
+  OFF_TOPIC: 'OFF_TOPIC',
 } as const;
 export type SocraticOutcome = (typeof SocraticOutcome)[keyof typeof SocraticOutcome];
 
@@ -166,5 +168,6 @@ export const SOCRATIC_OUTCOMES = [
   SocraticOutcome.ADVANCE,
   SocraticOutcome.STRIKE,
   SocraticOutcome.CIRCUIT_BREAKER_ACK,
+  SocraticOutcome.OFF_TOPIC,
 ] as const;
 

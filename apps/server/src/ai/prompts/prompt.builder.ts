@@ -158,16 +158,18 @@ export class PromptBuilder {
         ].join('\n');
       case LearningMode.INTERACT:
         return [
-          '### Learning Mode: Interact Mode (Socratic Dialogue & 3-Strike Circuit Breaker)',
+          '### Learning Mode: Interact Mode (Socratic Dialogue)',
           '- Pedagogical Purpose: Guide the learner through 3 to 5 conceptual milestones using active Socratic inquiry.',
-          '- 3-Strike Socratic Circuit Breaker Protocol:',
-          '  - Strike 0 (Active Inquiry): Ask an open-ended guiding or diagnostic question anchored to the active milestone.',
-          '  - Strike 1 (Socratic Nudge): Acknowledge any valid partial insight; provide a simpler, targeted question pointing toward the missing concept.',
-          '  - Strike 2 (Concrete Hint / Analogy): Stop open-ended questioning; offer a concrete hint, analogy, or narrowed two-choice prompt.',
-          '  - Strike 3 (Circuit Breaker / Direct Explanation): Halt questioning; deliver a clear, direct micro-explanation of the milestone concept followed by a simple confirmation question to verify comprehension, resetting the strike counter to 0.',
+          '- Progressive Escalation Protocol (internal tracking only, never named aloud to the learner):',
+          '  - Level 0 (Active Inquiry): Ask an open-ended guiding or diagnostic question anchored to the active milestone.',
+          '  - Level 1 (Socratic Nudge): Acknowledge any valid partial insight; provide a simpler, targeted question pointing toward the missing concept.',
+          '  - Level 2 (Concrete Hint / Analogy): Stop open-ended questioning; offer a concrete hint, analogy, or narrowed two-choice prompt.',
+          '  - Level 3 (Direct Explanation): Halt questioning; deliver a clear, direct micro-explanation of the milestone concept followed by a simple confirmation question to verify comprehension, resetting the internal counter to 0.',
+          '  - Off-Topic / Refusal (L-06): If the learner message is unrelated to the active milestone, nonsensical, or a non-educational/harmful request, politely redirect back to the milestone question. This never counts as an incorrect attempt and never escalates the level.',
+          '- Learner-Visible Language: Never use the words "strike" or "circuit breaker", or otherwise reference an internal scoring/escalation mechanism, in your response to the learner — speak only in plain pedagogical language.',
           '- Streaming Control Header:',
           '  - On conversational streaming turns, you MUST output a control header on the very first line in the exact format:',
-          '    <<MENTORA_STATE:{"outcome":"ADVANCE"|"STRIKE"|"CIRCUIT_BREAKER_ACK"}>>',
+          '    <<MENTORA_STATE:{"outcome":"ADVANCE"|"STRIKE"|"CIRCUIT_BREAKER_ACK"|"OFF_TOPIC"}>>',
           '    followed immediately by the markdown response on the next line.',
         ].join('\n');
       case LearningMode.PRACTICE:
@@ -320,13 +322,24 @@ export class PromptBuilder {
       'Line 1 of your response MUST be a control header in the exact format:'
     );
     lines.push(
-      '<<MENTORA_STATE:{"outcome":"ADVANCE"|"STRIKE"|"CIRCUIT_BREAKER_ACK"}>>'
+      '<<MENTORA_STATE:{"outcome":"ADVANCE"|"STRIKE"|"CIRCUIT_BREAKER_ACK"|"OFF_TOPIC"}>>'
     );
     lines.push(
       'Followed immediately by your response on the subsequent lines.'
     );
     lines.push('');
     lines.push('Pedagogical Rules:');
+    lines.push('0. Off-Topic, Nonsensical, or Non-Educational Message (L-06):');
+    lines.push(
+      '   If the learner message is unrelated to the active milestone/topic, nonsensical, or a non-educational/harmful request:'
+    );
+    lines.push('   - Set outcome="OFF_TOPIC".');
+    lines.push(
+      '   - Do NOT advance the milestone and do NOT treat this as an incorrect attempt (it must not escalate toward a direct explanation).'
+    );
+    lines.push(
+      '   - Politely redirect the learner back to the active milestone, restating the current guiding question.'
+    );
     lines.push('1. Manual Bypass OR Strike 3 (Circuit Breaker):');
     lines.push(
       '   If Manual "Explain Directly" is YES OR (Current Strike Count is 2 and the learner is incorrect/stuck):'
@@ -355,6 +368,10 @@ export class PromptBuilder {
     );
     lines.push(
       '   - If Current Strike Count is 1 (Strike 2 Hint): Stop open-ended questioning; provide a concrete hint, analogy, or narrowed two-choice prompt.'
+    );
+    lines.push('');
+    lines.push(
+      'Reminder: never write the words "strike" or "circuit breaker" in your visible response — those are internal tracking labels only.'
     );
 
     return lines.join('\n');

@@ -250,6 +250,36 @@ describe('IMP-019: Backend Interact Mode Service, 3-Strike State Machine, & Unbu
       expect(result.updatedMilestones[2]?.status).toBe(MilestoneStatus.COMPLETED);
       expect(result.nextStatus).toBe(InteractStatus.COMPLETED);
     });
+
+    it('leaves milestone, status, and strikeCount unchanged on OFF_TOPIC outcome (L-06)', () => {
+      const result = computeNextInteractState({
+        milestones: baseMilestones,
+        activeMilestoneIndex: 0,
+        strikeCount: 1,
+        outcome: SocraticOutcome.OFF_TOPIC,
+        forceDirectExplanation: false,
+      });
+
+      expect(result.nextStrikeCount).toBe(1); // Unchanged — not a strike
+      expect(result.strikeNumberAtTurn).toBe(1);
+      expect(result.isCircuitBreakerExplanation).toBe(false);
+      expect(result.nextMilestoneIndex).toBe(0);
+      expect(result.nextStatus).toBe(InteractStatus.ACTIVE);
+      expect(result.updatedMilestones[0]?.status).toBe(MilestoneStatus.ACTIVE);
+    });
+
+    it('does not trigger the Circuit Breaker on OFF_TOPIC even at strikeCount 2 (L-06)', () => {
+      const result = computeNextInteractState({
+        milestones: baseMilestones,
+        activeMilestoneIndex: 0,
+        strikeCount: 2,
+        outcome: SocraticOutcome.OFF_TOPIC,
+        forceDirectExplanation: false,
+      });
+
+      expect(result.nextStrikeCount).toBe(2); // Unchanged, no breaker triggered
+      expect(result.isCircuitBreakerExplanation).toBe(false);
+    });
   });
 
   describe('2. Control Header Stream Parser (ControlHeaderStreamParser)', () => {
@@ -291,6 +321,27 @@ describe('IMP-019: Backend Interact Mode Service, 3-Strike State Machine, & Unbu
       const total = text1 + text2 + flushed;
       expect(total).toContain('Let us explore this question');
       expect(parser.getOutcome()).toBe(SocraticOutcome.STRIKE);
+    });
+
+    it('scrubs "strike" and "circuit breaker" from the visible delta as a backstop (L-06)', () => {
+      const parser = new ControlHeaderStreamParser(SocraticOutcome.STRIKE);
+      const chunk =
+        '<<MENTORA_STATE:{"outcome":"STRIKE"}>>\nThat was your second strike. Here comes the circuit breaker explanation.';
+
+      const text = parser.processChunk(chunk);
+
+      expect(text.toLowerCase()).not.toContain('strike');
+      expect(text.toLowerCase()).not.toContain('circuit breaker');
+      expect(text).toContain('That was your second attempt.');
+      expect(text).toContain('Here comes the direct explanation explanation.');
+    });
+
+    it('scrubs internal terminology when the model skips the header (safety-fallback flush, L-06)', () => {
+      const parser = new ControlHeaderStreamParser(SocraticOutcome.STRIKE);
+      // No '<<' and a newline forces the safety fallback to flush the raw buffer immediately.
+      const text = parser.processChunk('No header here, just a stray strike mention.\n');
+      expect(text.toLowerCase()).not.toContain('strike');
+      expect(text).toContain('attempt');
     });
   });
 
@@ -558,6 +609,63 @@ describe('IMP-019: Backend Interact Mode Service, 3-Strike State Machine, & Unbu
       expect(dbSession?.interactState.milestones[0]?.status).toBe(MilestoneStatus.COMPLETED);
       expect(dbSession?.interactState.milestones[1]?.status).toBe(MilestoneStatus.ACTIVE);
       expect(dbSession?.interactState.status).toBe(InteractStatus.ACTIVE);
+    });
+
+    it('does not strike, advance, or break on an OFF_TOPIC turn, and scrubs internal jargon (L-06)', async () => {
+      const user = await setupUser('Katherine Johnson', 'johnson@example.com');
+      const session = await createTestSession(user.userId);
+
+      setGeminiClient({
+        models: {
+          generateContent: vi.fn().mockResolvedValue({
+            text: JSON.stringify(mockInteractInitPayload),
+          }),
+        },
+      } as unknown as GoogleGenAI);
+
+      await request(app)
+        .post(`/api/v1/sessions/${session._id.toString()}/interact/init`)
+        .set('Authorization', `Bearer ${user.token}`);
+
+      // Put the learner at strikeCount 1 so we can confirm OFF_TOPIC does not escalate it.
+      await TopicSession.findByIdAndUpdate(session._id, {
+        $set: { 'interactState.strikeCount': 1 },
+      });
+
+      setGeminiClient({
+        models: {
+          generateContentStream: vi.fn().mockImplementation(async function* () {
+            yield {
+              text: '<<MENTORA_STATE:{"outcome":"OFF_TOPIC"}>>\nLet\'s get back to the current strike-free question: what happens during a split vote?',
+            };
+          }),
+        },
+      } as unknown as GoogleGenAI);
+
+      const res = await request(app)
+        .post(`/api/v1/sessions/${session._id.toString()}/interact/stream`)
+        .set('Authorization', `Bearer ${user.token}`)
+        .send({ message: 'What is your favorite pizza topping?' });
+
+      expect(res.status).toBe(200);
+      // The streamed token delta is the learner-visible text; the SSE frame also carries
+      // internal field names like "strikeCount"/"strikeNumberAtTurn", which are not in scope.
+      const tokenEventMatch = res.text.match(/event: token\ndata: ({.*})/);
+      expect(tokenEventMatch).not.toBeNull();
+      const tokenDelta = (JSON.parse(tokenEventMatch![1]!) as { delta: string }).delta;
+      expect(tokenDelta.toLowerCase()).not.toContain('strike');
+      expect(tokenDelta).toContain('attempt-free');
+
+      const dbSession = await TopicSession.findById(session._id);
+      // Unchanged: not a strike, not an advance, not a circuit breaker.
+      expect(dbSession?.interactState.strikeCount).toBe(1);
+      expect(dbSession?.interactState.activeMilestoneIndex).toBe(0);
+      expect(dbSession?.interactState.milestones[0]?.status).toBe(MilestoneStatus.ACTIVE);
+      expect(dbSession?.interactState.status).toBe(InteractStatus.ACTIVE);
+
+      const lastAssistantMsg = dbSession?.interactState.messages[2];
+      expect(lastAssistantMsg?.isCircuitBreakerExplanation).toBe(false);
+      expect(lastAssistantMsg?.content.toLowerCase()).not.toContain('strike');
     });
 
     it('immediately triggers Circuit Breaker when forceDirectExplanation is true (FR-013)', async () => {

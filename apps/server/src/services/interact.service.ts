@@ -68,8 +68,11 @@ export interface NextInteractStateResult {
  * 1. forceDirectExplanation === true: Circuit Breaker triggered directly, resets strikeCount = 0 (FR-013, AC-INT-02).
  * 2. outcome === ADVANCE: Active milestone marked COMPLETED; if more milestones exist, next is marked ACTIVE and index increments;
  *    if all completed, interact status becomes COMPLETED. strikeCount resets to 0.
- * 3. outcome === CIRCUIT_BREAKER_ACK or strikeCount >= 2 (Strike 3 reached): Circuit Breaker triggered, resets strikeCount = 0.
- * 4. outcome === STRIKE:
+ * 3. outcome === OFF_TOPIC (L-06): learner message was off-topic, nonsensical, or a refusal-worthy
+ *    request. Milestone, status, and strikeCount are left unchanged — this is neither progress
+ *    nor a strike.
+ * 4. outcome === CIRCUIT_BREAKER_ACK or strikeCount >= 2 (Strike 3 reached): Circuit Breaker triggered, resets strikeCount = 0.
+ * 5. outcome === STRIKE:
  *    - strikeCount 0 -> 1 (Strike 1 Nudge).
  *    - strikeCount 1 -> 2 (Strike 2 Hint).
  */
@@ -137,6 +140,19 @@ export const computeNextInteractState = (
     }
   }
 
+  // Case B.5: Off-topic, nonsensical, or refusal-worthy learner message (L-06). Leave the
+  // milestone, strike count, and status untouched — this turn is neither a strike nor progress.
+  if (outcome === SocraticOutcome.OFF_TOPIC) {
+    return {
+      updatedMilestones,
+      nextMilestoneIndex: activeMilestoneIndex,
+      nextStrikeCount: strikeCount,
+      nextStatus: InteractStatus.ACTIVE,
+      isCircuitBreakerExplanation: false,
+      strikeNumberAtTurn: strikeCount,
+    };
+  }
+
   // Case C: Circuit Breaker Ack from model or Strike 3 reached
   if (outcome === SocraticOutcome.CIRCUIT_BREAKER_ACK || strikeCount >= 2) {
     return {
@@ -174,9 +190,25 @@ export const computeNextInteractState = (
 };
 
 /**
+ * Internal state-machine jargon ("strike", "circuit breaker") must never reach the learner —
+ * it's an implementation detail, not pedagogy (L-06). The prompt instructs the model to avoid
+ * these words; this is the backstop in case it slips up anyway.
+ */
+const INTERNAL_TERMINOLOGY_PATTERN = /\b(circuit breakers?|strikes?)\b/gi;
+
+const scrubInternalTerminology = (text: string): string =>
+  text.replace(INTERNAL_TERMINOLOGY_PATTERN, (match) => {
+    const plural = match.toLowerCase().endsWith('s');
+    if (match.toLowerCase().startsWith('circuit')) {
+      return plural ? 'direct explanations' : 'direct explanation';
+    }
+    return plural ? 'attempts' : 'attempt';
+  });
+
+/**
  * Stream parser that buffers initial chunks, extracts and strips the first-line control header:
- * <<MENTORA_STATE:{"outcome":"ADVANCE"|"STRIKE"|"CIRCUIT_BREAKER_ACK"}>>
- * and forwards pure markdown deltas.
+ * <<MENTORA_STATE:{"outcome":"ADVANCE"|"STRIKE"|"CIRCUIT_BREAKER_ACK"|"OFF_TOPIC"}>>
+ * and forwards pure markdown deltas, scrubbed of internal state-machine terminology (L-06).
  */
 export class ControlHeaderStreamParser {
   private buffer = '';
@@ -189,7 +221,7 @@ export class ControlHeaderStreamParser {
 
   processChunk(chunk: string): string {
     if (this.headerFound) {
-      return chunk;
+      return scrubInternalTerminology(chunk);
     }
 
     this.buffer += chunk;
@@ -222,7 +254,7 @@ export class ControlHeaderStreamParser {
 
       this.headerFound = true;
       this.buffer = '';
-      return remainder;
+      return scrubInternalTerminology(remainder);
     }
 
     // Safety fallback: if buffer exceeds 200 chars or has newline without '<<',
@@ -234,7 +266,7 @@ export class ControlHeaderStreamParser {
       this.headerFound = true;
       const textToFlush = this.buffer;
       this.buffer = '';
-      return textToFlush;
+      return scrubInternalTerminology(textToFlush);
     }
 
     // Still buffering looking for '>>'
@@ -248,7 +280,7 @@ export class ControlHeaderStreamParser {
         .replace(/<<MENTORA_STATE:.*?>>/g, '')
         .trimStart();
       this.buffer = '';
-      return cleanText;
+      return scrubInternalTerminology(cleanText);
     }
     return '';
   }

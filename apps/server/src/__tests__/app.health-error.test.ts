@@ -254,6 +254,41 @@ describe('IMP-004: Server Bootstrap, Config, Logger, & Error Handling', () => {
     });
   });
 
+  describe('4b. Malformed/oversized JSON body (L-05)', () => {
+    it('returns 400 VALIDATION_ERROR for a malformed JSON body instead of a raw 500', async () => {
+      const res = await request(app)
+        .post('/api/v1/auth/login')
+        .set('Content-Type', 'application/json')
+        .send('{bad');
+
+      expect(res.status).toBe(400);
+      expect(res.body).toEqual({
+        success: false,
+        error: {
+          code: ErrorCode.VALIDATION_ERROR,
+          message: 'Malformed JSON payload',
+        },
+      });
+    });
+
+    it('returns 413 for a JSON body over the 100kb limit', async () => {
+      const oversized = JSON.stringify({ email: 'a@b.com', password: 'x'.repeat(200_000) });
+      const res = await request(app)
+        .post('/api/v1/auth/login')
+        .set('Content-Type', 'application/json')
+        .send(oversized);
+
+      expect(res.status).toBe(413);
+      expect(res.body).toEqual({
+        success: false,
+        error: {
+          code: ErrorCode.VALIDATION_ERROR,
+          message: 'Request payload is too large',
+        },
+      });
+    });
+  });
+
   describe('5. Unhandled 500 Error Redaction', () => {
     const createCrashingApp = () => {
       const testApp = express();
