@@ -113,17 +113,7 @@ export const toTopicSessionDTO = (
         contentMarkdown: c.contentMarkdown,
         checkQuestion: c.checkQuestion ?? null,
         checkAnswer: c.checkAnswer ?? null,
-        deepDives: (c.deepDives || []).map((dd) => ({
-          id: dd.id,
-          depthLevel: dd.depthLevel,
-          title: dd.title,
-          contentMarkdown: dd.contentMarkdown,
-          createdAt: dd.createdAt,
-        })),
       })),
-      suggestedSubTopics: doc.explainState.suggestedSubTopics
-        ? [...doc.explainState.suggestedSubTopics]
-        : [],
     },
     interactState: {
       status: doc.interactState.status,

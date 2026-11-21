@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useLayoutEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../store/hooks.js';
 import { toggleSidebar, toggleMobileDrawer } from '../../store/uiSlice.js';
@@ -13,9 +13,26 @@ export const StickyTopicHeader: React.FC = () => {
   const isSidebarOpen = useAppSelector((state) => state.ui.isSidebarOpen);
 
   const title = activeSession?.normalizedTitle || activeSession?.topicQuery || 'Mentora Workspace';
+  const headerRef = useRef<HTMLElement>(null);
+
+  // Publish the header height so sticky content below it (e.g. the Explain progress bar)
+  // can offset itself exactly, across breakpoints and guest/auth header variants.
+  useLayoutEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+    const root = document.documentElement;
+    const publish = () => root.style.setProperty('--topic-header-height', `${el.offsetHeight}px`);
+    publish();
+    const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(publish) : null;
+    observer?.observe(el);
+    return () => {
+      observer?.disconnect();
+      root.style.removeProperty('--topic-header-height');
+    };
+  }, []);
 
   return (
-    <header className="sticky top-0 z-20 bg-white/95 backdrop-blur-sm border-b border-gray-200 px-4 py-2.5 sm:px-6 flex items-center justify-between gap-3 shadow-xs">
+    <header ref={headerRef} className="sticky top-0 z-20 bg-white/95 backdrop-blur-sm border-b border-gray-200 px-4 py-2.5 sm:px-6 flex items-center justify-between gap-3 shadow-xs">
       <div className="flex items-center space-x-3 min-w-0">
         {/* Mobile drawer toggle */}
         <button

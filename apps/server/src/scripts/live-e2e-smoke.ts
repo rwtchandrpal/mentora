@@ -171,7 +171,7 @@ export const runLiveSmokeWorkflow = async (): Promise<void> => {
         id: string;
         explainState: {
           currentStepIndex: number;
-          cards: Array<{ stepNumber: number; title: string; content: string; deepDiveSubCards: unknown[] }>;
+          cards: Array<{ stepNumber: number; title: string; content: string }>;
         };
       };
     };
@@ -199,36 +199,6 @@ export const runLiveSmokeWorkflow = async (): Promise<void> => {
       throw new Error(`Expected currentStepIndex: 1, got ${stepJson.data.explainState.currentStepIndex}`);
     }
 
-    console.log('- Generating Go Deeper sub-card via POST /sessions/:id/explain/deeper (stepNumber: 2)');
-    const deeperRes = await fetch(`${BASE_URL}/sessions/${testSessionId}/explain/deeper`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${authToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        stepNumber: 2,
-        subTopic: 'Resource Allocation Graph Cycles and Knot Analysis',
-      }),
-    });
-    if (!deeperRes.ok) {
-      const err = await deeperRes.text();
-      throw new Error(`POST /explain/deeper failed (${deeperRes.status}): ${err}`);
-    }
-    const deeperJson = await deeperRes.json() as {
-      success: boolean;
-      data: {
-        explainState: {
-          cards: Array<{ stepNumber: number; deepDives: Array<{ title: string; contentMarkdown: string }> }>;
-        };
-      };
-    };
-    const card2 = deeperJson.data.explainState.cards.find((c) => c.stepNumber === 2);
-    console.log('✓ Deep dive sub-cards on Step 2:', card2?.deepDives?.length);
-    if (!card2 || !card2.deepDives || card2.deepDives.length < 1) {
-      throw new Error('Failed to find generated DeepDiveSubCard on card 2');
-    }
-    console.log('  Sub-card Title:', card2.deepDives[0]?.title);
 
     // 5. Live Interact Mode & SSE Streaming E2E
     console.log('\n[Step 5] Live Interact Mode & SSE Streaming E2E');

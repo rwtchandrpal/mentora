@@ -40,7 +40,7 @@ export const PracticeSummary: React.FC<PracticeSummaryProps> = ({
             Topic Practice Summary
           </h2>
           <p className="text-sm text-indigo-200 max-w-xl">
-            You completed all 30 assessment questions across Easy, Medium, and Hard tiers with verified derivations.
+            All 30 questions completed across Easy, Medium, and Hard.
           </p>
           <div className="pt-1">
             <span

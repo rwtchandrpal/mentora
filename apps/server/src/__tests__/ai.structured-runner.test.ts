@@ -17,7 +17,6 @@ import {
 import { AiOperation } from '../ai/model.router.js';
 import {
   explainInitGeminiSchema,
-  explainDeepDiveGeminiSchema,
   interactInitGeminiSchema,
   practiceQuestionGeminiSchema,
   practiceBatchGeminiSchema,
@@ -46,7 +45,6 @@ describe('IMP-014: Gemini Structured Output Schemas & Validation Runner', () => 
             contentMarkdown: 'Recursion is like Russian nesting dolls.',
             checkQuestion: null,
             checkAnswer: null,
-            deepDives: [],
           },
           {
             stepNumber: 2,
@@ -55,7 +53,6 @@ describe('IMP-014: Gemini Structured Output Schemas & Validation Runner', () => 
             contentMarkdown: 'Base cases stop the recursive unwinding.',
             checkQuestion: null,
             checkAnswer: null,
-            deepDives: [],
           },
           {
             stepNumber: 3,
@@ -64,7 +61,6 @@ describe('IMP-014: Gemini Structured Output Schemas & Validation Runner', () => 
             contentMarkdown: '```python\ndef fact(n): ...\n```',
             checkQuestion: null,
             checkAnswer: null,
-            deepDives: [],
           },
           {
             stepNumber: 4,
@@ -73,10 +69,8 @@ describe('IMP-014: Gemini Structured Output Schemas & Validation Runner', () => 
             contentMarkdown: 'What happens without a base case?',
             checkQuestion: 'What error occurs?',
             checkAnswer: 'Stack Overflow.',
-            deepDives: [],
           },
         ],
-        suggestedSubTopics: ['Tail Recursion', 'Dynamic Programming'],
       };
 
       const mockGenerateContent = vi.fn().mockResolvedValue({
@@ -105,7 +99,7 @@ describe('IMP-014: Gemini Structured Output Schemas & Validation Runner', () => 
   describe('2. Single-Retry Recovery on Invalid JSON or Schema Failure', () => {
     it('retries once and succeeds if attempt 1 returns malformed JSON and attempt 2 returns valid JSON', async () => {
       const validPayload = {
-        title: 'Deep Dive into Virtual Memory',
+        title: 'Virtual Memory Overview',
         contentMarkdown: 'Detailed explanation of page tables and TLBs.',
       };
 
@@ -128,15 +122,15 @@ describe('IMP-014: Gemini Structured Output Schemas & Validation Runner', () => 
       });
 
       const result = await generateStructuredOutput({
-        operation: AiOperation.EXPLAIN_DEEPER,
+        operation: AiOperation.PRACTICE_GENERATE,
         systemInstruction: 'You are Mentora.',
-        prompt: 'Go Deeper on Virtual Memory',
-        responseSchema: explainDeepDiveGeminiSchema,
+        prompt: 'Explain Virtual Memory',
+        responseSchema: practiceBatchGeminiSchema,
         zodSchema: SimpleSchema,
       });
 
       expect(mockGenerateContent).toHaveBeenCalledTimes(2);
-      expect(result.title).toBe('Deep Dive into Virtual Memory');
+      expect(result.title).toBe('Virtual Memory Overview');
     });
 
     it('retries once and succeeds if attempt 1 fails Zod validation and attempt 2 satisfies Zod validation', async () => {
@@ -169,10 +163,10 @@ describe('IMP-014: Gemini Structured Output Schemas & Validation Runner', () => 
       });
 
       const result = await generateStructuredOutput({
-        operation: AiOperation.EXPLAIN_DEEPER,
+        operation: AiOperation.PRACTICE_GENERATE,
         systemInstruction: 'You are Mentora.',
-        prompt: 'Deep dive',
-        responseSchema: explainDeepDiveGeminiSchema,
+        prompt: 'Page tables',
+        responseSchema: practiceBatchGeminiSchema,
         zodSchema: SimpleSchema,
       });
 

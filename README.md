@@ -29,7 +29,7 @@ Instead of re-explaining your background every time you start a new chat, you se
 ## Features
 
 - **Personalized Learning Profile:** Choose your education level (*High School*, *Undergraduate*, or *Professional*) and preferred style (*Visual*, *Analogy-Heavy*, or *Concise & Technical*) once, and Mentora adapts every explanation and quiz to match.
-- **Explain Mode (Step-by-Step Cards):** Breaks down complex topics into 4 bite-sized cards (*Intuition $\rightarrow$ Core Mechanism $\rightarrow$ Example $\rightarrow$ Check-for-Understanding*). Click **Next** to move at your own pace, or click **Go Deeper** on any card to see extra examples, math derivations, or diagrams.
+- **Explain Mode (Step-by-Step Cards):** Breaks down complex topics into 4 bite-sized cards (*Intuition $\rightarrow$ Core Mechanism $\rightarrow$ Example $\rightarrow$ Check-for-Understanding*). Click **Next** to move at your own pace; the 4-step progress bar stays pinned at the top as you scroll.
 - **Interact Mode (Guided Chat without Frustration):** Guides you through 3 to 5 key milestones for your topic using live streaming chat. If you get stuck 3 times in a row (the **3-Strike Circuit Breaker**)—or if you click *"Explain this milestone directly"*—the tutor stops quizzing you and gives a clear, direct explanation.
 - **Practice Mode (3-Level Quiz Progression):** Tests your knowledge with 10-question multiple-choice quizzes across three difficulty levels (*Easy $\rightarrow$ Medium $\rightarrow$ Hard*). Your selected answers save automatically in your browser if you refresh the page, and submitting a quiz unlocks the next difficulty tier with full step-by-step explanations.
 - **Rich Math, Code, and Diagrams:** Renders math equations ($\LaTeX$), syntax-highlighted code blocks with a copy button, and visual flowcharts (`Mermaid.js`). If an AI-generated diagram has a syntax error, it safely falls back to a clean text block instead of crashing the page.
@@ -48,7 +48,7 @@ Instead of re-explaining your background every time you start a new chat, you se
 
 ### Backend (`@mentora/server`)
 - **Node.js 20 LTS, Express.js & TypeScript:** Runs the REST and streaming API server.
-- **Google Gen AI SDK (`@google/genai`):** Connects to Google Gemini models—with two configurable model slots: `GEMINI_FAST_MODEL` for fast chat and initial cards, and `GEMINI_REASONING_MODEL` for deep dives and 10-question quizzes. Both default to `gemini-3.5-flash-lite` for stability; point `GEMINI_REASONING_MODEL` at a larger model (e.g. `gemini-3.6-pro`) if you need deeper reasoning.
+- **Google Gen AI SDK (`@google/genai`):** Connects to Google Gemini models—with two configurable model slots: `GEMINI_FAST_MODEL` for fast chat and initial cards, and `GEMINI_REASONING_MODEL` for 10-question quizzes. Both default to `gemini-3.5-flash-lite` for stability; point `GEMINI_REASONING_MODEL` at a larger model (e.g. `gemini-3.6-pro`) if you need deeper reasoning.
 - **JSON Web Tokens (`jsonwebtoken`) & `bcryptjs`:** Secures user accounts with hashed passwords and stateless login tokens.
 - **Zod:** Validates user inputs, environment variables, and AI JSON responses before saving them.
 - **Pino, Helmet, CORS & `express-rate-limit`:** Provides structured server logs, security headers, and protection against spam requests.
@@ -184,7 +184,7 @@ pnpm eval:ai -- --dry-run
 
 1. **Sign Up & Set Your Profile:** Create an account and complete the quick 2-question setup by picking your education level and preferred explanation style. You can change these anytime in your Profile Settings.
 2. **Start a Topic:** Type any subject into the prompt bar (for example, *"Deadlocks in Operating Systems"* or *"Photosynthesis"*) and choose a starting mode.
-3. **Read in Explain Mode:** Read through the 4 progressive cards. Click **Next** to reveal the next card, or click **Go Deeper** if you want a more detailed breakdown of the current step.
+3. **Read in Explain Mode:** Read through the 4 progressive cards. Click **Next** to reveal the next card.
 4. **Chat in Interact Mode:** Switch to the **Interact** tab at the top of the page. Answer the tutor's questions to complete each milestone in the progress bar, or click *"Explain this milestone directly"* whenever you want a straightforward answer.
 5. **Test Yourself in Practice Mode:** Switch to the **Practice** tab to take a 10-question Easy quiz. Click **Show Hint** if you need a clue. Once you answer all 10 questions and submit, review the step-by-step solutions and unlock the Medium and Hard quizzes.
 
@@ -204,7 +204,7 @@ All backend endpoints are prefixed with `/api/v1`:
 | `/api/v1/sessions` | `GET` / `POST` | Lists saved topic sessions or creates a new study session. |
 | `/api/v1/sessions/:id` | `GET` / `DELETE` | Loads a specific study session (with unsubmitted quiz answers hidden) or deletes it. |
 | `/api/v1/sessions/:id/mode` | `PATCH` | Updates the active tab (`explain`, `interact`, or `practice`). |
-| `/api/v1/sessions/:id/explain/*` | `POST` / `PATCH` | Generates the 4 Explain cards, advances steps, or generates `Go Deeper` sub-cards. |
+| `/api/v1/sessions/:id/explain/*` | `POST` / `PATCH` | Generates the 4 Explain cards or advances steps. |
 | `/api/v1/sessions/:id/interact/*` | `POST` | Generates learning milestones and streams Socratic chat replies over SSE. |
 | `/api/v1/sessions/:id/practice/*` | `POST` | Generates 10-question MCQ batches and grades submitted answers. |
 

@@ -263,7 +263,7 @@ export const PracticeStage: React.FC = () => {
               Generating 10 Verified {activeTier.toUpperCase()} Questions...
             </h3>
             <p className="text-xs sm:text-sm text-gray-600 font-medium">
-              Formulating questions with step-by-step solutions. This may take a few moments.
+              This may take a few moments.
             </p>
           </div>
 
@@ -410,8 +410,8 @@ export const PracticeStage: React.FC = () => {
           </h3>
           <p className="text-sm text-gray-600 font-medium max-w-md">
             {activeTier === PracticeTier.MEDIUM
-              ? 'Complete and submit the Easy tier batch to unlock Medium assessment.'
-              : 'Complete and submit the Medium tier batch to unlock Hard assessment.'}
+              ? 'Submit the Easy batch to unlock Medium.'
+              : 'Submit the Medium batch to unlock Hard.'}
           </p>
         </div>
       )}

@@ -14,7 +14,7 @@
 
 ### 1.2 First-Principles Pedagogical Foundation
 Learning fails when information is presented as an unchunked wall of text, when conversational AI tutors trap learners in endless questioning loops without forward progress, or when assessments lack structured difficulty progression. Mentora solves these three failure modes directly through three core modes:
-1. **Explain Mode (Knowledge Encoding):** Breaks complex topics into progressive, digestible cards (*Intuition $\rightarrow$ Core Mechanism $\rightarrow$ Example $\rightarrow$ Check-for-Understanding*), enriched with rich formatting (mathematical notation, code blocks, and visual diagrams), with user-controlled depth (`Next` / `Go Deeper`).
+1. **Explain Mode (Knowledge Encoding):** Breaks complex topics into progressive, digestible cards (*Intuition $\rightarrow$ Core Mechanism $\rightarrow$ Example $\rightarrow$ Check-for-Understanding*), enriched with rich formatting (mathematical notation, code blocks, and visual diagrams), with user-controlled pacing (`Next`).
 2. **Interact Mode (Guided Socratic Discovery):** Guides learners across explicit conceptual milestones using adaptive Socratic dialogue, safeguarded by a deterministic struggle handler (the **3-Strike Socratic Circuit Breaker**) that guarantees the learner never hits a frustrating dead end.
 3. **Practice Mode (Tiered Retrieval & Assessment):** Evaluates mastery via structured 10-question Multiple-Choice Question (MCQ) batches across progressive difficulty tiers (**Easy $\rightarrow$ Medium $\rightarrow$ Hard**), followed by a comprehensive review comparing user choices against correct answers and step-by-step rationales.
 
@@ -42,7 +42,7 @@ A unified single-page learning workspace where a learner defines a persistent **
 ### 3.2 Core User Personas
 | Persona | Profile Settings | Primary Need | Key Mentora Workflow |
 | :--- | :--- | :--- | :--- |
-| **1. The University STEM Student** | **Level:** Undergraduate<br>**Style:** Concise & Technical | Needs rigorous intuition, mathematical derivations, complexity analysis, and exam-grade MCQ practice on quantitative or technical subjects. | Starts in **Explain Mode** (`Go Deeper` for technical derivations) $\rightarrow$ tests edge cases in **Practice Mode** (Easy to Hard MCQ batches). |
+| **1. The University STEM Student** | **Level:** Undergraduate<br>**Style:** Concise & Technical | Needs rigorous intuition, mathematical derivations, complexity analysis, and exam-grade MCQ practice on quantitative or technical subjects. | Starts in **Explain Mode** (technical derivations calibrated by profile) $\rightarrow$ tests edge cases in **Practice Mode** (Easy to Hard MCQ batches). |
 | **2. The High School Exam Prepper** | **Level:** High School<br>**Style:** Analogy-Heavy | Needs relatable real-world analogies and guided Socratic breakdowns without intimidating academic jargon. | Starts in **Explain Mode** $\rightarrow$ switches to **Interact Mode** to work through misconceptions via guided milestones. |
 | **3. The Upskilling Professional** | **Level:** Professional<br>**Style:** Visual | Wants fast, structured conceptual models and visual flowcharts to grasp new domains rapidly. | Uses **Explain Mode** with visual diagrams $\rightarrow$ verifies retention in **Practice Mode**. |
 
@@ -60,7 +60,7 @@ A unified single-page learning workspace where a learner defines a persistent **
 ### 4.2 Explicit Non-Goals (Out of Scope for v1.0 MVP)
 * **No Document or File Uploads:** Uploading PDF, PNG, JPG, or Markdown files is excluded from v1.0 and deferred to future releases.
 * **No Default Syllabus / Roadmap Generation:** Mentora launches directly into the selected mode for a topic unless roadmap features are introduced in a post-MVP update.
-* **No Per-Session Difficulty Toggles in Explain Mode:** Explanation tone and baseline depth are governed automatically by the user's Static Learner Profile and expanded via the `Go Deeper` action.
+* **No Per-Session Difficulty Toggles in Explain Mode:** Explanation tone and baseline depth are governed automatically by the user's Static Learner Profile.
 * **No Real-Time Voice or Audio Interaction:** All interactions in v1.0 are text- and rich-media-based.
 * **No Free-Text or Live Code Execution Exercises in Practice Mode:** v1.0 Practice Mode is strictly scoped to Multiple-Choice Questions (MCQs).
 * **No Dynamic Cross-Session Misconception Dashboards:** Long-term weakness aggregation and mastery analytics dashboards are deferred to post-MVP phases.
@@ -88,7 +88,7 @@ A unified single-page learning workspace where a learner defines a persistent **
 
 ### 5.2 Journey 2: End-to-End Topic Mastery Across Modes
 1. **Topic Input & Mode Selection:** The learner types *"Deadlocks in Operating Systems"* into the topic prompt bar and selects **Explain Mode**.
-2. **Progressive Explanation:** Mentora displays **Card 1 (Intuition)**. The learner reads the analogy, clicks **`Next`** to read **Card 2 (Core Mechanism)**, and clicks **`Go Deeper`** on Card 2 to inspect an expanded breakdown with a visual flowchart of resource allocation. The learner then progresses through **Card 3 (Example)** and **Card 4 (Check-for-Understanding)**.
+2. **Progressive Explanation:** Mentora displays **Card 1 (Intuition)**. The learner reads the analogy, clicks **`Next`** to read **Card 2 (Core Mechanism)**, which includes a visual flowchart of resource allocation. The learner then progresses through **Card 3 (Example)** and **Card 4 (Check-for-Understanding)**.
 3. **Seamless Switch to Interact Mode:** Wanting to test their conceptual intuition conversationally, the learner clicks the **`Interact`** tab in the top navigation bar. Mentora retains the active topic (*"Deadlocks in Operating Systems"*), displays a 4-milestone progress tracker, and asks an opening diagnostic question.
 4. **Guided Discovery & Struggle Recovery:** The learner answers Milestone 1 correctly and advances to Milestone 2. On Milestone 2, the learner gets confused and gives two incorrect responses (`Strike 1` nudge $\rightarrow$ `Strike 2` concrete hint). On the third unsuccessful attempt (`Strike 3`), Mentora automatically triggers the circuit breaker—providing a clear, direct explanation of the concept before checking understanding and moving to Milestone 3.
 5. **Seamless Switch to Practice Mode:** Ready for formal self-testing, the learner clicks the **`Practice`** tab. Mentora presents the **Easy Batch (10 MCQs)**.
@@ -113,7 +113,7 @@ Requirements are prioritized using the MoSCoW framework (**Must Have**, **Should
 | **FR-005** | Mode Switching | **Must Have** | The workspace must provide a persistent top **Mode Switcher** (`Explain` \| `Interact` \| `Practice`) bound to the active topic session, allowing users to switch modes without re-entering the topic or losing progress in other modes. |
 | **FR-006** | Session History | **Must Have** | The workspace must display a collapsible **Left Sidebar** listing all saved topic sessions in reverse chronological order, allowing users to reopen or delete any past session. |
 | **FR-007** | Explain Mode | **Must Have** | Explain Mode must break down any valid topic into a progressive 4-card sequence: **1. Intuition**, **2. Core Mechanism**, **3. Example**, and **4. Check-for-Understanding**. |
-| **FR-008** | Explain Mode | **Must Have** | Each Explain card must provide two progression controls: **`Next`** (to advance to the next sequential card) and **`Go Deeper`** (to generate an expanded sub-card exploring deeper technical details, derivations, or examples for the current step). |
+| **FR-008** | Explain Mode | **Must Have** | Each Explain card (Cards 1–3) must provide a **`Next`** control (downward-arrow icon) to reveal the next sequential card. The 4-step progress bar stays pinned below the topic header while the learner scrolls. *(The former `Go Deeper` sub-card control has been removed.)* |
 | **FR-009** | Rich Content Rendering | **Must Have** | All learning modes must natively render formatted text, **LaTeX mathematical notation** ($inline$ and $$display$$), **syntax-highlighted code blocks**, and **visual diagrams/flowcharts**. |
 | **FR-010** | Interact Mode | **Must Have** | Interact Mode must structure every session around a **Goal-Oriented Diagnostic Flow** consisting of **3 to 5 explicit conceptual milestones** displayed in a visible progress indicator, beginning with an initial diagnostic question. |
 | **FR-011** | Interact Mode | **Must Have** | Interact Mode must deliver tutor responses with real-time progressive text streaming and support rich text/code/math formatting in both user inputs and tutor replies. |
@@ -139,7 +139,6 @@ Requirements are prioritized using the MoSCoW framework (**Must Have**, **Should
   4. **Step 4 — Check-for-Understanding (CFU):** Presents a targeted reflection question with an expandable answer reveal so the learner can self-verify comprehension before transitioning to Interact or Practice mode.
 * **User Controls & Pacing:**
   * **Progressive Disclosure:** Only steps up to the learner's current progress point are shown; future cards remain collapsed or hidden until the learner clicks **`Next`**.
-  * **On-Demand Depth (`Go Deeper`):** Clicking **`Go Deeper`** on any card generates a nested sub-card immediately below the parent card, offering deeper derivations, edge cases, or visual diagrams without losing the user's place in the main 4-step sequence.
   * **No Manual Difficulty Toggles:** To keep the interface clean and distraction-free, Explain Mode does not display manual difficulty sliders; baseline complexity is automatically calibrated by the learner's profile.
 
 ### 7.2 Interact Mode Specification
@@ -217,7 +216,7 @@ For v1.0 MVP, personalization is driven deterministically by the learner's **Sta
 | Scenario / Edge Case | Expected User-Facing Behavior |
 | :--- | :--- |
 | **1. Non-Educational or Unsafe Topic Input** | If a user enters a harmful, unethical, or non-educational prompt (e.g., asking to generate spam or unsafe content), Mentora displays a polite refusal notice explaining that Mentora is dedicated to educational learning and prompts the user to enter a valid study topic. |
-| **2. Overly Broad Topic Input** (e.g., *"Science"* or *"Coding"*) | Mentora accepts the input, scopes Explain Mode to a foundational overview of the field's core pillars, and suggests specific sub-topics in the final card if the learner wants to drill down further. |
+| **2. Overly Broad Topic Input** (e.g., *"Science"* or *"Coding"*) | Mentora accepts the input, scopes Explain Mode to a foundational overview of the field's core pillars, and names narrower follow-up topics within the final card's content that the learner can enter as a new session. |
 | **3. Diagram Rendering Failure** | If an AI-generated diagram contains syntax that cannot be rendered visually, the interface gracefully falls back to a clean text/code representation without breaking the surrounding card or page layout. |
 | **4. Network Interruption During Interact Mode Streaming** | If the user's connection drops mid-response, the interface displays a clear *"Connection interrupted — Retry"* action on the incomplete message without penalizing the learner's strike count. |
 | **5. Accidental Page Refresh During a 10-MCQ Batch** | Any options already selected by the learner in an unsubmitted 10-MCQ batch are preserved locally so the learner can continue from the exact question they left off on. |
@@ -241,7 +240,7 @@ For v1.0 MVP, personalization is driven deterministically by the learner's **Sta
 ### 12.1 Explain Mode Acceptance Criteria (FR-007, FR-008, FR-009)
 * **AC-EXP-01:** Given an authenticated user who enters a valid topic and selects Explain Mode, when the session loads, then the user sees **Step 1: Intuition** first, calibrated to their Static Learner Profile.
 * **AC-EXP-02:** Given the user is viewing Step $N$ (where $N < 4$), when the user clicks **`Next`**, then Step $N+1$ is displayed sequentially up to **Step 4: Check-for-Understanding**.
-* **AC-EXP-03:** Given the user is viewing any Explain card, when the user clicks **`Go Deeper`**, then an expanded sub-card with deeper technical detail, examples, or diagrams is appended beneath the current card without resetting the 4-step sequence.
+* **AC-EXP-03:** *(Retired — the `Go Deeper` sub-card feature was removed.)*
 
 ### 12.2 Interact Mode Acceptance Criteria (FR-010, FR-011, FR-012)
 * **AC-INT-01:** Given a user opens Interact Mode for a topic, when the session initializes, then the UI displays 3 to 5 conceptual milestones in a progress tracker (with Milestone 1 marked active) and presents an opening diagnostic question.
@@ -263,7 +262,7 @@ For v1.0 MVP, personalization is driven deterministically by the learner's **Sta
 ### Phase 1: Core Workspace, Onboarding, & Explain Mode
 * User registration, login, and mandatory 2-question Static Learner Profile onboarding.
 * Unified Single-Page Workspace shell with Left Sidebar session history and Top Mode Switcher tabs.
-* **Explain Mode** complete workflow: 4 progressive cards (*Intuition $\rightarrow$ Core Mechanism $\rightarrow$ Example $\rightarrow$ Check-for-Understanding*), `Next` and `Go Deeper` actions, and rich Markdown/LaTeX/Code/Diagram rendering.
+* **Explain Mode** complete workflow: 4 progressive cards (*Intuition $\rightarrow$ Core Mechanism $\rightarrow$ Example $\rightarrow$ Check-for-Understanding*), `Next` action, and rich Markdown/LaTeX/Code/Diagram rendering.
 
 ### Phase 2: Interact Mode & Practice Mode
 * **Interact Mode** complete workflow: 3–5 conceptual milestone tracker, opening diagnostic prompt, real-time streaming conversation, and the **3-Strike Socratic Circuit Breaker**.
@@ -282,13 +281,13 @@ For v1.0 MVP, personalization is driven deterministically by the learner's **Sta
 | :--- | :--- | :--- |
 | **1. Learner Impatience During 10-MCQ Batch Generation** | Generating 10 rigorous questions with verified step-by-step explanations at once takes several seconds, which could cause perceived lag. | Provide an informative progress indicator while generating a batch, and persist generated batches so switching between tabs (`Explain` $\leftrightarrow$ `Practice`) is instantaneous. |
 | **2. Low Score Frustration on Easy/Medium Tiers** | If a learner scores poorly on the Easy batch and is blocked from progressing or retrying, they may abandon the session. | **PM Recommendation:** Always unlock the next difficulty tier upon completing and reviewing the current 10-question batch regardless of score, while also offering a `"Retry Tier"` option. |
-| **3. Overly Broad User Prompts** | Users typing single-word broad subjects (e.g., *"Physics"*) may receive high-level overviews when they needed a specific chapter. | Include suggested sub-topic chips in Card 4 of Explain Mode so learners can launch a focused follow-up session with one click. |
+| **3. Overly Broad User Prompts** | Users typing single-word broad subjects (e.g., *"Physics"*) may receive high-level overviews when they needed a specific chapter. | Card 4 content names narrower follow-up topics the learner can enter as a new, focused session. |
 
 ### 14.2 Confirmed Decisions vs. PM Recommendations & Assumptions
 * **Confirmed Decisions (Locked from Discovery):**
   * Open-ended universal topic support across three modes (`Explain`, `Interact`, `Practice`).
   * No document upload (PDF/PNG/JPG/MD) and no automatic syllabus/roadmap generation in v1.0.
-  * Explain Mode uses 4 progressive cards with `Next` and `Go Deeper` controls, rich media rendering, and no manual difficulty toggles.
+  * Explain Mode uses 4 progressive cards with a `Next` control, rich media rendering, and no manual difficulty toggles.
   * Interact Mode uses a 3–5 milestone diagnostic flow with a 3-Strike Socratic Circuit Breaker (text + rich input only).
   * Practice Mode uses 10-MCQ batches across Easy, Medium, and Hard tiers with post-batch answer comparison and verified explanations.
   * Personalization uses a 2-field Static Learner Profile (`Education Level` + `Preferred Explanation Style`), combined with a Unified Workspace and Left History Sidebar.

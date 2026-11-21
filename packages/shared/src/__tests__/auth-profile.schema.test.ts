@@ -10,7 +10,6 @@ import {
   MAX_INTERACT_MILESTONES,
   MAX_TOPIC_QUERY_LENGTH,
   MAX_INTERACT_MESSAGE_LENGTH,
-  MAX_DEEP_DIVE_DEPTH,
   MIN_USER_NAME_LENGTH,
   MAX_USER_NAME_LENGTH,
   MIN_PASSWORD_LENGTH,
@@ -57,7 +56,6 @@ describe('IMP-002: Domain Enums and Business Rule Constants', () => {
     expect(MAX_INTERACT_MILESTONES).toBe(5);
     expect(MAX_TOPIC_QUERY_LENGTH).toBe(300);
     expect(MAX_INTERACT_MESSAGE_LENGTH).toBe(2000);
-    expect(MAX_DEEP_DIVE_DEPTH).toBe(2);
     expect(MIN_USER_NAME_LENGTH).toBe(2);
     expect(MAX_USER_NAME_LENGTH).toBe(80);
     expect(MIN_PASSWORD_LENGTH).toBe(8);

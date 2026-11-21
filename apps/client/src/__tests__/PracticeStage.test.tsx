@@ -151,7 +151,6 @@ describe('IMP-023: Frontend Practice Mode UI Stage & useQuizDraftPersistence', (
       status: ExplainStatus.NOT_STARTED,
       currentStepIndex: 0,
       cards: [],
-      suggestedSubTopics: [],
     },
     interactState: {
       status: InteractStatus.NOT_STARTED,
@@ -206,7 +205,6 @@ describe('IMP-023: Frontend Practice Mode UI Stage & useQuizDraftPersistence', (
           activeTurnMessage: null,
         },
         isInitializingExplain: false,
-        deepDiveLoadingStep: null,
         explainError: null,
         isInitializingInteract: false,
         interactError: null,
@@ -314,7 +312,6 @@ describe('IMP-023: Frontend Practice Mode UI Stage & useQuizDraftPersistence', (
           activeTurnMessage: null,
         },
         isInitializingExplain: false,
-        deepDiveLoadingStep: null,
         explainError: null,
         isInitializingInteract: false,
         interactError: null,
@@ -559,7 +556,6 @@ describe('IMP-023: Frontend Practice Mode UI Stage & useQuizDraftPersistence', (
         status: ExplainStatus.NOT_STARTED,
         currentStepIndex: 0,
         cards: [],
-        suggestedSubTopics: [],
       },
       interactState: {
         status: InteractStatus.NOT_STARTED,

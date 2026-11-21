@@ -41,7 +41,7 @@ flowchart TB
         subgraph CoreServices["Domain & Pedagogical Services"]
             AuthSvc["Auth & Profile Service"]
             SessionSvc["TopicSession Service"]
-            ExplainEngine["Explain Mode Engine (4-Card + Go Deeper)"]
+            ExplainEngine["Explain Mode Engine (4-Card Progressive)"]
             InteractEngine["Interact Mode Engine (Milestones + 3-Strike State Machine)"]
             PracticeEngine["Practice Mode Engine (10-MCQ Tiered Batches)"]
         end
@@ -79,7 +79,7 @@ flowchart TB
 1. **Explain Mode Flow (Structured JSON Request/Response):**
    * The client dispatches `POST /api/v1/sessions` (or `/explain/init`) with `{ topic, initialMode: 'explain' }`.
    * The backend verifies the user's JWT and daily quota (`< 50` actions/day), injects the user's **Static Learner Profile** (`educationLevel`, `preferredStyle`), and requests a 4-card structured JSON payload from Gemini (`Intuition`, `Core Mechanism`, `Example`, `Check-for-Understanding`).
-   * The backend validates the JSON response against the shared Zod schema, persists the 4 cards inside `TopicSession.explainState`, increments the user's quota counter, and returns the session state. Advancing via **`Next`** is instantaneous on the client (updating `currentStepIndex`), while clicking **`Go Deeper`** triggers `POST /api/v1/sessions/:id/explain/deeper` to append a nested sub-card.
+   * The backend validates the JSON response against the shared Zod schema, persists the 4 cards inside `TopicSession.explainState`, increments the user's quota counter, and returns the session state. Advancing via **`Next`** is instantaneous on the client (updating `currentStepIndex`).
 2. **Interact Mode Flow (Diagnostic Initialization + Real-Time SSE Turn Streaming):**
    * On first entry to the `Interact` tab, `POST /api/v1/sessions/:id/interact/init` generates 3 to 5 sequential conceptual milestones and an opening diagnostic question.
    * When the learner submits a reply via `POST /api/v1/sessions/:id/interact/stream`, the backend evaluates the user's message against the active milestone and current `strikeCount` (`0`, `1`, or `2`). It streams the tutor's response chunks via **Server-Sent Events (`text/event-stream`)** with proxy buffering disabled (`X-Accel-Buffering: no`) and emits a final `metadata` SSE event containing the updated `activeMilestoneIndex`, `milestoneStatus`, and `strikeCount`.
@@ -163,7 +163,7 @@ mentora/
 │           ├── components/
 │           │   ├── layout/        # AppShell, LeftHistorySidebar, StickyTopicHeader, ModeSwitcherTabs, QuotaBadge
 │           │   ├── common/        # RichMarkdownRenderer, MermaidDiagram, KaTeXBlock, CodeBlock, ErrorBoundary
-│           │   ├── explain/       # ExplainStage, StepProgressBar, ExplainCard, DeepDiveSubCard, CardControls
+│           │   ├── explain/       # ExplainStage, StepProgressBar, ExplainCard, CardControls
 │           │   ├── interact/      # InteractStage, MilestoneTrackerBar, ChatTranscript, StreamingBubble, ChatInput
 │           │   └── practice/      # PracticeStage, TierSelectorBar, McqQuestionCard, BatchReviewView, PracticeSummary
 │           ├── hooks/             # useSseStream.ts, useQuizDraftPersistence.ts, useQuotaStatus.ts
@@ -235,7 +235,7 @@ Mentora implements two complementary rate-limiting layers:
 1. **Infrastructure Abuse Protection (`express-rate-limit`):** IP/User burst limiter (e.g., max 60 API requests/minute) to prevent brute-force login attempts or script flooding.
 2. **Persistent Daily AI Usage Quota (`quota.middleware.ts`):**
    * Stored atomically on the `User` document (`usageQuota.dailyCount` and `usageQuota.windowResetAt`).
-   * Before any AI generation call (`Explain Init`, `Explain Go Deeper`, `Interact Init`, `Interact Turn`, `Practice Batch Generate`), the middleware checks if `now >= windowResetAt`. If so, it resets `dailyCount = 0` and sets `windowResetAt` to the next 24-hour boundary.
+   * Before any AI generation call (`Explain Init`, `Interact Init`, `Interact Turn`, `Practice Batch Generate`), the middleware checks if `now >= windowResetAt`. If so, it resets `dailyCount = 0` and sets `windowResetAt` to the next 24-hour boundary.
    * If `dailyCount >= env.DAILY_AI_QUOTA_LIMIT` (default: `50`), the request is rejected with `429 DAILY_QUOTA_EXCEEDED` and `{ resetAt: windowResetAt }`. Read-only endpoints (`GET /sessions`, `GET /sessions/:id`, `POST /practice/submit` for already-generated batches) are never blocked by the AI quota, satisfying `BR-04`.
 
 ---
@@ -270,18 +270,16 @@ Every call to the Google Gemini API is constructed by the **`PromptBuilder`** se
 | Mode & Operation | Routed Model (`env`) | Default Gemini Model ID | Output Mode | Architectural Rationale |
 | :--- | :--- | :--- | :--- | :--- |
 | **Explain Mode — 4-Card Init** | `GEMINI_FAST_MODEL` | `gemini-3.5-flash-lite` | Structured JSON (`responseSchema`) | Generates all 4 core cards in a single call within ~3–5s so subsequent `Next` clicks have zero latency. |
-| **Explain Mode — `Go Deeper`** | `GEMINI_REASONING_MODEL` | `gemini-3.5-flash-lite` (default) | Structured JSON (`responseSchema`) | Requires deep technical derivations, formal proofs, or architectural diagrams for a specific card. |
 | **Interact Mode — Milestone Init** | `GEMINI_FAST_MODEL` | `gemini-3.5-flash-lite` | Structured JSON (`responseSchema`) | Decomposes the topic into 3–5 sequential milestones and crafts the opening diagnostic question. |
 | **Interact Mode — Socratic Turn** | `GEMINI_FAST_MODEL` | `gemini-3.5-flash-lite` | Streaming (`generateContentStream`) | Guarantees P90 Time-to-First-Token (TTFT) $< 2.0\text{s}$ (`NFR-001`) during live conversation. |
 | **Practice Mode — 10-MCQ Batch** | `GEMINI_REASONING_MODEL` | `gemini-3.5-flash-lite` (default) | Structured JSON (`responseSchema`) | Requires multi-step derivation verification across 10 questions to guarantee $\ge 99\%$ answer key validity (`NFR-003`). |
 
 ### E.3 Mode 1: Explain Mode Engine (`FR-007`, `FR-008`)
-* **Responsibility:** Encode knowledge progressively across 4 deterministic pedagogical steps (`1. Intuition` $\rightarrow$ `2. Core Mechanism` $\rightarrow$ `3. Example` $\rightarrow$ `4. Check-for-Understanding`) with on-demand vertical depth (`Go Deeper`).
-* **Inputs:** `topicQuery`, `StaticLearnerProfile`, and (for `Go Deeper`) the parent card's `stepType`, `title`, `contentMarkdown`, and existing `deepDives` count.
+* **Responsibility:** Encode knowledge progressively across 4 deterministic pedagogical steps (`1. Intuition` $\rightarrow$ `2. Core Mechanism` $\rightarrow$ `3. Example` $\rightarrow$ `4. Check-for-Understanding`) with learner-paced `Next` stepping and a sticky 4-step progress bar pinned below the topic header.
+* **Inputs:** `topicQuery` and `StaticLearnerProfile`.
 * **Outputs:**
   * On initialization: A validated 4-element `ExplainCard[]` array persisted to `TopicSession.explainState.cards`, with `currentStepIndex` set to `0` (so only Card 1 is visible initially, per `AC-EXP-01`).
   * On `Next`: Client increments `currentStepIndex` (up to `3`) and syncs via `PATCH /api/v1/sessions/:id/explain/progress`.
-  * On `Go Deeper`: Appends a `DeepDiveSubCard` (`depthLevel`, `title`, `contentMarkdown`) directly into `explainState.cards[stepIndex].deepDives[]` without resetting `currentStepIndex` (`AC-EXP-03`).
 
 ### E.4 Mode 2: Interact Mode Engine & 3-Strike Socratic Circuit Breaker (`FR-010`–`FR-013`)
 * **Responsibility:** Guide the learner through 3–5 explicit conceptual milestones via Socratic dialogue while preventing infinite questioning loops using a deterministic server-side state machine.
@@ -359,7 +357,7 @@ erDiagram
         string topicQuery "Raw user topic prompt"
         string normalizedTitle "Clean display title"
         string lastActiveMode "explain | interact | practice"
-        object explainState "4 Core Cards + DeepDive SubCards"
+        object explainState "4 Core Cards + currentStepIndex"
         object interactState "3-5 Milestones + strikeCount + Messages[]"
         object practiceState "Easy, Medium, Hard 10-MCQ Batches"
         date createdAt
@@ -393,8 +391,7 @@ erDiagram
   * **`explainState`:**
     * `status`: `'not_started' | 'ready'`
     * `currentStepIndex`: `Number` (`0` to `3`, tracking progressive disclosure up to Card 4).
-    * `cards`: Array of 4 `ExplainCard` objects (`stepNumber: 1..4`, `stepType`, `title`, `contentMarkdown`, `checkQuestion?`, `checkAnswer?`, `deepDives: Array<{ id, title, contentMarkdown, createdAt }>`).
-    * `suggestedSubTopics`: `String[]` (populated on broad topics per `Edge Case 2`).
+    * `cards`: Array of 4 `ExplainCard` objects (`stepNumber: 1..4`, `stepType`, `title`, `contentMarkdown`, `checkQuestion?`, `checkAnswer?`).
   * **`interactState`:**
     * `status`: `'not_started' | 'active' | 'completed'`
     * `activeMilestoneIndex`: `Number` (`0` to `milestones.length - 1`).
@@ -458,7 +455,6 @@ All endpoints are prefixed with `/api/v1`.
 | **Sessions** | `DELETE /api/v1/sessions/:id` | JWT + Profile | Permanently deletes a saved `TopicSession` (`FR-006`). |
 | **Explain** | `POST /api/v1/sessions/:id/explain/init` | JWT + Profile + Quota | Generates the 4 core Explain cards if `explainState.status === 'not_started'` (`FR-007`). |
 | **Explain** | `PATCH /api/v1/sessions/:id/explain/step` | JWT + Profile | Advances `currentStepIndex` when user clicks `Next` (`FR-008`, `AC-EXP-02`). |
-| **Explain** | `POST /api/v1/sessions/:id/explain/deeper`| JWT + Profile + Quota | Generates and appends a `Go Deeper` sub-card under `stepNumber` (`1..4`) (`FR-008`, `AC-EXP-03`). |
 | **Interact** | `POST /api/v1/sessions/:id/interact/init` | JWT + Profile + Quota | Generates 3–5 conceptual milestones and opening diagnostic prompt (`FR-010`, `AC-INT-01`). |
 | **Interact** | `POST /api/v1/sessions/:id/interact/stream`| JWT + Profile + Quota | Accepts `{ message, forceDirectExplanation? }`, runs 3-Strike state machine, streams SSE response (`FR-011`–`FR-013`). |
 | **Practice** | `POST /api/v1/sessions/:id/practice/generate` | JWT + Profile + Quota | Generates 10 MCQs for `{ tier: 'easy' \| 'medium' \| 'hard' }` if unlocked (`FR-014`, `BR-02`). |
@@ -503,7 +499,7 @@ The endpoint emits standard SSE frames:
 3. **API Integration Tests (`Supertest` + `mongodb-memory-server`):**
    * End-to-end HTTP tests covering registration $\rightarrow$ onboarding guard enforcement (`BR-01`) $\rightarrow$ profile setup $\rightarrow$ session creation $\rightarrow$ cross-user isolation checks (`User B` attempting to read `User A`'s session receives `404`).
 4. **Frontend Component & Workflow Tests (Vitest + React Testing Library):**
-   * Test Explain Mode progressive card stepping (`Next` reveals Card $N+1$, `Go Deeper` renders nested sub-card).
+   * Test Explain Mode progressive card stepping (`Next` reveals Card $N+1$).
    * Test `<MermaidDiagram />` error boundary fallback when passed invalid Mermaid syntax (`Edge Case 3`).
    * Test Practice Mode `localStorage` draft restoration across simulated page reloads (`Edge Case 5`).
 
@@ -546,10 +542,10 @@ Because live LLM outputs vary across runs, AI quality is evaluated separately fr
 ### Phase 2: Rich Rendering Engine & Explain Mode (`FR-007`–`FR-009`)
 * **Dependencies:** Phase 1.
 * **Deliverables:**
-  1. Implement the Google Gemini integration layer (`PromptBuilder`, `ModelRouter`, educational scope guardrails) and Explain Mode endpoints (`/explain/init`, `/explain/step`, `/explain/deeper`).
+  1. Implement the Google Gemini integration layer (`PromptBuilder`, `ModelRouter`, educational scope guardrails) and Explain Mode endpoints (`/explain/init`, `/explain/step`).
   2. Build `<RichMarkdownRenderer />` supporting GFM, KaTeX ($\LaTeX$), syntax-highlighted code blocks, and fault-tolerant `<MermaidDiagram />` rendering (`Edge Case 3`).
-  3. Build the Explain Mode UI stage with progressive 4-card disclosure (`Intuition` $\rightarrow$ `Core Mechanism` $\rightarrow$ `Example` $\rightarrow$ `Check-for-Understanding`), `Next` progression, and nested `Go Deeper` sub-cards.
-* **Completion Criteria:** Satisfies `AC-EXP-01`, `AC-EXP-02`, and `AC-EXP-03` end-to-end.
+  3. Build the Explain Mode UI stage with progressive 4-card disclosure (`Intuition` $\rightarrow$ `Core Mechanism` $\rightarrow$ `Example` $\rightarrow$ `Check-for-Understanding`), `Next` progression, and a sticky step progress bar.
+* **Completion Criteria:** Satisfies `AC-EXP-01` and `AC-EXP-02` end-to-end.
 
 ### Phase 3: Interact Mode & 3-Strike Socratic Circuit Breaker (`FR-010`–`FR-013`)
 * **Dependencies:** Phase 2 (Rich Renderer & Gemini Client).

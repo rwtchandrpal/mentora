@@ -17,7 +17,6 @@ export const MAX_INTERACT_MESSAGE_LENGTH = 2000 as const;
  * Older context is carried by the milestone roadmap, so the prompt stays bounded.
  */
 export const MAX_INTERACT_PROMPT_HISTORY = 20 as const;
-export const MAX_DEEP_DIVE_DEPTH = 2 as const;
 export const MIN_USER_NAME_LENGTH = 2 as const;
 export const MAX_USER_NAME_LENGTH = 80 as const;
 export const MIN_PASSWORD_LENGTH = 8 as const;

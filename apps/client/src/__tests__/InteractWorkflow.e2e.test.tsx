@@ -112,10 +112,8 @@ describe('IMP-021: Frontend End-to-End Interact Mode Workflow & 3-Strike Verific
           stepType: ExplainStepType.INTUITION,
           title: 'Intuition of Raft',
           contentMarkdown: 'Leader election maintains a single source of truth.',
-          deepDives: [],
         },
       ],
-      suggestedSubTopics: [],
     },
     interactState: {
       status: InteractStatus.NOT_STARTED,
@@ -364,7 +362,6 @@ describe('IMP-021: Frontend End-to-End Interact Mode Workflow & 3-Strike Verific
               activeTurnId: null,
             },
             isInitializingExplain: false,
-            deepDiveLoadingStep: null,
             explainError: null,
             isInitializingInteract: false,
             interactError: null,
@@ -373,7 +370,7 @@ describe('IMP-021: Frontend End-to-End Interact Mode Workflow & 3-Strike Verific
 
         // Step B: Submit New Topic with Interact Mode selected
         const topicInput = screen.getByPlaceholderText(
-          /e\.g\. Distributed Consensus/i
+          /Enter any topic to learn/i
         );
         fireEvent.change(topicInput, {
           target: { value: 'Distributed Consensus in Raft' },
@@ -563,7 +560,6 @@ describe('IMP-021: Frontend End-to-End Interact Mode Workflow & 3-Strike Verific
             activeTurnId: null,
           },
           isInitializingExplain: false,
-          deepDiveLoadingStep: null,
           explainError: null,
           isInitializingInteract: false,
           interactError: null,
@@ -657,7 +653,6 @@ describe('IMP-021: Frontend End-to-End Interact Mode Workflow & 3-Strike Verific
             activeTurnId: null,
           },
           isInitializingExplain: false,
-          deepDiveLoadingStep: null,
           explainError: null,
           isInitializingInteract: false,
           interactError: null,

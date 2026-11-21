@@ -23,12 +23,9 @@ import {
 import {
   ExplainStepTypeSchema,
   ExplainStatusSchema,
-  DeepDiveSubCardSchema,
   ExplainCardSchema,
   ExplainInitOutputSchema,
-  ExplainDeepDiveOutputSchema,
   ExplainStepRequestSchema,
-  ExplainDeeperRequestSchema,
   ExplainStateSchema,
 } from '../schemas/explain.schema.js';
 import {
@@ -117,12 +114,9 @@ export type ApiResponseEnvelope<T> = ApiSuccessEnvelope<T> | ApiErrorEnvelope;
 // Explain Mode Types
 export type ExplainStepTypeDTO = z.infer<typeof ExplainStepTypeSchema>;
 export type ExplainStatusDTO = z.infer<typeof ExplainStatusSchema>;
-export type DeepDiveSubCardDTO = z.infer<typeof DeepDiveSubCardSchema>;
 export type ExplainCardDTO = z.infer<typeof ExplainCardSchema>;
 export type ExplainInitOutputDTO = z.infer<typeof ExplainInitOutputSchema>;
-export type ExplainDeepDiveOutputDTO = z.infer<typeof ExplainDeepDiveOutputSchema>;
 export type ExplainStepRequestDTO = z.infer<typeof ExplainStepRequestSchema>;
-export type ExplainDeeperRequestDTO = z.infer<typeof ExplainDeeperRequestSchema>;
 export type ExplainStateDTO = z.infer<typeof ExplainStateSchema>;
 
 // Interact Mode Types

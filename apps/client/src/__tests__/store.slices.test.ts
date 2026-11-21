@@ -34,7 +34,6 @@ import {
   deleteSessionThunk,
   initializeExplainThunk,
   advanceExplainStepThunk,
-  generateDeepDiveThunk,
   clearExplainError,
   setActiveMode,
   setActiveSession,
@@ -99,10 +98,8 @@ describe('IMP-010: Redux Toolkit Store & Slices', () => {
           stepType: ExplainStepType.INTUITION,
           title: 'Intuition of BST',
           contentMarkdown: 'BST keeps keys in sorted order for fast lookup.',
-          deepDives: [],
         },
       ],
-      suggestedSubTopics: [],
     },
     interactState: {
       status: InteractStatus.ACTIVE,
@@ -663,7 +660,6 @@ describe('IMP-010: Redux Toolkit Store & Slices', () => {
             activeTurnId: null,
           },
           isInitializingExplain: false,
-          deepDiveLoadingStep: null,
           explainError: null,
         },
       });
@@ -714,7 +710,6 @@ describe('IMP-010: Redux Toolkit Store & Slices', () => {
             activeTurnId: null,
           },
           isInitializingExplain: false,
-          deepDiveLoadingStep: null,
           explainError: null,
         },
       });
@@ -726,74 +721,6 @@ describe('IMP-010: Redux Toolkit Store & Slices', () => {
       expect(store.getState().session.activeSession?.explainState.currentStepIndex).toBe(2);
       expect(store.getState().session.explainError).toBeNull();
     });
-
-    it('generateDeepDiveThunk tracks deepDiveLoadingStep and updates activeSession with returned deep dive', async () => {
-      const subCard = {
-        id: 'sub-1',
-        depthLevel: 1,
-        title: 'AVL Tree Rotation Derivation',
-        contentMarkdown: 'Rotation restores height balance invariant.',
-        createdAt: '2026-10-28T10:00:00.000Z',
-      };
-      const sessionWithDeepDive: TopicSessionDTO = {
-        ...mockSession,
-        explainState: {
-          ...mockSession.explainState,
-          cards: [
-            {
-              ...mockSession.explainState.cards[0]!,
-              deepDives: [subCard],
-            },
-          ],
-        },
-      };
-
-      const mockAdapter: AxiosAdapter = async (config: InternalAxiosRequestConfig) => {
-        return {
-          data: {
-            success: true,
-            data: sessionWithDeepDive,
-            meta: { quota: mockQuotaMeta },
-          },
-          status: 200,
-          statusText: 'OK',
-          headers: {},
-          config,
-        };
-      };
-      apiClient.defaults.adapter = mockAdapter;
-
-      const store = createAppStore({
-        session: {
-          sessionList: [mockSummary],
-          activeSession: mockSession,
-          activeMode: LearningMode.EXPLAIN,
-          isLoadingList: false,
-          isLoadingSession: false,
-          isCreatingSession: false,
-          error: null,
-          streamingState: {
-            isStreaming: false,
-            streamBuffer: '',
-            streamError: null,
-            activeTurnId: null,
-          },
-          isInitializingExplain: false,
-          deepDiveLoadingStep: null,
-          explainError: null,
-        },
-      });
-
-      await store.dispatch(
-        generateDeepDiveThunk({ sessionId: 'session-abc', stepNumber: 1 })
-      );
-
-      expect(store.getState().session.deepDiveLoadingStep).toBeNull();
-      expect(
-        store.getState().session.activeSession?.explainState.cards[0]?.deepDives[0]?.title
-      ).toBe('AVL Tree Rotation Derivation');
-    });
-
     it('clearExplainError resets explain error state', () => {
       const store = createAppStore({
         session: {
@@ -811,7 +738,6 @@ describe('IMP-010: Redux Toolkit Store & Slices', () => {
             activeTurnId: null,
           },
           isInitializingExplain: false,
-          deepDiveLoadingStep: null,
           explainError: {
             statusCode: 422,
             code: 'EDUCATIONAL_GUARDRAIL_REFUSAL',

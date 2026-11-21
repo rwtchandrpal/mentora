@@ -46,7 +46,7 @@ export const ChatTranscript: React.FC<ChatTranscriptProps> = ({
             Initializing Socratic Dialogue...
           </p>
           <p className="text-xs text-gray-600 font-medium mt-1 max-w-sm">
-            Mentora is analyzing your topic and decomposing it into guided discovery milestones.
+            Preparing your guided milestones.
           </p>
         </div>
       )}

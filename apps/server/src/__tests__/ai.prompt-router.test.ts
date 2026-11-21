@@ -16,7 +16,6 @@ import {
   PromptBuilder,
   buildSystemInstruction,
   buildExplainInitPrompt,
-  buildExplainDeeperPrompt,
   buildInteractInitPrompt,
   buildInteractTurnPrompt,
   buildPracticeGeneratePrompt,
@@ -37,13 +36,13 @@ describe('IMP-013: Backend AI Integration Layer', () => {
       expect(ModelRouter.getModelForOperation(AiOperation.INTERACT_STREAM)).toBe(env.GEMINI_FAST_MODEL);
     });
 
-    it('maps EXPLAIN_DEEPER and PRACTICE_GENERATE to env.GEMINI_REASONING_MODEL', () => {
-      expect(ModelRouter.getModelForOperation(AiOperation.EXPLAIN_DEEPER)).toBe(env.GEMINI_REASONING_MODEL);
+    it('maps PRACTICE_GENERATE to env.GEMINI_REASONING_MODEL', () => {
       expect(ModelRouter.getModelForOperation(AiOperation.PRACTICE_GENERATE)).toBe(env.GEMINI_REASONING_MODEL);
     });
 
     it('covers all AI_OPERATIONS without unhandled cases', () => {
-      expect(AI_OPERATIONS).toHaveLength(5);
+      expect(AI_OPERATIONS).toHaveLength(4);
+      expect(AI_OPERATIONS).not.toContain('EXPLAIN_DEEPER');
       for (const op of AI_OPERATIONS) {
         const model = resolveModelForOperation(op);
         expect(typeof model).toBe('string');
@@ -82,7 +81,6 @@ describe('IMP-013: Backend AI Integration Layer', () => {
         expect(ModelRouter.getModelForOperation(AiOperation.EXPLAIN_INIT)).toBe('gemini-dynamic-fast');
         expect(ModelRouter.getModelForOperation(AiOperation.INTERACT_INIT)).toBe('gemini-dynamic-fast');
         expect(ModelRouter.getModelForOperation(AiOperation.INTERACT_STREAM)).toBe('gemini-dynamic-fast');
-        expect(ModelRouter.getModelForOperation(AiOperation.EXPLAIN_DEEPER)).toBe('gemini-dynamic-reasoning');
         expect(ModelRouter.getModelForOperation(AiOperation.PRACTICE_GENERATE)).toBe('gemini-dynamic-reasoning');
       } finally {
         mutableEnv.GEMINI_FAST_MODEL = originalFast;
@@ -205,19 +203,6 @@ describe('IMP-013: Backend AI Integration Layer', () => {
       const explainInitPrompt = buildExplainInitPrompt('Quantum Computing');
       expect(explainInitPrompt).toContain('Quantum Computing');
       expect(explainInitPrompt).toContain('4-card progressive sequence');
-
-      const explainDeeperPrompt = buildExplainDeeperPrompt({
-        topicQuery: 'Quantum Computing',
-        parentCard: {
-          stepType: 'core_mechanism',
-          title: 'Superposition & Entanglement',
-          contentMarkdown: 'Qubits can exist in superposition...',
-          depthLevel: 1,
-        },
-      });
-      expect(explainDeeperPrompt).toContain('Quantum Computing');
-      expect(explainDeeperPrompt).toContain('Superposition & Entanglement');
-      expect(explainDeeperPrompt).toContain('Depth Level: 2');
 
       const interactInitPrompt = buildInteractInitPrompt('Binary Search Trees');
       expect(interactInitPrompt).toContain('Binary Search Trees');

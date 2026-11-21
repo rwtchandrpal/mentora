@@ -294,7 +294,6 @@ export const createSimulatedDryRunGenerator = (): AiEvalGeneratorFn => {
               'Imagine a balance scale representing physical equilibrium in real time.',
             checkQuestion: null,
             checkAnswer: null,
-            deepDives: [],
           },
           {
             stepNumber: 2,
@@ -304,7 +303,6 @@ export const createSimulatedDryRunGenerator = (): AiEvalGeneratorFn => {
               'The invariant holds if $\\sum_{i=1}^n F_i = 0$ and $\\tau_{net} = 0$.',
             checkQuestion: null,
             checkAnswer: null,
-            deepDives: [],
           },
           {
             stepNumber: 3,
@@ -314,7 +312,6 @@ export const createSimulatedDryRunGenerator = (): AiEvalGeneratorFn => {
               '```typescript\nfunction verifyEquilibrium(forces: number[]): boolean {\n  return forces.reduce((a, b) => a + b, 0) === 0;\n}\n```',
             checkQuestion: null,
             checkAnswer: null,
-            deepDives: [],
           },
           {
             stepNumber: 4,
@@ -326,12 +323,7 @@ export const createSimulatedDryRunGenerator = (): AiEvalGeneratorFn => {
               'If net force is zero but torque is non-zero, does equilibrium hold?',
             checkAnswer:
               'No, rotational acceleration will occur since rotational equilibrium requires zero net torque.',
-            deepDives: [],
           },
-        ],
-        suggestedSubTopics: [
-          'Rotational Inertia',
-          'Static vs Dynamic Equilibrium',
         ],
       };
       payload = explainPayload;

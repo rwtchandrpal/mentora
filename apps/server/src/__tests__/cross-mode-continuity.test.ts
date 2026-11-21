@@ -83,7 +83,6 @@ describe('IMP-025: Cross-Mode Session Continuity & Quota Exhaustion Read-Only Ve
         contentMarkdown: 'Imagine a four-way intersection where every car is blocked by the car to its right.',
         checkQuestion: null,
         checkAnswer: null,
-        deepDives: [],
       },
       {
         stepNumber: 2,
@@ -92,7 +91,6 @@ describe('IMP-025: Cross-Mode Session Continuity & Quota Exhaustion Read-Only Ve
         contentMarkdown: 'Mutual exclusion, hold and wait, no preemption, and circular wait: $\\forall i, P_i \\rightarrow R_i$.',
         checkQuestion: null,
         checkAnswer: null,
-        deepDives: [],
       },
       {
         stepNumber: 3,
@@ -101,7 +99,6 @@ describe('IMP-025: Cross-Mode Session Continuity & Quota Exhaustion Read-Only Ve
         contentMarkdown: 'Five philosophers competing for adjacent chopsticks.',
         checkQuestion: null,
         checkAnswer: null,
-        deepDives: [],
       },
       {
         stepNumber: 4,
@@ -110,15 +107,8 @@ describe('IMP-025: Cross-Mode Session Continuity & Quota Exhaustion Read-Only Ve
         contentMarkdown: 'Can deadlock occur if resources are numbered and acquired in strict monotonic order?',
         checkQuestion: 'Does monotonic resource ordering eliminate circular wait?',
         checkAnswer: 'Yes, because cycles require an edge from higher to lower numbered resources.',
-        deepDives: [],
       },
     ],
-    suggestedSubTopics: ["Banker's Algorithm", 'Resource Allocation Graph'],
-  };
-
-  const mockDeepDivePayload = {
-    title: 'Mathematical Proof of Monotonic Lock Ordering',
-    contentMarkdown: 'Assume a cycle exists: $R_1 < R_2 < \\dots < R_k < R_1$, which contradicts transitivity of strict inequality.',
   };
 
   const mockInteractInitPayload = {
@@ -194,7 +184,7 @@ describe('IMP-025: Cross-Mode Session Continuity & Quota Exhaustion Read-Only Ve
       expect(session.explainState.currentStepIndex).toBe(0);
       expect(session.explainState.cards).toHaveLength(4);
       expect(session.explainState.cards[0]?.title).toBe('Traffic Gridlock Intuition');
-      expect(session.explainState.suggestedSubTopics).toEqual(["Banker's Algorithm", 'Resource Allocation Graph']);
+      expect(session.explainState).not.toHaveProperty('suggestedSubTopics');
 
       // Unstarted modes remain clean
       expect(session.interactState.status).toBe(InteractStatus.NOT_STARTED);
@@ -411,24 +401,7 @@ describe('IMP-025: Cross-Mode Session Continuity & Quota Exhaustion Read-Only Ve
       expect(stepRes.status).toBe(200);
       expect(stepRes.body.data.explainState.currentStepIndex).toBe(2);
 
-      // Step 3: Generate Go Deeper sub-card under Step 2
-      mockGenerateContent.mockResolvedValueOnce({
-        text: JSON.stringify(mockDeepDivePayload),
-      });
-
-      const deeperRes = await request(app)
-        .post(`/api/v1/sessions/${sessionId}/explain/deeper`)
-        .set('Authorization', `Bearer ${user.token}`)
-        .send({ stepNumber: 2 });
-
-      expect(deeperRes.status).toBe(200);
-      const card2 = deeperRes.body.data.explainState.cards.find(
-        (c: { stepNumber: number }) => c.stepNumber === 2
-      );
-      expect(card2?.deepDives).toHaveLength(1);
-      expect(card2?.deepDives[0]?.title).toBe('Mathematical Proof of Monotonic Lock Ordering');
-
-      // Step 4: Switch tab to Interact Mode
+      // Step 3: Switch tab to Interact Mode
       const switchModeRes1 = await request(app)
         .patch(`/api/v1/sessions/${sessionId}/mode`)
         .set('Authorization', `Bearer ${user.token}`)
@@ -437,7 +410,7 @@ describe('IMP-025: Cross-Mode Session Continuity & Quota Exhaustion Read-Only Ve
       expect(switchModeRes1.status).toBe(200);
       expect(switchModeRes1.body.data.lastActiveMode).toBe(LearningMode.INTERACT);
 
-      // Step 5: Initialize Interact Mode
+      // Step 4: Initialize Interact Mode
       mockGenerateContent.mockResolvedValueOnce({
         text: JSON.stringify(mockInteractInitPayload),
       });
@@ -450,7 +423,7 @@ describe('IMP-025: Cross-Mode Session Continuity & Quota Exhaustion Read-Only Ve
       expect(interactInitRes.body.data.interactState.status).toBe(InteractStatus.ACTIVE);
       expect(interactInitRes.body.data.interactState.milestones).toHaveLength(3);
 
-      // Step 6: Complete an SSE turn in Interact Mode
+      // Step 5: Complete an SSE turn in Interact Mode
       const sseRes = await request(app)
         .post(`/api/v1/sessions/${sessionId}/interact/stream`)
         .set('Authorization', `Bearer ${user.token}`)
@@ -459,7 +432,7 @@ describe('IMP-025: Cross-Mode Session Continuity & Quota Exhaustion Read-Only Ve
       expect(sseRes.status).toBe(200);
       expect(sseRes.text).toContain('event: metadata');
 
-      // Step 7: Switch tab to Practice Mode
+      // Step 6: Switch tab to Practice Mode
       const switchModeRes2 = await request(app)
         .patch(`/api/v1/sessions/${sessionId}/mode`)
         .set('Authorization', `Bearer ${user.token}`)
@@ -468,7 +441,7 @@ describe('IMP-025: Cross-Mode Session Continuity & Quota Exhaustion Read-Only Ve
       expect(switchModeRes2.status).toBe(200);
       expect(switchModeRes2.body.data.lastActiveMode).toBe(LearningMode.PRACTICE);
 
-      // Step 8: Generate Easy Practice batch
+      // Step 7: Generate Easy Practice batch
       mockGenerateContent.mockResolvedValueOnce({
         text: JSON.stringify(mockPracticeGeneratePayload),
       });
@@ -482,7 +455,7 @@ describe('IMP-025: Cross-Mode Session Continuity & Quota Exhaustion Read-Only Ve
       expect(practiceGenRes.body.data.practiceState.batches.easy.status).toBe(BatchStatus.IN_PROGRESS);
       expect(practiceGenRes.body.data.practiceState.batches.easy.questions).toHaveLength(10);
 
-      // Step 9: Reload session via GET /api/v1/sessions/:id (Simulating Left History Sidebar click)
+      // Step 8: Reload session via GET /api/v1/sessions/:id (Simulating Left History Sidebar click)
       const reloadRes = await request(app)
         .get(`/api/v1/sessions/${sessionId}`)
         .set('Authorization', `Bearer ${user.token}`);
@@ -496,9 +469,6 @@ describe('IMP-025: Cross-Mode Session Continuity & Quota Exhaustion Read-Only Ve
       expect(reloaded.explainState.status).toBe(ExplainStatus.READY);
       expect(reloaded.explainState.currentStepIndex).toBe(2);
       expect(reloaded.explainState.cards).toHaveLength(4);
-      const reloadedCard2 = reloaded.explainState.cards.find((c) => c.stepNumber === 2);
-      expect(reloadedCard2?.deepDives).toHaveLength(1);
-      expect(reloadedCard2?.deepDives[0]?.title).toBe('Mathematical Proof of Monotonic Lock Ordering');
 
       // Verify Interact State intact
       expect(reloaded.interactState.status).toBe(InteractStatus.ACTIVE);
@@ -584,22 +554,14 @@ describe('IMP-025: Cross-Mode Session Continuity & Quota Exhaustion Read-Only Ve
       expect(rejectExplainInit.status).toBe(429);
       expect(rejectExplainInit.body.error.code).toBe(ErrorCode.DAILY_QUOTA_EXCEEDED);
 
-      // 3.3: POST /api/v1/sessions/:id/explain/deeper
-      const rejectExplainDeeper = await request(app)
-        .post(`/api/v1/sessions/${sessionId}/explain/deeper`)
-        .set('Authorization', `Bearer ${user.token}`)
-        .send({ stepNumber: 1 });
-      expect(rejectExplainDeeper.status).toBe(429);
-      expect(rejectExplainDeeper.body.error.code).toBe(ErrorCode.DAILY_QUOTA_EXCEEDED);
-
-      // 3.4: POST /api/v1/sessions/:id/interact/init
+      // 3.3: POST /api/v1/sessions/:id/interact/init
       const rejectInteractInit = await request(app)
         .post(`/api/v1/sessions/${sessionId}/interact/init`)
         .set('Authorization', `Bearer ${user.token}`);
       expect(rejectInteractInit.status).toBe(429);
       expect(rejectInteractInit.body.error.code).toBe(ErrorCode.DAILY_QUOTA_EXCEEDED);
 
-      // 3.5: POST /api/v1/sessions/:id/interact/stream
+      // 3.4: POST /api/v1/sessions/:id/interact/stream
       const rejectInteractStream = await request(app)
         .post(`/api/v1/sessions/${sessionId}/interact/stream`)
         .set('Authorization', `Bearer ${user.token}`)
@@ -607,7 +569,7 @@ describe('IMP-025: Cross-Mode Session Continuity & Quota Exhaustion Read-Only Ve
       expect(rejectInteractStream.status).toBe(429);
       expect(rejectInteractStream.body.error.code).toBe(ErrorCode.DAILY_QUOTA_EXCEEDED);
 
-      // 3.6: POST /api/v1/sessions/:id/practice/generate
+      // 3.5: POST /api/v1/sessions/:id/practice/generate
       const rejectPracticeGen = await request(app)
         .post(`/api/v1/sessions/${sessionId}/practice/generate`)
         .set('Authorization', `Bearer ${user.token}`)

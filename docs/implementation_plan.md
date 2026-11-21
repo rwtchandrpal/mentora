@@ -24,7 +24,7 @@ Deliver a production-ready, cloud-deployed AI tutoring web application where aut
 1. Complete a mandatory 2-question **Static Learner Profile** (`Education Level` + `Preferred Explanation Style`) on first login (`BR-01`).
 2. Enter any academic or skill-building topic to create a persistent `TopicSession` accessible from a collapsible Left History Sidebar (`FR-004`, `FR-006`).
 3. Seamlessly switch across three learning modes bound to the active topic (`FR-005`):
-   * **Explain Mode:** Progressive 4-card breakdown (*Intuition $\rightarrow$ Core Mechanism $\rightarrow$ Example $\rightarrow$ Check-for-Understanding*) with instant `Next` stepping, on-demand `Go Deeper` sub-cards, and native Markdown/KaTeX/Code/Mermaid.js rendering (`FR-007`–`FR-009`).
+   * **Explain Mode:** Progressive 4-card breakdown (*Intuition $\rightarrow$ Core Mechanism $\rightarrow$ Example $\rightarrow$ Check-for-Understanding*) with instant `Next` stepping and native Markdown/KaTeX/Code/Mermaid.js rendering (`FR-007`–`FR-009`).
    * **Interact Mode:** Goal-oriented Socratic dialogue across 3–5 conceptual milestones streamed via Server-Sent Events (SSE), governed by a deterministic server-side **3-Strike Socratic Circuit Breaker** and manual escape hatch (`FR-010`–`FR-013`).
    * **Practice Mode:** Sequential 10-question MCQ batches across **Easy $\rightarrow$ Medium $\rightarrow$ Hard** tiers generated via a **Reasoning-First JSON Schema** (`solutionExplanation` before `correctOptionIndex`), with client-side draft persistence and deterministic $O(1)$ server-side grading (`FR-014`–`FR-017`, `BR-02`, `BR-03`).
 4. Operate within a safe, cost-controlled boundary enforced by educational scope guardrails and a persistent **50 AI actions/day per-user quota** (`FR-016`/`FR-018`, `BR-04`).
@@ -92,11 +92,11 @@ Deliver a production-ready, cloud-deployed AI tutoring web application where aut
 * **Exit Criteria:** Backend AI wrapper validates structured outputs deterministically and frontend renders Markdown, $\LaTeX$, code, and Mermaid diagrams without crashing on invalid syntax.
 
 ### Phase 5: Explain Mode End-to-End Implementation
-* **Objective:** Deliver Explain Mode across backend and frontend: 4-card structured generation, progressive `Next` stepping, and nested `Go Deeper` sub-cards.
+* **Objective:** Deliver Explain Mode across backend and frontend: 4-card structured generation and progressive `Next` stepping.
 * **Prerequisites:** Phase 4 complete.
 * **Tasks:** `IMP-016`, `IMP-017`, `IMP-018`.
-* **Deliverables:** `explain.service.ts`, `/explain/init`, `/explain/step`, `/explain/deeper` endpoints, and `ExplainStage.tsx` UI components.
-* **Verification:** Backend service/API tests and frontend progressive card navigation tests verifying `AC-EXP-01`, `AC-EXP-02`, and `AC-EXP-03`.
+* **Deliverables:** `explain.service.ts`, `/explain/init` and `/explain/step` endpoints, and `ExplainStage.tsx` UI components.
+* **Verification:** Backend service/API tests and frontend progressive card navigation tests verifying `AC-EXP-01` and `AC-EXP-02`.
 * **Exit Criteria:** All Explain Mode acceptance criteria pass end-to-end.
 
 ### Phase 6: Interact Mode & 3-Strike Socratic SSE Engine
@@ -152,7 +152,7 @@ Deliver a production-ready, cloud-deployed AI tutoring web application where aut
 | **Objective** | Create the single source of truth for domain enumerations, business rule constants, and Auth/Profile Zod schemas. |
 | **Requirements** | `FR-001`–`FR-003`, `FR-016`/`FR-018`, `BR-01`–`BR-04`; `architecture.md` Section B.2, G.1 |
 | **Dependencies** | `IMP-001` |
-| **Scope** | In `packages/shared/src/`:<br>1. `/enums`: `EducationLevel`, `ExplanationStyle`, `LearningMode`, `PracticeTier`, `BatchStatus`, `MilestoneStatus`, `ErrorCode`.<br>2. `/constants`: `DAILY_AI_QUOTA_LIMIT = 50`, `MAX_SOCRATIC_STRIKES = 3`, `MCQ_BATCH_SIZE = 10`, `MAX_TOPIC_QUERY_LENGTH = 300`, `MAX_INTERACT_MESSAGE_LENGTH = 2000`, `MAX_DEEP_DIVE_DEPTH = 2`.<br>3. `/schemas`: `auth.schema.ts` (register, login), `profile.schema.ts` (`StaticLearnerProfileSchema`), and standard API response/error envelope types. |
+| **Scope** | In `packages/shared/src/`:<br>1. `/enums`: `EducationLevel`, `ExplanationStyle`, `LearningMode`, `PracticeTier`, `BatchStatus`, `MilestoneStatus`, `ErrorCode`.<br>2. `/constants`: `DAILY_AI_QUOTA_LIMIT = 50`, `MAX_SOCRATIC_STRIKES = 3`, `MCQ_BATCH_SIZE = 10`, `MAX_TOPIC_QUERY_LENGTH = 300`, `MAX_INTERACT_MESSAGE_LENGTH = 2000`.<br>3. `/schemas`: `auth.schema.ts` (register, login), `profile.schema.ts` (`StaticLearnerProfileSchema`), and standard API response/error envelope types. |
 | **Deliverables** | Compiled `@mentora/shared` core enums, constants, and auth/profile schemas exported via `packages/shared/src/index.ts`. |
 | **Acceptance Criteria** | 1. No magic literals exist; all enums and limits are exported as named constants/types.<br>2. `StaticLearnerProfileSchema` rejects missing or invalid `educationLevel` or `preferredStyle` values.<br>3. Topic and message length bounds match `NFR-004` / `AGENTS.md` Section J. |
 | **Testing** | Unit tests in `packages/shared/src/__tests__/auth-profile.schema.test.ts` verifying valid and invalid payloads. |
@@ -167,7 +167,7 @@ Deliver a production-ready, cloud-deployed AI tutoring web application where aut
 | **Objective** | Define runtime Zod validation schemas and inferred TypeScript DTOs for `TopicSession`, Explain cards, Interact milestones/SSE frames, and Reasoning-First Practice MCQ batches. |
 | **Requirements** | `FR-004`–`FR-017`; `architecture.md` Sections E.3–E.5, F.2, G.3; `AGENTS.md` Sections D, H |
 | **Dependencies** | `IMP-002` |
-| **Scope** | In `packages/shared/src/schemas/` and `/types/`:<br>1. `explain.schema.ts`: `ExplainCardSchema` (4 core step types), `DeepDiveSubCardSchema`, `ExplainInitOutputSchema` (including `isEducationalValid`, `refusalReason`, `suggestedSubTopics`).<br>2. `interact.schema.ts`: `InteractMilestoneSchema` (3–5 items), `InteractMessageSchema`, `InteractStreamRequestSchema`, `SseEventPayloads`.<br>3. `practice.schema.ts`: `McqQuestionFullSchema` (**enforcing `solutionExplanation` before `correctOptionIndex`**), `McqQuestionMaskedSchema` (omitting `correctOptionIndex` and `solutionExplanation` for `in_progress` batches per `BR-03`), `PracticeSubmitRequestSchema` (exact length 10).<br>4. `session.schema.ts`: `TopicSessionDTOSchema` and `SessionSummaryDTOSchema`. |
+| **Scope** | In `packages/shared/src/schemas/` and `/types/`:<br>1. `explain.schema.ts`: `ExplainCardSchema` (4 core step types), `ExplainInitOutputSchema` (including `isEducationalValid`, `refusalReason`).<br>2. `interact.schema.ts`: `InteractMilestoneSchema` (3–5 items), `InteractMessageSchema`, `InteractStreamRequestSchema`, `SseEventPayloads`.<br>3. `practice.schema.ts`: `McqQuestionFullSchema` (**enforcing `solutionExplanation` before `correctOptionIndex`**), `McqQuestionMaskedSchema` (omitting `correctOptionIndex` and `solutionExplanation` for `in_progress` batches per `BR-03`), `PracticeSubmitRequestSchema` (exact length 10).<br>4. `session.schema.ts`: `TopicSessionDTOSchema` and `SessionSummaryDTOSchema`. |
 | **Deliverables** | Complete Zod schemas and `z.infer` DTOs in `@mentora/shared`. |
 | **Acceptance Criteria** | 1. `PracticeBatchGenerationSchema` enforces exactly 10 questions, 4 options per question, `0 <= correctOptionIndex <= 3`, and `solutionExplanation` property order.<br>2. `McqQuestionMaskedSchema` strips answer keys.<br>3. `ExplainInitOutputSchema` enforces exactly 4 core cards when `isEducationalValid === true`. |
 | **Testing** | Unit tests in `packages/shared/src/__tests__/modes.schema.test.ts` testing boundary conditions (e.g., 9 MCQs rejected, `correctOptionIndex: 4` rejected, masked schema strips keys). |
@@ -329,7 +329,7 @@ Deliver a production-ready, cloud-deployed AI tutoring web application where aut
 | **Objective** | Build the isolated AI integration layer in `apps/server/src/ai/` encapsulating `@google/genai`, dual-model routing (`GEMINI_FAST_MODEL` vs. `GEMINI_REASONING_MODEL`), and the profile-calibrated `PromptBuilder`. |
 | **Requirements** | `FR-002`, `FR-009`, `FR-016`/`FR-018`, `Edge Case 1`–`3`; `architecture.md` Sections E.1–E.2; `AGENTS.md` Section H |
 | **Dependencies** | `IMP-004` |
-| **Scope** | In `apps/server/src/ai/`:<br>1. `gemini.client.ts`: Initializes official `@google/genai` SDK (`GoogleGenAI`) using `env.GEMINI_API_KEY`.<br>2. `model.router.ts`: Maps operations (`EXPLAIN_INIT`, `EXPLAIN_DEEPER`, `INTERACT_INIT`, `INTERACT_STREAM`, `PRACTICE_GENERATE`) to `env.GEMINI_FAST_MODEL` or `env.GEMINI_REASONING_MODEL`.<br>3. `prompts/prompt.builder.ts`: Injects (a) Educational Scope & Safety Guardrails (`Edge Case 2`), (b) Static Learner Profile calibration (`educationLevel` $\times$ `preferredStyle` matrix from Section 9.1 of PRD), and (c) strict formatting rules (inline `$...$` and block `$$...$$` $\LaTeX$, fenced code blocks, and quoted Mermaid labels `A["Label"]`). |
+| **Scope** | In `apps/server/src/ai/`:<br>1. `gemini.client.ts`: Initializes official `@google/genai` SDK (`GoogleGenAI`) using `env.GEMINI_API_KEY`.<br>2. `model.router.ts`: Maps operations (`EXPLAIN_INIT`, `INTERACT_INIT`, `INTERACT_STREAM`, `PRACTICE_GENERATE`) to `env.GEMINI_FAST_MODEL` or `env.GEMINI_REASONING_MODEL`.<br>3. `prompts/prompt.builder.ts`: Injects (a) Educational Scope & Safety Guardrails (`Edge Case 2`), (b) Static Learner Profile calibration (`educationLevel` $\times$ `preferredStyle` matrix from Section 9.1 of PRD), and (c) strict formatting rules (inline `$...$` and block `$$...$$` $\LaTeX$, fenced code blocks, and quoted Mermaid labels `A["Label"]`). |
 | **Deliverables** | Isolated `@google/genai` wrapper, model router, and shared pedagogical prompt builder. |
 | **Acceptance Criteria** | 1. No module outside `apps/server/src/ai/` imports `@google/genai`.<br>2. `PromptBuilder` outputs distinct pedagogical instructions for every combination of `EducationLevel` (`high_school`, `undergraduate`, `professional`) and `ExplanationStyle` (`visual`, `analogy_heavy`, `concise_technical`).<br>3. `ModelRouter` reads model names strictly from validated environment variables. |
 | **Testing** | Unit tests in `apps/server/src/__tests__/ai.prompt-router.test.ts`. |
@@ -344,7 +344,7 @@ Deliver a production-ready, cloud-deployed AI tutoring web application where aut
 | **Objective** | Map `@mentora/shared` contracts to Gemini `responseSchema` declarations and implement a resilient execution helper that validates outputs with Zod, retries once on malformed output, and maps refusals/upstream failures to `AppError`. |
 | **Requirements** | `FR-016`–`FR-018`, `NFR-003`, `Edge Case 2`; `architecture.md` Sections E.1–E.5; `AGENTS.md` Sections E, H |
 | **Dependencies** | `IMP-013` |
-| **Scope** | In `apps/server/src/ai/schemas/` and `gemini.client.ts`:<br>1. Define Gemini `responseSchema` objects for Explain Init (4 cards + `isEducationalValid`), Explain Go Deeper, Interact Init (3–5 milestones + opening prompt), and Practice 10-MCQ Batch (**with `solutionExplanation` strictly preceding `correctOptionIndex`**).<br>2. Implement `generateStructuredOutput<T>({ operation, systemInstruction, prompt, responseSchema, zodSchema })`: calls Gemini, parses JSON with `zodSchema`, automatically retries once if JSON/Zod validation fails, and throws `502 AI_UPSTREAM_FAILURE` on second failure or timeout.<br>3. If `isEducationalValid === false`, throw `422 EDUCATIONAL_GUARDRAIL_REFUSAL` with the refusal message. |
+| **Scope** | In `apps/server/src/ai/schemas/` and `gemini.client.ts`:<br>1. Define Gemini `responseSchema` objects for Explain Init (4 cards + `isEducationalValid`), Interact Init (3–5 milestones + opening prompt), and Practice 10-MCQ Batch (**with `solutionExplanation` strictly preceding `correctOptionIndex`**).<br>2. Implement `generateStructuredOutput<T>({ operation, systemInstruction, prompt, responseSchema, zodSchema })`: calls Gemini, parses JSON with `zodSchema`, automatically retries once if JSON/Zod validation fails, and throws `502 AI_UPSTREAM_FAILURE` on second failure or timeout.<br>3. If `isEducationalValid === false`, throw `422 EDUCATIONAL_GUARDRAIL_REFUSAL` with the refusal message. |
 | **Deliverables** | Structured generation runner and Gemini schema declarations. |
 | **Acceptance Criteria** | 1. First-attempt invalid JSON triggers exactly 1 automatic retry.<br>2. Second-attempt invalid JSON throws `502 AI_UPSTREAM_FAILURE`.<br>3. Non-educational prompt output (`isEducationalValid: false`) throws `422 EDUCATIONAL_GUARDRAIL_REFUSAL` without persisting a corrupt session. |
 | **Testing** | Unit tests with mocked `@google/genai` responses in `apps/server/src/__tests__/ai.structured-runner.test.ts`. |
@@ -375,27 +375,27 @@ Deliver a production-ready, cloud-deployed AI tutoring web application where aut
 | :--- | :--- |
 | **Task ID** | `IMP-016` |
 | **Task Name** | Implement Backend Explain Mode Service & REST Endpoints |
-| **Objective** | Implement `ExplainService` and endpoints for 4-card initialization, `currentStepIndex` progression, and `Go Deeper` sub-card generation. |
-| **Requirements** | `FR-004`, `FR-007`, `FR-008`, `AC-EXP-01`–`AC-EXP-03`, `Edge Case 1`–`2`; `architecture.md` Sections E.3, G.2 |
+| **Objective** | Implement `ExplainService` and endpoints for 4-card initialization and `currentStepIndex` progression. |
+| **Requirements** | `FR-004`, `FR-007`, `FR-008`, `AC-EXP-01`–`AC-EXP-02`, `Edge Case 1`–`2`; `architecture.md` Sections E.3, G.2 |
 | **Dependencies** | `IMP-008`, `IMP-014` |
-| **Scope** | In `apps/server/src/`:<br>1. `services/explain.service.ts`:<br>   • `initializeExplain(userId, sessionId)`: If `explainState.status === 'ready'`, return existing state; otherwise call `GEMINI_FAST_MODEL`, validate 4 cards (`Intuition`, `Core Mechanism`, `Example`, `Check-for-Understanding`), set `currentStepIndex = 0`, persist to `TopicSession`, and increment user quota.<br>   • `advanceStep(userId, sessionId, stepIndex)`: Updates `currentStepIndex` (`0..3`) without consuming AI quota.<br>   • `generateDeepDive(userId, sessionId, stepNumber)`: Calls `GEMINI_REASONING_MODEL` with parent card context, appends `DeepDiveSubCard` (up to depth 2) to `cards[stepNumber - 1].deepDives`, persists, and increments user quota.<br>2. Wire `POST /api/v1/sessions` (when `initialMode === 'explain'`), `POST /api/v1/sessions/:id/explain/init`, `PATCH /api/v1/sessions/:id/explain/step`, and `POST /api/v1/sessions/:id/explain/deeper`. |
+| **Scope** | In `apps/server/src/`:<br>1. `services/explain.service.ts`:<br>   • `initializeExplain(userId, sessionId)`: If `explainState.status === 'ready'`, return existing state; otherwise call `GEMINI_FAST_MODEL`, validate 4 cards (`Intuition`, `Core Mechanism`, `Example`, `Check-for-Understanding`), set `currentStepIndex = 0`, persist to `TopicSession`, and increment user quota.<br>   • `advanceStep(userId, sessionId, stepIndex)`: Updates `currentStepIndex` (`0..3`) without consuming AI quota.<br>2. Wire `POST /api/v1/sessions` (when `initialMode === 'explain'`), `POST /api/v1/sessions/:id/explain/init`, and `PATCH /api/v1/sessions/:id/explain/step`. |
 | **Deliverables** | `explain.service.ts`, `explain.controller.ts`, and Explain API routes. |
-| **Acceptance Criteria** | 1. Initializing Explain Mode creates 4 cards with `currentStepIndex === 0` (`AC-EXP-01`).<br>2. `PATCH /explain/step` updates `currentStepIndex` without incrementing `usageQuota.dailyCount`.<br>3. `POST /explain/deeper` appends a sub-card under the target card without resetting `currentStepIndex` (`AC-EXP-03`). |
+| **Acceptance Criteria** | 1. Initializing Explain Mode creates 4 cards with `currentStepIndex === 0` (`AC-EXP-01`).<br>2. `PATCH /explain/step` updates `currentStepIndex` without incrementing `usageQuota.dailyCount`. |
 | **Testing** | Unit and Supertest integration tests in `apps/server/src/__tests__/explain.service.test.ts`. |
 | **Priority** | Must Have |
 | **Status** | Done |
 
-#### `IMP-017` — Implement Frontend Explain Mode Stage, Progressive Card Stepper, & `Go Deeper` UI
+#### `IMP-017` — Implement Frontend Explain Mode Stage & Progressive Card Stepper
 | Field | Specification |
 | :--- | :--- |
 | **Task ID** | `IMP-017` |
-| **Task Name** | Implement Frontend Explain Mode Stage, Progressive Card Stepper, & `Go Deeper` UI |
-| **Objective** | Build the Explain Mode UI displaying progressive cards up to `currentStepIndex`, `Next` and `Go Deeper` controls, Check-for-Understanding reveal toggle, and mode transition CTAs. |
-| **Requirements** | `FR-007`–`FR-009`, `AC-EXP-01`–`AC-EXP-03`, `NFR-004`; `architecture.md` Sections B.2, E.3 |
+| **Task Name** | Implement Frontend Explain Mode Stage & Progressive Card Stepper |
+| **Objective** | Build the Explain Mode UI displaying progressive cards up to `currentStepIndex`, a `Next` control, Check-for-Understanding reveal toggle, and mode transition CTAs. |
+| **Requirements** | `FR-007`–`FR-009`, `AC-EXP-01`–`AC-EXP-02`, `NFR-004`; `architecture.md` Sections B.2, E.3 |
 | **Dependencies** | `IMP-012`, `IMP-015`, `IMP-016` |
-| **Scope** | In `apps/client/src/components/explain/`:<br>1. `ExplainStage.tsx`: Auto-triggers `/explain/init` if `explainState.status === 'not_started'`, renders skeleton loader during initial generation.<br>2. `StepProgressBar.tsx`: Visual 4-step indicator (`1. Intuition` $\rightarrow$ `2. Core Mechanism` $\rightarrow$ `3. Example` $\rightarrow$ `4. Check-for-Understanding`).<br>3. `ExplainCard.tsx` & `DeepDiveSubCard.tsx`: Renders card content via `<RichMarkdownRenderer />`, collapsible Check-for-Understanding answer reveal on Card 4, and nested deep-dive sub-cards.<br>4. `CardControls.tsx`: Keyboard-accessible `Next` button, `Go Deeper` button (with loading spinner), suggested narrower sub-topic chips (`Edge Case 1`), and Card 4 CTAs (*"Discuss in Interact Mode"* / *"Test Yourself in Practice Mode"*). |
+| **Scope** | In `apps/client/src/components/explain/`:<br>1. `ExplainStage.tsx`: Auto-triggers `/explain/init` if `explainState.status === 'not_started'`, renders skeleton loader during initial generation.<br>2. `StepProgressBar.tsx`: Visual 4-step indicator (`1. Intuition` $\rightarrow$ `2. Core Mechanism` $\rightarrow$ `3. Example` $\rightarrow$ `4. Check-for-Understanding`), sticky below `StickyTopicHeader`.<br>3. `ExplainCard.tsx`: Renders card content via `<RichMarkdownRenderer />` and a collapsible Check-for-Understanding answer reveal on Card 4.<br>4. `CardControls.tsx`: Keyboard-accessible `Next` button (downward arrow) and Card 4 CTAs (*"Discuss in Interact Mode"* / *"Test Yourself in Practice Mode"*). |
 | **Deliverables** | Complete Explain Mode frontend components and Redux thunks. |
-| **Acceptance Criteria** | 1. On initial load, only Card 1 is visible (`AC-EXP-01`).<br>2. Clicking `Next` reveals Card 2, 3, and 4 sequentially (`AC-EXP-02`).<br>3. Clicking `Go Deeper` renders the nested sub-card directly beneath the active card (`AC-EXP-03`). |
+| **Acceptance Criteria** | 1. On initial load, only Card 1 is visible (`AC-EXP-01`).<br>2. Clicking `Next` reveals Card 2, 3, and 4 sequentially (`AC-EXP-02`). |
 | **Testing** | Frontend component tests in `apps/client/src/__tests__/ExplainStage.test.tsx`. |
 | **Priority** | Must Have |
 | **Status** | Done |
@@ -405,10 +405,10 @@ Deliver a production-ready, cloud-deployed AI tutoring web application where aut
 | :--- | :--- |
 | **Task ID** | `IMP-018` |
 | **Task Name** | Verify End-to-End Explain Mode Workflow & Acceptance Criteria |
-| **Objective** | Validate the complete Explain Mode flow from new topic submission through Card 4 completion and sub-card expansion. |
-| **Requirements** | `AC-EXP-01`, `AC-EXP-02`, `AC-EXP-03`, `Edge Case 1`–`3` |
+| **Objective** | Validate the complete Explain Mode flow from new topic submission through Card 4 completion. |
+| **Requirements** | `AC-EXP-01`, `AC-EXP-02`, `Edge Case 1`–`3` |
 | **Dependencies** | `IMP-017` |
-| **Scope** | Write integration tests verifying: (1) `POST /api/v1/sessions` with `initialMode: 'explain'`, (2) stepping `0 -> 1 -> 2 -> 3`, (3) `Go Deeper` persistence across session reload (`GET /api/v1/sessions/:id`), and (4) educational refusal banner display on invalid topics. |
+| **Scope** | Write integration tests verifying: (1) `POST /api/v1/sessions` with `initialMode: 'explain'`, (2) stepping `0 -> 1 -> 2 -> 3`, (3) `currentStepIndex` persistence across session reload (`GET /api/v1/sessions/:id`), and (4) educational refusal banner display on invalid topics. |
 | **Deliverables** | End-to-end Explain Mode test suite. |
 | **Acceptance Criteria** | All Explain Mode acceptance criteria (`AC-EXP-01`–`03`) and edge cases pass automated tests. |
 | **Testing** | Run `pnpm test` across `@mentora/server` and `@mentora/client`. |
@@ -570,7 +570,7 @@ Deliver a production-ready, cloud-deployed AI tutoring web application where aut
 | **Objective** | Run the complete monorepo verification suite (typecheck, lint, unit/integration tests, production build) and provide the live Vercel + Render + MongoDB Atlas deployment smoke checklist. |
 | **Requirements** | All MVP `FR-*`, `NFR-*`, `BR-*`, and `AC-*` requirements; `architecture.md` Section N (Phase 5) |
 | **Dependencies** | `IMP-026`, `IMP-027` |
-| **Scope** | 1. Execute `pnpm typecheck`, `pnpm lint`, `pnpm test`, and `pnpm build` across `@mentora/shared`, `@mentora/server`, and `@mentora/client`.<br>2. Document the step-by-step live smoke test procedure verifying cross-origin JWT auth, `/api/v1/health` wake-up, Explain 4-card + `Go Deeper`, Interact SSE streaming (`X-Accel-Buffering: no`), and Practice 10-MCQ batch submission. |
+| **Scope** | 1. Execute `pnpm typecheck`, `pnpm lint`, `pnpm test`, and `pnpm build` across `@mentora/shared`, `@mentora/server`, and `@mentora/client`.<br>2. Document the step-by-step live smoke test procedure verifying cross-origin JWT auth, `/api/v1/health` wake-up, Explain 4-card stepping, Interact SSE streaming (`X-Accel-Buffering: no`), and Practice 10-MCQ batch submission. |
 | **Deliverables** | Verified build/test report and production smoke test runbook. |
 | **Acceptance Criteria** | 100% of unit, component, and API integration tests pass; zero TypeScript or lint errors remain across the monorepo. |
 | **Testing** | Root `pnpm typecheck && pnpm lint && pnpm test && pnpm build`. |
@@ -658,7 +658,7 @@ flowchart TD
 | **`FR-005`** | Top Mode Switcher Tab Bar (`Explain` \| `Interact` \| `Practice`) preserving active topic context | `IMP-008`, `IMP-010`, `IMP-012`, `IMP-025` | `IMP-012`, `IMP-025` |
 | **`FR-006`** | Left Collapsible Sidebar listing chronological saved `TopicSession` history + deletion | `IMP-005`, `IMP-008`, `IMP-012` | `IMP-008`, `IMP-012` |
 | **`FR-007` & `AC-EXP-01`** | Explain Mode 4 sequential step cards (`Intuition`, `Core Mechanism`, `Example`, `CFU`), Card 1 shown first | `IMP-003`, `IMP-014`, `IMP-016`, `IMP-017` | `IMP-018` |
-| **`FR-008`, `AC-EXP-02`, `AC-EXP-03`** | Explain Mode `Next` progression and `Go Deeper` nested sub-cards | `IMP-003`, `IMP-016`, `IMP-017` | `IMP-018` |
+| **`FR-008`, `AC-EXP-02`** | Explain Mode `Next` progression | `IMP-003`, `IMP-016`, `IMP-017` | `IMP-018` |
 | **`FR-009` & `Edge Case 3`** | Native GFM Markdown, KaTeX ($\LaTeX$), syntax-highlighted code, and fault-tolerant Mermaid.js rendering | `IMP-013`, `IMP-015` | `IMP-015`, `IMP-018` |
 | **`FR-010` & `AC-INT-01`** | Interact Mode 3–5 conceptual milestones + opening diagnostic question | `IMP-003`, `IMP-014`, `IMP-019`, `IMP-020` | `IMP-021` |
 | **`FR-011` & `NFR-001`** | Interact Mode real-time SSE token streaming (`< 2.0s` P90 TTFT, `X-Accel-Buffering: no`) | `IMP-019`, `IMP-020` | `IMP-021` |
@@ -680,11 +680,10 @@ flowchart TD
    * Educational guardrail clause (`isEducationalValid` check for structured calls; polite refusal for off-topic/unsafe requests).
    * Learner calibration block derived from `profile.educationLevel` and `profile.preferredStyle`.
    * Formatting contract requiring `$...$` / `$$...$$` $\LaTeX$ notation and quoted Mermaid node labels (`A["Label"]`).
-3. **Structured Output Validation & Retry:** All JSON-mode responses (`Explain Init`, `Explain Go Deeper`, `Interact Init`, `Practice Batch Generate`) pass through `generateStructuredOutput()`, which enforces both Gemini's native `responseSchema` and post-generation `@mentora/shared` Zod parsing with a 1-retry fallback before raising `502 AI_UPSTREAM_FAILURE`.
+3. **Structured Output Validation & Retry:** All JSON-mode responses (`Explain Init`, `Interact Init`, `Practice Batch Generate`) pass through `generateStructuredOutput()`, which enforces both Gemini's native `responseSchema` and post-generation `@mentora/shared` Zod parsing with a 1-retry fallback before raising `502 AI_UPSTREAM_FAILURE`.
 
 ### G.2 Explain Mode Engine (`IMP-016`)
 * **Init (`GEMINI_FAST_MODEL`):** Generates all 4 core cards (`intuition`, `core_mechanism`, `example`, `check_for_understanding`) in a single structured call so subsequent `Next` clicks require zero LLM calls and zero latency.
-* **Go Deeper (`GEMINI_REASONING_MODEL`):** Receives the parent card's markdown and generates a targeted deep-dive sub-card (proofs, code walkthroughs, or Mermaid architecture diagrams) appended to `cards[i].deepDives`.
 
 ### G.3 Interact Mode & Deterministic 3-Strike Socratic Engine (`IMP-019`)
 * **Milestone Init (`GEMINI_FAST_MODEL`):** Decomposes the topic into 3–5 conceptual milestones and crafts an opening diagnostic question.
@@ -717,7 +716,7 @@ Every task **MUST** pass the following applicable verification gates before its 
 4. **Frontend Component & Workflow Gate (`Vitest` + `React Testing Library`):**
    * Route guards (`ProtectedRoute`, `OnboardingGuard`) (`IMP-011`).
    * `<RichMarkdownRenderer />` & `<MermaidDiagram />` syntax error fallback (`Edge Case 3`) (`IMP-015`).
-   * Explain progressive card stepping (`Next` / `Go Deeper`) (`IMP-017`).
+   * Explain progressive card stepping (`Next`) (`IMP-017`).
    * Interact SSE streaming & mid-stream retry UI (`Edge Case 4`) (`IMP-020`).
    * Practice `localStorage` draft persistence across reloads (`Edge Case 5`) (`IMP-023`).
 

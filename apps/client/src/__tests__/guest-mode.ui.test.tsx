@@ -59,14 +59,14 @@ describe('Guest Mode Frontend UI Integration Tests', () => {
         },
       });
 
-      // No history message
-      expect(screen.getByText(/no history in guest mode/i)).toBeInTheDocument();
+      // No guest-mode history placeholder
+      expect(screen.queryByText(/no history in guest mode/i)).not.toBeInTheDocument();
       expect(screen.queryByText(/recent topics/i)).not.toBeInTheDocument();
 
       // Bottom personalized learning card
       expect(screen.getByText('Personalized Learning')).toBeInTheDocument();
       expect(
-        screen.getByText(/for personalized learning, saving your topics, and tracking progress/i)
+        screen.getByText(/sign up to save topics and track progress/i)
       ).toBeInTheDocument();
 
       // Get started button in sidebar
@@ -132,7 +132,6 @@ describe('Guest Mode Frontend UI Integration Tests', () => {
             activeTurnMessage: null,
           },
           isInitializingExplain: false,
-          deepDiveLoadingStep: null,
           explainError: null,
           isInitializingInteract: false,
           interactError: null,
@@ -202,10 +201,8 @@ describe('Guest Mode Frontend UI Integration Tests', () => {
               contentMarkdown: 'Solar energy to glucose',
               checkQuestion: null,
               checkAnswer: null,
-              deepDives: [],
             },
           ],
-          suggestedSubTopics: [],
         },
         interactState: {
           status: InteractStatus.NOT_STARTED,
@@ -271,7 +268,6 @@ describe('Guest Mode Frontend UI Integration Tests', () => {
             activeTurnMessage: null,
           },
           isInitializingExplain: false,
-          deepDiveLoadingStep: null,
           explainError: null,
           isInitializingInteract: false,
           interactError: null,

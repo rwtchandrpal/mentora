@@ -1,15 +1,11 @@
-import crypto from 'node:crypto';
 import {
   ErrorCode,
   ExplainStatus,
   LearningMode,
   EXPLAIN_CORE_STEPS_COUNT,
-  MAX_DEEP_DIVE_DEPTH,
   TopicSessionDTO,
   ExplainInitOutputDTO,
-  ExplainDeepDiveOutputDTO,
   ExplainInitOutputSchema,
-  ExplainDeepDiveOutputSchema,
   QuotaMetaDTO,
 } from '@mentora/shared';
 import { AppError } from '../utils/AppError.js';
@@ -24,13 +20,9 @@ import {
 import { generateStructuredOutput } from '../ai/gemini.client.js';
 import { stripInvalidMermaid } from '../utils/mermaid.sanitizer.js';
 import { PromptBuilder } from '../ai/prompts/prompt.builder.js';
-import {
-  explainInitGeminiSchema,
-  explainDeepDiveGeminiSchema,
-} from '../ai/schemas/index.js';
+import { explainInitGeminiSchema } from '../ai/schemas/index.js';
 import { toTopicSessionDTO } from './session.service.js';
 import { LearnerRef, learnerIdOf, resolveLearnerProfile } from './learner-profile.js';
-import { IDeepDiveSubCard } from '../models/TopicSession.model.js';
 import { QuotaReservation } from '../middlewares/quota.middleware.js';
 
 export interface ExplainResult {
@@ -101,11 +93,7 @@ export class ExplainService {
           card.checkAnswer && card.checkAnswer.trim().length > 0
             ? card.checkAnswer.trim()
             : null,
-        deepDives: [],
       })),
-      suggestedSubTopics: output.suggestedSubTopics
-        ? [...output.suggestedSubTopics]
-        : [],
     };
 
     const normalizedTitle =
@@ -168,110 +156,6 @@ export class ExplainService {
     return toTopicSessionDTO(savedSession);
   }
 
-  /**
-   * Generates a "Go Deeper" sub-card for a specified parent stepNumber (1..4).
-   * Appends to the parent card's deepDives array up to MAX_DEEP_DIVE_DEPTH (2),
-   * preserves currentStepIndex, and commits the reserved quota unit (AC-EXP-03, BR-04).
-   */
-  async generateDeepDive(
-    learner: LearnerRef,
-    sessionId: string,
-    stepNumber: number,
-    reservation?: QuotaReservation
-  ): Promise<ExplainResult> {
-    const userId = learnerIdOf(learner);
-    if (
-      typeof stepNumber !== 'number' ||
-      !Number.isInteger(stepNumber) ||
-      stepNumber < 1 ||
-      stepNumber > EXPLAIN_CORE_STEPS_COUNT
-    ) {
-      throw new AppError(
-        400,
-        ErrorCode.VALIDATION_ERROR,
-        `Step number must be an integer between 1 and ${EXPLAIN_CORE_STEPS_COUNT}.`
-      );
-    }
-
-    const session = await this.sessionRepo.findSession(sessionId, userId);
-    if (!session) {
-      throw new AppError(
-        404,
-        ErrorCode.RESOURCE_NOT_FOUND,
-        'Topic session not found.'
-      );
-    }
-
-    if (
-      session.explainState.status !== ExplainStatus.READY ||
-      !session.explainState.cards ||
-      session.explainState.cards.length === 0
-    ) {
-      throw new AppError(
-        400,
-        ErrorCode.VALIDATION_ERROR,
-        'Explain mode has not been initialized for this session.'
-      );
-    }
-
-    const targetCard = session.explainState.cards.find(
-      (c) => c.stepNumber === stepNumber
-    );
-
-    if (!targetCard) {
-      throw new AppError(
-        404,
-        ErrorCode.RESOURCE_NOT_FOUND,
-        `Explain card for step ${stepNumber} not found.`
-      );
-    }
-
-    if (targetCard.deepDives && targetCard.deepDives.length >= MAX_DEEP_DIVE_DEPTH) {
-      throw new AppError(
-        400,
-        ErrorCode.VALIDATION_ERROR,
-        `Maximum deep-dive depth of ${MAX_DEEP_DIVE_DEPTH} reached for step ${stepNumber}.`
-      );
-    }
-
-    const profile = await resolveLearnerProfile(learner, this.userRepo);
-
-    const systemInstruction = PromptBuilder.buildSystemInstruction(
-      profile,
-      LearningMode.EXPLAIN
-    );
-    const prompt = PromptBuilder.buildExplainDeeperPrompt({
-      topicQuery: session.topicQuery,
-      parentCard: {
-        stepType: targetCard.stepType,
-        title: targetCard.title,
-        contentMarkdown: targetCard.contentMarkdown,
-        depthLevel: targetCard.deepDives.length,
-      },
-    });
-
-    const output = await generateStructuredOutput<ExplainDeepDiveOutputDTO>({
-      operation: 'EXPLAIN_DEEPER',
-      systemInstruction,
-      prompt,
-      responseSchema: explainDeepDiveGeminiSchema,
-      zodSchema: ExplainDeepDiveOutputSchema,
-    });
-
-    const newSubCard: IDeepDiveSubCard = {
-      id: crypto.randomUUID(),
-      depthLevel: targetCard.deepDives.length + 1,
-      title: output.title.trim(),
-      contentMarkdown: stripInvalidMermaid(output.contentMarkdown.trim()),
-      createdAt: new Date().toISOString(),
-    };
-
-    targetCard.deepDives.push(newSubCard);
-
-    const savedSession = await this.sessionRepo.save(session);
-
-    return { session: toTopicSessionDTO(savedSession), quota: reservation?.commit() };
-  }
 }
 
 export const explainService = new ExplainService();

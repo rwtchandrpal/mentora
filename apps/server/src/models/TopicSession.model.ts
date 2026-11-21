@@ -13,14 +13,6 @@ import {
   MAX_SOCRATIC_STRIKES,
 } from '@mentora/shared';
 
-export interface IDeepDiveSubCard {
-  id: string;
-  depthLevel: number;
-  title: string;
-  contentMarkdown: string;
-  createdAt: string;
-}
-
 export interface IExplainCard {
   stepNumber: number;
   stepType: ExplainStepType;
@@ -28,14 +20,12 @@ export interface IExplainCard {
   contentMarkdown: string;
   checkQuestion: string | null;
   checkAnswer: string | null;
-  deepDives: IDeepDiveSubCard[];
 }
 
 export interface IExplainState {
   status: ExplainStatus;
   currentStepIndex: number;
   cards: IExplainCard[];
-  suggestedSubTopics: string[];
 }
 
 export interface IInteractMilestone {
@@ -110,17 +100,6 @@ export interface ITopicSessionDocument extends ITopicSession, Document {
 
 export type TopicSessionModel = Model<ITopicSessionDocument>;
 
-const DeepDiveSubCardSchema = new Schema<IDeepDiveSubCard>(
-  {
-    id: { type: String, required: true },
-    depthLevel: { type: Number, required: true, default: 1 },
-    title: { type: String, required: true, trim: true },
-    contentMarkdown: { type: String, required: true, trim: true },
-    createdAt: { type: String, default: () => new Date().toISOString() },
-  },
-  { _id: false }
-);
-
 const ExplainCardSchema = new Schema<IExplainCard>(
   {
     stepNumber: {
@@ -138,7 +117,6 @@ const ExplainCardSchema = new Schema<IExplainCard>(
     contentMarkdown: { type: String, required: true, trim: true },
     checkQuestion: { type: String, default: null },
     checkAnswer: { type: String, default: null },
-    deepDives: { type: [DeepDiveSubCardSchema], default: [] },
   },
   { _id: false }
 );
@@ -157,7 +135,6 @@ const ExplainStateSchema = new Schema<IExplainState>(
       max: EXPLAIN_CORE_STEPS_COUNT - 1,
     },
     cards: { type: [ExplainCardSchema], default: [] },
-    suggestedSubTopics: { type: [String], default: [] },
   },
   { _id: false }
 );
@@ -332,7 +309,6 @@ export const TopicSessionSchema = new Schema<ITopicSessionDocument>(
         status: ExplainStatus.NOT_STARTED,
         currentStepIndex: 0,
         cards: [],
-        suggestedSubTopics: [],
       }),
     },
     interactState: {
