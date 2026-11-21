@@ -22,6 +22,7 @@ import {
   UserRepository,
 } from '../repositories/user.repository.js';
 import { generateStructuredOutput } from '../ai/gemini.client.js';
+import { stripInvalidMermaid } from '../utils/mermaid.sanitizer.js';
 import { PromptBuilder } from '../ai/prompts/prompt.builder.js';
 import {
   explainInitGeminiSchema,
@@ -94,7 +95,7 @@ export class ExplainService {
         stepNumber: card.stepNumber,
         stepType: card.stepType,
         title: card.title.trim(),
-        contentMarkdown: card.contentMarkdown.trim(),
+        contentMarkdown: stripInvalidMermaid(card.contentMarkdown.trim()),
         checkQuestion: card.checkQuestion ? card.checkQuestion.trim() : null,
         checkAnswer:
           card.checkAnswer && card.checkAnswer.trim().length > 0
@@ -261,7 +262,7 @@ export class ExplainService {
       id: crypto.randomUUID(),
       depthLevel: targetCard.deepDives.length + 1,
       title: output.title.trim(),
-      contentMarkdown: output.contentMarkdown.trim(),
+      contentMarkdown: stripInvalidMermaid(output.contentMarkdown.trim()),
       createdAt: new Date().toISOString(),
     };
 

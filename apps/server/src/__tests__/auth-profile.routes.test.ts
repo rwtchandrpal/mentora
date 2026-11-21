@@ -88,11 +88,11 @@ describe('IMP-006: Auth & Profile Routes Integration Tests', () => {
           password: 'anotherpassword',
         });
 
-      expect(res.status).toBe(400);
+      expect(res.status).toBe(409);
       expect(res.body).toEqual({
         success: false,
         error: {
-          code: ErrorCode.VALIDATION_ERROR,
+          code: ErrorCode.CONFLICT,
           message: 'An account with this email already exists',
         },
       });

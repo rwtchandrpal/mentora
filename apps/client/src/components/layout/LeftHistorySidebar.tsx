@@ -73,8 +73,10 @@ export const LeftHistorySidebar: React.FC = () => {
   );
 
   const handleNewTopic = () => {
-    dispatch(clearActiveSession());
+    // Leave the /workspace/:id route first so the deep-link effect cannot re-fetch the
+    // session that is being cleared.
     navigate('/workspace');
+    dispatch(clearActiveSession());
     dispatch(setMobileDrawerOpen(false));
   };
 
@@ -97,8 +99,8 @@ export const LeftHistorySidebar: React.FC = () => {
         return;
       }
       if (activeSession?.id === sessionId || activeSession?._id === sessionId) {
-        dispatch(clearActiveSession());
         navigate('/workspace');
+        dispatch(clearActiveSession());
       }
     } finally {
       setConfirmDeleteId(null);
