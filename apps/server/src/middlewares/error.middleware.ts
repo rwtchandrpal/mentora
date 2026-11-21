@@ -32,6 +32,25 @@ export const errorMiddleware = (
   sendError(err, res);
 };
 
+/**
+ * `express.json()` (body-parser) raises plain errors tagged with a `type` for a
+ * malformed body or one over the configured size limit, rather than an AppError or
+ * ZodError. Returns the status to use for them, or null if `err` isn't one (L-05).
+ */
+const getBodyParserErrorStatus = (err: unknown): 400 | 413 | null => {
+  if (!(err instanceof Error) || !('type' in err)) {
+    return null;
+  }
+  const type = (err as Error & { type?: unknown }).type;
+  if (type === 'entity.too.large') {
+    return 413;
+  }
+  if (type === 'entity.parse.failed') {
+    return 400;
+  }
+  return null;
+};
+
 const sendError = (err: unknown, res: Response<ApiErrorEnvelope>): void => {
   // Streaming responses (SSE) flush headers early. Writing a JSON envelope at
   // that point would throw ERR_HTTP_HEADERS_SENT, so log and close instead.
@@ -66,6 +85,22 @@ const sendError = (err: unknown, res: Response<ApiErrorEnvelope>): void => {
       },
     };
     res.status(400).json(response);
+    return;
+  }
+
+  const bodyParserStatus = getBodyParserErrorStatus(err);
+  if (bodyParserStatus) {
+    const response: ApiErrorEnvelope = {
+      success: false,
+      error: {
+        code: ErrorCode.VALIDATION_ERROR,
+        message:
+          bodyParserStatus === 413
+            ? 'Request payload is too large'
+            : 'Malformed JSON payload',
+      },
+    };
+    res.status(bodyParserStatus).json(response);
     return;
   }
 

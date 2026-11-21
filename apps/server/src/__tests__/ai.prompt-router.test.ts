@@ -189,9 +189,10 @@ describe('IMP-013: Backend AI Integration Layer', () => {
       expect(explainInstruction).toContain('Step 4 — Check-for-Understanding');
 
       const interactInstruction = buildSystemInstruction(profile, LearningMode.INTERACT);
-      expect(interactInstruction).toContain('Interact Mode (Socratic Dialogue & 3-Strike Circuit Breaker)');
-      expect(interactInstruction).toContain('3-Strike Socratic Circuit Breaker Protocol');
-      expect(interactInstruction).toContain('<<MENTORA_STATE:{"outcome":"ADVANCE"|"STRIKE"|"CIRCUIT_BREAKER_ACK"}>>');
+      expect(interactInstruction).toContain('Interact Mode (Socratic Dialogue)');
+      expect(interactInstruction).toContain('Progressive Escalation Protocol');
+      expect(interactInstruction).toContain('Off-Topic / Refusal (L-06)');
+      expect(interactInstruction).toContain('<<MENTORA_STATE:{"outcome":"ADVANCE"|"STRIKE"|"CIRCUIT_BREAKER_ACK"|"OFF_TOPIC"}>>');
 
       const practiceInstruction = buildSystemInstruction(profile, LearningMode.PRACTICE);
       expect(practiceInstruction).toContain('Practice Mode (Tiered 10-MCQ Batches)');

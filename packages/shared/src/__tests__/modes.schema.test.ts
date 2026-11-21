@@ -84,8 +84,9 @@ describe('IMP-003: Mode Constants and Enums Verification', () => {
     expect(EXPLAIN_STATUSES).toEqual(['not_started', 'ready']);
     expect(INTERACT_STATUSES).toEqual(['not_started', 'active', 'completed']);
     expect(CHAT_ROLES).toEqual(['user', 'assistant']);
-    expect(SOCRATIC_OUTCOMES).toEqual(['ADVANCE', 'STRIKE', 'CIRCUIT_BREAKER_ACK']);
+    expect(SOCRATIC_OUTCOMES).toEqual(['ADVANCE', 'STRIKE', 'CIRCUIT_BREAKER_ACK', 'OFF_TOPIC']);
     expect(SocraticOutcome.ADVANCE).toBe('ADVANCE');
+    expect(SocraticOutcome.OFF_TOPIC).toBe('OFF_TOPIC');
   });
 });
 
