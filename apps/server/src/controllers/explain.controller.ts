@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { ApiSuccessEnvelope, TopicSessionDTO } from '@mentora/shared';
+import { ApiSuccessEnvelope, ExplainStepRequestDTO, TopicSessionDTO } from '@mentora/shared';
 import { explainService, ExplainService } from '../services/explain.service.js';
 import { extractSessionId } from '../utils/request.js';
 
@@ -30,10 +30,7 @@ export class ExplainController {
     res: Response<ApiSuccessEnvelope<TopicSessionDTO>>
   ): Promise<void> => {
     const sessionId = extractSessionId(req);
-    const stepIndex =
-      req.body.stepIndex !== undefined
-        ? req.body.stepIndex
-        : req.body.currentStepIndex;
+    const { stepIndex } = req.body as ExplainStepRequestDTO;
 
     const data = await this.service.advanceStep(
       req.user?.id,

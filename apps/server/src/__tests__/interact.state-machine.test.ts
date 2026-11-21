@@ -24,6 +24,7 @@ import {
 import {
   computeNextInteractState,
   ControlHeaderStreamParser,
+  createTerminologyScrubber,
 } from '../services/interact.service.js';
 
 describe('IMP-019: Backend Interact Mode Service, 3-Strike State Machine, & Unbuffered SSE Controller', () => {
@@ -343,6 +344,38 @@ describe('IMP-019: Backend Interact Mode Service, 3-Strike State Machine, & Unbu
       expect(text.toLowerCase()).not.toContain('strike');
       expect(text).toContain('attempt');
     });
+
+    it('keeps "strike" when it is subject vocabulary of the topic (M-05)', () => {
+      const parser = new ControlHeaderStreamParser(
+        SocraticOutcome.STRIKE,
+        'Lightning and thunderstorms\nWhy lightning strikes tall objects'
+      );
+      const text = parser.processChunk(
+        '<<MENTORA_STATE:{"outcome":"ADVANCE"}>>\nLightning strikes the tallest point because the path is shortest.'
+      );
+      expect(text).toBe('Lightning strikes the tallest point because the path is shortest.');
+    });
+
+    it('keeps "circuit breaker" for an electrical topic but still scrubs unrelated "strike" jargon (M-05)', () => {
+      const parser = new ControlHeaderStreamParser(
+        SocraticOutcome.STRIKE,
+        'Circuit breakers in household wiring'
+      );
+      const text = parser.processChunk(
+        '<<MENTORA_STATE:{"outcome":"STRIKE"}>>\nA circuit breaker trips on overcurrent. That was your second strike.'
+      );
+      expect(text).toContain('A circuit breaker trips on overcurrent.');
+      expect(text).toContain('That was your second attempt.');
+    });
+
+    it('createTerminologyScrubber matches topic terms case-insensitively and in plural form', () => {
+      expect(createTerminologyScrubber('Labor STRIKES of the 1930s')('The strike lasted weeks.')).toBe(
+        'The strike lasted weeks.'
+      );
+      expect(createTerminologyScrubber('Raft consensus')('The strike lasted weeks.')).toBe(
+        'The attempt lasted weeks.'
+      );
+    });
   });
 
   describe('3. Interact Mode Milestone Initialization Endpoint (/interact/init, AC-INT-01)', () => {
@@ -609,6 +642,42 @@ describe('IMP-019: Backend Interact Mode Service, 3-Strike State Machine, & Unbu
       expect(dbSession?.interactState.milestones[0]?.status).toBe(MilestoneStatus.COMPLETED);
       expect(dbSession?.interactState.milestones[1]?.status).toBe(MilestoneStatus.ACTIVE);
       expect(dbSession?.interactState.status).toBe(InteractStatus.ACTIVE);
+    });
+
+    it('streams subject vocabulary unscrubbed when the session topic contains it (M-05)', async () => {
+      const user = await setupUser('Benjamin Franklin', 'franklin@example.com');
+      const session = await createTestSession(user.userId, 'Why lightning strikes tall buildings');
+
+      setGeminiClient({
+        models: {
+          generateContent: vi.fn().mockResolvedValue({
+            text: JSON.stringify(mockInteractInitPayload),
+          }),
+        },
+      } as unknown as GoogleGenAI);
+      await request(app)
+        .post(`/api/v1/sessions/${session._id.toString()}/interact/init`)
+        .set('Authorization', `Bearer ${user.token}`);
+
+      setGeminiClient({
+        models: {
+          generateContentStream: vi.fn().mockImplementation(async function* () {
+            yield {
+              text: '<<MENTORA_STATE:{"outcome":"ADVANCE"}>>\nRight: lightning strikes the tallest point first.',
+            };
+          }),
+        },
+      } as unknown as GoogleGenAI);
+
+      const res = await request(app)
+        .post(`/api/v1/sessions/${session._id.toString()}/interact/stream`)
+        .set('Authorization', `Bearer ${user.token}`)
+        .send({ message: 'Because the path to ground is shortest?' });
+
+      expect(res.status).toBe(200);
+      const tokenEventMatch = res.text.match(/event: token\ndata: ({.*})/);
+      const tokenDelta = (JSON.parse(tokenEventMatch![1]!) as { delta: string }).delta;
+      expect(tokenDelta).toBe('Right: lightning strikes the tallest point first.');
     });
 
     it('does not strike, advance, or break on an OFF_TOPIC turn, and scrubs internal jargon (L-06)', async () => {

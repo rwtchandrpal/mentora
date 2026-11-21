@@ -237,11 +237,11 @@ describe('IMP-016: Backend Explain Mode Service & Endpoints (FR-007, FR-008, BR-
       expect(stepRes1.body.success).toBe(true);
       expect(stepRes1.body.data.explainState.currentStepIndex).toBe(1);
 
-      // Advance step to 2 using currentStepIndex
+      // Advance step to 2
       const stepRes2 = await request(app)
         .patch(`/api/v1/sessions/${session._id.toString()}/explain/step`)
         .set('Authorization', `Bearer ${user.token}`)
-        .send({ currentStepIndex: 2 });
+        .send({ stepIndex: 2 });
 
       expect(stepRes2.status).toBe(200);
       expect(stepRes2.body.data.explainState.currentStepIndex).toBe(2);
@@ -275,7 +275,7 @@ describe('IMP-016: Backend Explain Mode Service & Endpoints (FR-007, FR-008, BR-
       const resAbove = await request(app)
         .patch(`/api/v1/sessions/${session._id.toString()}/explain/step`)
         .set('Authorization', `Bearer ${user.token}`)
-        .send({ currentStepIndex: 4 });
+        .send({ stepIndex: 4 });
 
       expect(resAbove.status).toBe(400);
       expect(resAbove.body.error.code).toBe(ErrorCode.VALIDATION_ERROR);
@@ -287,6 +287,21 @@ describe('IMP-016: Backend Explain Mode Service & Endpoints (FR-007, FR-008, BR-
 
       expect(resNonInt.status).toBe(400);
       expect(resNonInt.body.error.code).toBe(ErrorCode.VALIDATION_ERROR);
+    });
+
+    it('rejects /step with 409 CONFLICT before Explain has been initialized (L-05)', async () => {
+      const user = await setupUser('Early Stepper', 'early.stepper@example.com');
+      const session = await createTestSession(user.userId);
+
+      const res = await request(app)
+        .patch(`/api/v1/sessions/${session._id.toString()}/explain/step`)
+        .set('Authorization', `Bearer ${user.token}`)
+        .send({ stepIndex: 1 });
+
+      expect(res.status).toBe(409);
+      expect(res.body.error.code).toBe(ErrorCode.CONFLICT);
+      const dbSession = await TopicSession.findById(session._id);
+      expect(dbSession?.explainState.currentStepIndex).toBe(0);
     });
   });
 
@@ -328,6 +343,13 @@ describe('IMP-016: Backend Explain Mode Service & Endpoints (FR-007, FR-008, BR-
       expect(resInit.status).toBe(429);
       expect(resInit.body.error.code).toBe(ErrorCode.DAILY_QUOTA_EXCEEDED);
       expect(resInit.body.error.details.used).toBe(50);
+
+      // Cards were generated earlier, before the quota ran out.
+      await TopicSession.updateOne(
+        { _id: session._id },
+        { $set: { 'explainState.status': ExplainStatus.READY } }
+      );
+
       // 3. /step is a local progression control and MUST NOT be blocked by quota (BR-04)
       const resStep = await request(app)
         .patch(`/api/v1/sessions/${session._id.toString()}/explain/step`)

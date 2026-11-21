@@ -1,8 +1,8 @@
 # Implementation Plan: Mentora
 
 **Document Version:** 1.0.0 (MVP Baseline)  
-**File Location:** Repository Root (`/implementation_plan.md`)  
-**Source of Truth References:** `product_requirement.md` (`requirement.md`), `architecture.md`, `AGENTS.md`  
+**File Location:** `docs/implementation_plan.md` (historical build plan; the code is the source of truth for current behaviour)  
+**Source of Truth References:** `requirement.md`, `architecture.md`, `AGENTS.md`  
 **Target Stack:** TypeScript Monorepo (`@mentora/shared`, `@mentora/server`, `@mentora/client`), React 18 + Vite + Tailwind + Redux Toolkit, Node.js 20 + Express + Mongoose (MongoDB Atlas), `@google/genai` (Google Gemini API)  
 **Deployment Targets:** Vercel (Frontend SPA) + Render (Backend Web Service) + MongoDB Atlas  
 
@@ -11,13 +11,13 @@
 ## A. Plan Overview
 
 ### A.1 Purpose and Scope
-This document translates Mentora's approved Product Requirements (`product_requirement.md`), System Architecture (`architecture.md`), and Project Coding Rules (`AGENTS.md`) into an ordered, dependency-aware sequence of granular engineering tasks (`IMP-001` through `IMP-028`). Each task is scoped so an AI coding agent or software engineer can implement, test, and verify it within a single focused coding session without reinterpreting the entire system.
+This document translates Mentora's approved Product Requirements (`requirement.md`), System Architecture (`architecture.md`), and Project Coding Rules (`AGENTS.md`) into an ordered, dependency-aware sequence of granular engineering tasks (`IMP-001` through `IMP-028`). Each task is scoped so an AI coding agent or software engineer can implement, test, and verify it within a single focused coding session without reinterpreting the entire system.
 
 ### A.2 Current Repository State Assessment
 Based on workspace inspection prior to implementation:
-* **Existing Artifacts:** `product_requirement.md` (`requirement.md`), `architecture.md`, and `AGENTS.md` exist at the repository root.
+* **Existing Artifacts:** `requirement.md`, `architecture.md`, and `AGENTS.md` live in `docs/`.
 * **Source Code State:** Application workspaces (`packages/shared`, `apps/server`, `apps/client`), `package.json`, and `tsconfig.base.json` have **not yet been initialized**. Therefore, Phase 1 begins from clean monorepo scaffolding.
-* **Requirement ID Reconciliation Note:** Across earlier iterations of `product_requirement.md` and `architecture.md`, Practice Mode and Safety requirements are referenced as `FR-013`–`FR-017` in the PRD table and `FR-014`–`FR-018` in `architecture.md` (where `FR-013` specifically denotes the manual `"Explain this milestone directly"` escape control in Interact Mode). This plan preserves full traceability to **both** numbering references and all Business Rules (`BR-01`–`BR-04`), Acceptance Criteria (`AC-EXP-*`, `AC-INT-*`, `AC-PRC-*`), and Edge Cases (`Edge Case 1`–`5`).
+* **Requirement ID Reconciliation Note:** Across earlier iterations of `requirement.md` and `architecture.md`, Practice Mode and Safety requirements are referenced as `FR-013`–`FR-017` in the PRD table and `FR-014`–`FR-018` in `architecture.md` (where `FR-013` specifically denotes the manual `"Explain this milestone directly"` escape control in Interact Mode). This plan preserves full traceability to **both** numbering references and all Business Rules (`BR-01`–`BR-04`), Acceptance Criteria (`AC-EXP-*`, `AC-INT-*`, `AC-PRC-*`), and Edge Cases (`Edge Case 1`–`5`).
 
 ### A.3 Intended MVP Outcome
 Deliver a production-ready, cloud-deployed AI tutoring web application where authenticated learners:
@@ -47,7 +47,7 @@ Deliver a production-ready, cloud-deployed AI tutoring web application where aut
 
 ## B. Implementation Principles
 
-1. **Strict Document Hierarchy (`AGENTS.md` Section A):** Always consult `product_requirement.md`, `architecture.md`, and `AGENTS.md` before writing code. Never invent alternative folder structures, state managers, or database collections.
+1. **Strict Document Hierarchy (`AGENTS.md` Section A):** Always consult `requirement.md`, `architecture.md`, and `AGENTS.md` before writing code. Never invent alternative folder structures, state managers, or database collections.
 2. **Contract-First Development:** All domain enums, Zod validation schemas, and inferred TypeScript DTOs **MUST** be defined in `@mentora/shared` (`IMP-002`, `IMP-003`) before implementing backend controllers/services or frontend Redux slices/components.
 3. **Foundations Before Features:** Build and test environment validation, Mongoose models, JWT auth, profile onboarding guards, and the shared `@google/genai` wrapper before implementing Explain, Interact, or Practice mode logic.
 4. **Small, Cohesive, Independently Verifiable Tasks:** Execute one `IMP-*` task at a time. Do not combine backend AI service creation with frontend UI construction in a single unverified leap.
@@ -61,7 +61,7 @@ Deliver a production-ready, cloud-deployed AI tutoring web application where aut
 
 ### Phase 1: Monorepo Scaffolding & Shared Contracts
 * **Objective:** Initialize the `pnpm` workspace monorepo, strict TypeScript configuration, test runners, and the complete `@mentora/shared` contract package.
-* **Prerequisites:** Approved `product_requirement.md`, `architecture.md`, and `AGENTS.md`.
+* **Prerequisites:** Approved `requirement.md`, `architecture.md`, and `AGENTS.md`.
 * **Tasks:** `IMP-001`, `IMP-002`, `IMP-003`.
 * **Deliverables:** Root workspace configuration, `packages/shared` enums, constants, Zod schemas (Auth, Profile, Session, Explain, Interact, Practice), inferred DTOs, and unit tests for all shared schemas.
 * **Verification:** `pnpm --filter @mentora/shared build`, `pnpm --filter @mentora/shared typecheck`, and `pnpm --filter @mentora/shared test`.
@@ -649,7 +649,7 @@ flowchart TD
 
 ## F. Requirements Traceability Matrix
 
-| Requirement / Rule ID | Description (`product_requirement.md` & `architecture.md`) | Implementing Tasks | Verification Tasks |
+| Requirement / Rule ID | Description (`requirement.md` & `architecture.md`) | Implementing Tasks | Verification Tasks |
 | :--- | :--- | :--- | :--- |
 | **`FR-001`** | Email/Password JWT Registration, Login, Logout | `IMP-002`, `IMP-005`, `IMP-006`, `IMP-010`, `IMP-011` | `IMP-006`, `IMP-011` |
 | **`FR-002` & `BR-01`** | Mandatory 2-field Static Learner Profile (`EducationLevel`, `ExplanationStyle`) before workspace access | `IMP-002`, `IMP-006`, `IMP-011`, `IMP-013` | `IMP-006`, `IMP-011` |
@@ -734,7 +734,7 @@ Every task **MUST** pass the following applicable verification gates before its 
   * `CLIENT_ORIGIN=http://localhost:5173` (Production: `https://<mentora-app>.vercel.app`)
   * `GEMINI_API_KEY=<google-ai-studio-api-key>`
   * `GEMINI_FAST_MODEL=gemini-3.5-flash-lite`
-  * `GEMINI_REASONING_MODEL=gemini-3.6-pro`
+  * `GEMINI_REASONING_MODEL=gemini-3.5-flash-lite`
   * `DAILY_AI_QUOTA_LIMIT=50`
 * **Frontend (`apps/client/.env.example`):**
   * `VITE_API_BASE_URL=http://localhost:4000/api/v1` (Production: `https://<mentora-api>.onrender.com/api/v1`)
@@ -781,7 +781,7 @@ An implementation task (`IMP-*`) may be marked **`Done`** if and only if all 8 c
 
 ## L. Post-MVP Roadmap (Explicitly Deferred to v2.0)
 
-Per `product_requirement.md` Section 4.2 (`FR-017` / Out of Scope), coding agents **MUST NOT** implement the following features during the v1.0 MVP roadmap:
+Per `requirement.md` Section 4.2 (`FR-017` / Out of Scope), coding agents **MUST NOT** implement the following features during the v1.0 MVP roadmap:
 
 | Deferred Feature | Why Excluded from v1.0 MVP | Major Dependencies Required Later | Condition Justifying v2.0 Implementation |
 | :--- | :--- | :--- | :--- |

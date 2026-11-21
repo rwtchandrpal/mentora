@@ -29,7 +29,8 @@ export const createApp = (
 ): Express => {
   const app = express();
 
-  app.set('trust proxy', 1);
+  // Hop count must match the hosting platform (M-04); see TRUST_PROXY in .env.example.
+  app.set('trust proxy', env.TRUST_PROXY);
 
   app.use(helmet());
   app.use(

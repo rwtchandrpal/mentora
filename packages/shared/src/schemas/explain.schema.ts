@@ -29,7 +29,7 @@ export const ExplainInitOutputSchema = z
     if (data.isEducationalValid) {
       if (data.cards.length !== EXPLAIN_CORE_STEPS_COUNT) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: 'custom',
           message: `Explain cards must have exactly ${EXPLAIN_CORE_STEPS_COUNT} cards when isEducationalValid is true`,
           path: ['cards'],
         });
@@ -46,14 +46,14 @@ export const ExplainInitOutputSchema = z
         if (!card) continue;
         if (card.stepNumber !== i + 1) {
           ctx.addIssue({
-            code: z.ZodIssueCode.custom,
+            code: 'custom',
             message: `Card at index ${i} must have stepNumber ${i + 1}`,
             path: ['cards', i, 'stepNumber'],
           });
         }
         if (card.stepType !== expectedStepTypes[i]) {
           ctx.addIssue({
-            code: z.ZodIssueCode.custom,
+            code: 'custom',
             message: `Card at index ${i} must have stepType "${expectedStepTypes[i]}"`,
             path: ['cards', i, 'stepType'],
           });
@@ -61,14 +61,14 @@ export const ExplainInitOutputSchema = z
         if (card.stepType === ExplainStepType.CHECK_FOR_UNDERSTANDING) {
           if (!card.checkQuestion || card.checkQuestion.trim().length === 0) {
             ctx.addIssue({
-              code: z.ZodIssueCode.custom,
+              code: 'custom',
               message: 'Card 4 (check_for_understanding) must have a non-empty checkQuestion',
               path: ['cards', i, 'checkQuestion'],
             });
           }
           if (!card.checkAnswer || card.checkAnswer.trim().length === 0) {
             ctx.addIssue({
-              code: z.ZodIssueCode.custom,
+              code: 'custom',
               message: 'Card 4 (check_for_understanding) must have a non-empty checkAnswer',
               path: ['cards', i, 'checkAnswer'],
             });
@@ -78,7 +78,7 @@ export const ExplainInitOutputSchema = z
     } else {
       if (!data.refusalReason || data.refusalReason.trim().length === 0) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: 'custom',
           message: 'refusalReason is required and cannot be empty when isEducationalValid is false',
           path: ['refusalReason'],
         });
@@ -86,28 +86,13 @@ export const ExplainInitOutputSchema = z
     }
   });
 
-export const ExplainStepRequestSchema = z
-  .object({
-    currentStepIndex: z
-      .number()
-      .int()
-      .min(0)
-      .max(EXPLAIN_CORE_STEPS_COUNT - 1)
-      .optional(),
-    stepIndex: z
-      .number()
-      .int()
-      .min(0)
-      .max(EXPLAIN_CORE_STEPS_COUNT - 1)
-      .optional(),
-  })
-  .refine(
-    (data) => data.currentStepIndex !== undefined || data.stepIndex !== undefined,
-    {
-      message:
-        'Either currentStepIndex or stepIndex must be provided as an integer between 0 and 3.',
-    }
-  );
+export const ExplainStepRequestSchema = z.object({
+  stepIndex: z
+    .number({ error: 'stepIndex must be an integer between 0 and 3.' })
+    .int()
+    .min(0)
+    .max(EXPLAIN_CORE_STEPS_COUNT - 1),
+});
 
 export const ExplainStateSchema = z.object({
   status: ExplainStatusSchema,

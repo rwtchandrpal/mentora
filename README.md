@@ -178,6 +178,13 @@ pnpm test
 pnpm eval:ai -- --dry-run
 ```
 
+### 6. Deploying (Render + Vercel)
+Both deployment configs are committed, and both build `@mentora/shared` first:
+
+- **Backend (Render):** create a Blueprint from `render.yaml`. Set `MONGODB_URI`, `JWT_SECRET`, `GEMINI_API_KEY` and `CLIENT_ORIGIN` (your Vercel URL) in the Render dashboard.
+- **Frontend (Vercel):** import the repo with **Root Directory** `apps/client`. `apps/client/vercel.json` installs from the monorepo root and builds the shared package before the client. Set `VITE_API_BASE_URL` to `https://<your-render-service>.onrender.com/api/v1`.
+- **CSP:** `apps/client/vercel.json` lists the API origin in the `Content-Security-Policy` `connect-src`. Replace it with your own Render URL, or the browser will block API calls.
+
 ---
 
 ## How to Use
@@ -221,8 +228,8 @@ Visitors can try Mentora without an account. Guest sessions are deliberately lim
 
 - **Creating a session:** `POST /api/v1/sessions` without an `Authorization` header creates a guest session. The response carries a signed guest token in `meta.guestToken`.
 - **Using the session:** every later request for that session (`GET`, `PATCH /mode`, `DELETE`, and the `explain`, `interact` and `practice` endpoints) must send the token in the `X-Guest-Token` header. A token only unlocks the one session it was issued for. A request without a token returns `401`; a token for another session returns `404`.
-- **Token storage:** the client keeps a `sessionId → guestToken` map in `sessionStorage`, so a guest session belongs to the browser tab that created it. Opening the same URL in another browser is denied.
-- **Quota:** guest usage is counted per client IP (as resolved by Express with `trust proxy`) in the `guestquotas` MongoDB collection, so it survives restarts. A guest is charged only when AI work actually runs.
+- **Token storage:** the client keeps a `sessionId → guestToken` map in `localStorage` (key `mentora_guest_tokens`) and drops expired tokens when it reads the map. Any tab in the same browser can reopen the session until it expires (2 hours). Another browser or device has no token, so it is denied.
+- **Quota:** guest usage is counted per client IP (as resolved by Express with `trust proxy`, set by the `TRUST_PROXY` hop count, default `1`) in the `guestquotas` MongoDB collection, so it survives restarts. A guest is charged only when AI work actually runs.
 
 ---
 

@@ -457,5 +457,60 @@ describe('IMP-014: Gemini Structured Output Schemas & Validation Runner', () => 
       );
     });
   });
+
+  describe('7. Card-4 check Q/A is never fabricated (L-07)', () => {
+    const explainCards = (checkAnswer: string | null) => [
+      { stepNumber: 1, stepType: ExplainStepType.INTUITION, title: 'T1', contentMarkdown: 'C1', checkQuestion: null, checkAnswer: null },
+      { stepNumber: 2, stepType: ExplainStepType.CORE_MECHANISM, title: 'T2', contentMarkdown: 'C2', checkQuestion: null, checkAnswer: null },
+      { stepNumber: 3, stepType: ExplainStepType.EXAMPLE, title: 'T3', contentMarkdown: 'C3', checkQuestion: null, checkAnswer: null },
+      {
+        stepNumber: 4,
+        stepType: ExplainStepType.CHECK_FOR_UNDERSTANDING,
+        title: 'Self Check',
+        contentMarkdown: 'Card body that must not be reused as the answer.',
+        checkQuestion: 'What error occurs without a base case?',
+        checkAnswer,
+      },
+    ];
+
+    const run = () =>
+      generateStructuredOutput({
+        operation: AiOperation.EXPLAIN_INIT,
+        systemInstruction: 'You are Mentora.',
+        prompt: 'Explain Recursion',
+        responseSchema: explainInitGeminiSchema,
+        zodSchema: ExplainInitOutputSchema,
+      });
+
+    it('retries when card 4 has no checkAnswer and returns the model-written answer', async () => {
+      const mockGenerateContent = vi
+        .fn()
+        .mockResolvedValueOnce({
+          text: JSON.stringify({ isEducationalValid: true, cards: explainCards(null) }),
+        })
+        .mockResolvedValueOnce({
+          text: JSON.stringify({ isEducationalValid: true, cards: explainCards('A stack overflow.') }),
+        });
+      setGeminiClient({ models: { generateContent: mockGenerateContent } } as unknown as GoogleGenAI);
+
+      const result = await run();
+
+      expect(mockGenerateContent).toHaveBeenCalledTimes(2);
+      expect(result.cards[3]?.checkAnswer).toBe('A stack overflow.');
+    });
+
+    it('fails with 502 instead of inventing an answer when both attempts omit it', async () => {
+      const mockGenerateContent = vi.fn().mockResolvedValue({
+        text: JSON.stringify({ isEducationalValid: true, cards: explainCards(null) }),
+      });
+      setGeminiClient({ models: { generateContent: mockGenerateContent } } as unknown as GoogleGenAI);
+
+      await expect(run()).rejects.toMatchObject({
+        statusCode: 502,
+        errorCode: ErrorCode.AI_UPSTREAM_FAILURE,
+      });
+      expect(mockGenerateContent).toHaveBeenCalledTimes(2);
+    });
+  });
 });
 

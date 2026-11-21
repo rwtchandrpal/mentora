@@ -78,6 +78,7 @@ describe('IMP-002: Domain Enums and Business Rule Constants', () => {
       'TIER_LOCKED',
       'EDUCATIONAL_GUARDRAIL_REFUSAL',
       'DAILY_QUOTA_EXCEEDED',
+      'RATE_LIMIT_EXCEEDED',
       'AI_UPSTREAM_FAILURE',
       'STREAM_INTERRUPTED',
       'INTERNAL_SERVER_ERROR',

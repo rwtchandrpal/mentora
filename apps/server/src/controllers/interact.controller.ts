@@ -37,7 +37,7 @@ export class InteractController {
     const userId = req.user?.id;
 
     // Validate prerequisites (throws standard operational AppError before flushing SSE headers)
-    await this.service.validateTurnPreconditions(req.user, sessionId);
+    const preconditions = await this.service.validateTurnPreconditions(req.user, sessionId);
 
     // Establish unbuffered SSE stream
     const sseWriter = new SseWriter(res);
@@ -48,7 +48,8 @@ export class InteractController {
         sessionId,
         req.body,
         sseWriter,
-        req.quotaReservation
+        req.quotaReservation,
+        preconditions
       );
     } catch (err) {
       // Headers are already flushed: report through the stream, never via JSON.

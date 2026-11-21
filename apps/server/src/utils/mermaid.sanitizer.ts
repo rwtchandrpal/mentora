@@ -22,10 +22,25 @@ export const isStructurallyCompleteMermaid = (body: string): boolean => {
   // A header alone (e.g. "graph TD") is not a diagram.
   if (lines.length < 2) return false;
 
-  // Brackets and quotes must balance across the whole body.
+  // Brackets and quotes must balance across the whole body. Two valid shapes would
+  // otherwise look unbalanced (L-08), so normalise them first:
+  // - asymmetric nodes `A>label]` open with `>`; rewrite them as `A[label]`. The node ID
+  //   must start a statement or follow whitespace, so arrows like `-->` never match.
+  // - edge labels `-->|text|` may contain bare brackets; drop the label text.
+  // In flowcharts `|` only delimits edge labels, so an odd count on a line means a label
+  // was cut off. (Not checked for other diagram types: classDiagram uses `<|--`.)
+  if (/^(graph|flowchart)\b/i.test(lines[0] ?? '')) {
+    if (lines.some((line) => (line.match(/\|/g)?.length ?? 0) % 2 === 1)) return false;
+  }
+
+  const normalized = lines
+    .join('\n')
+    .replace(/(^|[\s;&])([A-Za-z0-9_]+)>([^\]\n]*)\]/gm, '$1$2[$3]')
+    .replace(/\|[^|\n]*\|/g, '||');
+
   const stack: string[] = [];
   let inQuote = false;
-  for (const ch of lines.join('\n')) {
+  for (const ch of normalized) {
     if (ch === '"') {
       inQuote = !inQuote;
       continue;

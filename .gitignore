@@ -22,3 +22,13 @@ pnpm-debug.log*
 # OS files
 .DS_Store
 Thumbs.db
+
+# TypeScript incremental build info
+*.tsbuildinfo
+
+# Editor / IDE
+.vscode/
+.idea/
+
+# Local agent settings (may contain machine-specific permissions)
+.claude/settings.local.json

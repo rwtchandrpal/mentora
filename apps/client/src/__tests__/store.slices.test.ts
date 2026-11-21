@@ -40,6 +40,7 @@ import {
   clearActiveSession,
   clearSessionError,
   startStreaming,
+  setActiveTurnId,
   appendStreamToken,
   setStreamError,
   finishStreaming,
@@ -818,6 +819,20 @@ describe('IMP-010: Redux Toolkit Store & Slices', () => {
       state = store.getState().session.streamingState;
       expect(state.isStreaming).toBe(false);
       expect(state.streamError).toBe('Connection interrupted');
+    });
+
+    it('setActiveTurnId records the turn without clearing the in-flight message or buffer', () => {
+      const store = createAppStore();
+      store.dispatch(startStreaming({ message: 'My answer' }));
+      store.dispatch(appendStreamToken('Early token'));
+
+      store.dispatch(setActiveTurnId('turn-start'));
+
+      const state = store.getState().session.streamingState;
+      expect(state.activeTurnId).toBe('turn-start');
+      expect(state.activeTurnMessage).toBe('My answer');
+      expect(state.streamBuffer).toBe('Early token');
+      expect(state.isStreaming).toBe(true);
     });
   });
 

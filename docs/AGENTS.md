@@ -1,7 +1,7 @@
 # AGENTS.md — Project-Wide Coding Rules for Mentora
 
 **Document Version:** 1.1.0  
-**File Location:** Repository Root (`/AGENTS.md`)  
+**File Location:** `docs/AGENTS.md`  
 **Target Audience:** AI Coding Agents & Software Engineers  
 
 ---
@@ -11,12 +11,12 @@
 **Mentora** is a cloud-native, AI-powered personalized web tutoring application built on a TypeScript MERN stack monorepo (`@mentora/shared`, `@mentora/server`, `@mentora/client`) and deployed across **Vercel** (frontend), **Render** (backend), and **MongoDB Atlas** (database), powered by the **Google Gemini API**. It enables learners to master any topic through three integrated pedagogical modes: **Explain Mode** (progressive 4-card breakdown with `Next` stepping), **Interact Mode** (milestone-driven Socratic dialogue with a deterministic 3-Strike Circuit Breaker via SSE), and **Practice Mode** (tiered 10-question MCQ batches across Easy $\rightarrow$ Medium $\rightarrow$ Hard).
 
 ### Document Hierarchy
-1. **`requirement.md` (`product_requirement.md`)** is the **source of truth** for product behavior, functional requirements (`FR-*`), non-functional requirements (`NFR-*`), business rules (`BR-*`), and acceptance criteria (`AC-*`).
+1. **`requirement.md`** is the **source of truth** for product behavior, functional requirements (`FR-*`), non-functional requirements (`NFR-*`), business rules (`BR-*`), and acceptance criteria (`AC-*`).
 2. **`architecture.md`** is the **source of truth** for system design, monorepo workspace boundaries, data models, REST/SSE contracts, and AI routing architecture.
 3. **`AGENTS.md`** defines mandatory development rules, coding conventions, repository practices, and implementation constraints.
 
 ### Mandatory Consultation & Conflict Resolution
-* Coding agents **MUST** consult the relevant sections of `requirement.md` (`product_requirement.md`) and `architecture.md` before implementing or modifying any feature.
+* Coding agents **MUST** consult the relevant sections of `requirement.md` and `architecture.md` before implementing or modifying any feature.
 * **Repository State Note:** If inspecting the workspace prior to Phase 1 scaffolding, only the core specification artifacts exist; agents **MUST** adhere strictly to the workspace layout defined in Section B.2 of `architecture.md` when creating files.
 * If documents conflict or a task instruction contradicts an established architectural decision, agents **MUST** explicitly identify the conflict and propose an architecture-consistent resolution rather than silently introducing an incompatible design.
 * If individual workspaces (`apps/server` or `apps/client`) grow substantially in the future, directory-scoped `AGENTS.md` files **MAY** be introduced, but agents **MUST NOT** create additional instruction files unless explicitly requested.
@@ -125,7 +125,7 @@ Agents **MUST** follow the monorepo layout established in Section B.2 of `archit
   * **Services** **MUST** contain all domain and pedagogical state machines (`ExplainEngine`, `InteractEngine`, `PracticeEngine`). Do not duplicate business logic across controllers.
   * **Repositories** **MUST** encapsulate all Mongoose database operations. Controllers and AI modules **MUST NOT** query Mongoose models directly.
 * **Mandatory Middleware Pipeline:**
-  * Apply `authMiddleware` $\rightarrow$ `profileCompletedMiddleware` (`BR-01`) $\rightarrow$ `quotaMiddleware` (only on AI-generating routes per `BR-04`) $\rightarrow$ `validateMiddleware(schema)` before controller execution.
+  * Apply `requireAuth` (or `optionalAuth` on guest-capable session routes) $\rightarrow$ `requireCompletedProfile` (`BR-01`) $\rightarrow$ `requireSessionAccess` (on `/sessions/:id/**`) $\rightarrow$ `quotaMiddleware` (only on AI-generating routes per `BR-04`) $\rightarrow$ `validateRequest({ body: schema })` before controller execution.
 * **Contract Preservation:** Preserve all `/api/v1/*` endpoint paths and envelopes defined in Section G of `architecture.md`. Any intentional contract modification **MUST** be coordinated simultaneously across `@mentora/shared`, `@mentora/server`, and `@mentora/client`.
 
 ---
@@ -213,7 +213,7 @@ Agents **MUST** follow the monorepo layout established in Section B.2 of `archit
 
 For every coding task, agents **MUST** execute the following 7-step workflow:
 
-1. **Read Specs:** Review the relevant sections of `requirement.md` (`product_requirement.md`), `architecture.md`, and `AGENTS.md`.
+1. **Read Specs:** Review the relevant sections of `requirement.md`, `architecture.md`, and `AGENTS.md`.
 2. **Inspect Codebase:** Check existing workspace files, `@mentora/shared` contracts, and `package.json` dependencies.
 3. **Scope Minimal Change:** Identify the smallest complete set of changes across `@mentora/shared`, `@mentora/server`, and/or `@mentora/client` required to satisfy the request.
 4. **Follow Patterns:** Adhere strictly to layered service boundaries, shared Zod schemas, and unified UI rendering patterns.

@@ -174,18 +174,9 @@ export const generateStructuredOutput = async <T>(
           }
         });
 
-        // Case B: Step 4 checkAnswer was returned as null or omitted
-        const card4 = normalizedCards[3];
-        if (card4 && typeof card4 === 'object' && card4.stepType === 'check_for_understanding') {
-          if (!card4.checkQuestion || typeof card4.checkQuestion !== 'string' || card4.checkQuestion.trim().length === 0) {
-            card4.checkQuestion = `What is the core takeaway and practical significance of ${typeof jsonRecord.normalizedTitle === 'string' ? jsonRecord.normalizedTitle : 'this concept'}?`;
-          }
-          if (!card4.checkAnswer || typeof card4.checkAnswer !== 'string' || card4.checkAnswer.trim().length === 0) {
-            card4.checkAnswer = typeof card4.contentMarkdown === 'string' && card4.contentMarkdown.trim().length > 0
-              ? card4.contentMarkdown
-              : 'Review the core mechanism and foundational principles outlined above to verify your understanding.';
-          }
-        }
+        // A missing card-4 checkQuestion/checkAnswer is NOT patched here: inventing a generic
+        // question, or reusing the card body as the "answer", shows learners content the model
+        // never wrote. Zod rejects it below and the single retry asks for it explicitly (L-07).
       }
 
       // Runtime Zod Schema Validation

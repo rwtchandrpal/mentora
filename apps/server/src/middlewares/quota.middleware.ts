@@ -315,14 +315,3 @@ export const requireAiQuota = async (
 };
 
 export const quotaMiddleware = requireAiQuota;
-
-export const incrementUserQuota = async (
-  userId: string,
-  now: Date = new Date()
-): Promise<QuotaMetaDTO> => {
-  const user = await userRepository.incrementQuotaCount(userId, now);
-  if (!user) {
-    throw new AppError(404, ErrorCode.RESOURCE_NOT_FOUND, 'User not found');
-  }
-  return toQuotaMetaDTO(user.usageQuota);
-};

@@ -3,7 +3,9 @@ services:
     name: mentora-server
     runtime: node
     plan: free
-    buildCommand: pnpm install --frozen-lockfile && pnpm --filter @mentora/shared build && pnpm --filter @mentora/server build
+    # --prod=false: NODE_ENV=production is visible at build time, which would make pnpm
+    # skip devDependencies (typescript, @types/*) and break the tsc builds below.
+    buildCommand: pnpm install --frozen-lockfile --prod=false &&pnpm --filter @mentora/shared build && pnpm --filter @mentora/server build
     startCommand: pnpm --filter @mentora/server start
     healthCheckPath: /api/v1/health
     envVars:

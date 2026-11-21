@@ -29,6 +29,26 @@ describe('IMP-027: Deployment Artifacts & Configuration Verification', () => {
       );
       expect(fallbackRewrite).toBeDefined();
     });
+
+    it('installs from the monorepo root and builds @mentora/shared before the client', () => {
+      const parsed = JSON.parse(fs.readFileSync(vercelJsonPath, 'utf-8')) as {
+        installCommand?: string;
+        buildCommand?: string;
+        outputDirectory?: string;
+      };
+
+      // The Vercel project root is apps/client; the workspace root is two levels up.
+      expect(parsed.installCommand).toMatch(/^cd \.\.\/\.\. && pnpm install --frozen-lockfile$/);
+
+      const build = parsed.buildCommand ?? '';
+      expect(build.startsWith('cd ../.. && ')).toBe(true);
+      const sharedIdx = build.indexOf('@mentora/shared build');
+      const clientIdx = build.indexOf('@mentora/client build');
+      expect(sharedIdx).toBeGreaterThan(-1);
+      expect(clientIdx).toBeGreaterThan(sharedIdx);
+
+      expect(parsed.outputDirectory).toBe('dist');
+    });
   });
 
   describe('2. Render Web Service Blueprint (render.yaml)', () => {
@@ -50,6 +70,10 @@ describe('IMP-027: Deployment Artifacts & Configuration Verification', () => {
       expect(sharedBuildIdx).toBeGreaterThan(-1);
       expect(serverBuildIdx).toBeGreaterThan(-1);
       expect(sharedBuildIdx).toBeLessThan(serverBuildIdx);
+
+      // NODE_ENV=production is set for the service and is visible during the build, so the
+      // install must opt back into devDependencies or tsc is missing.
+      expect(content).toMatch(/buildCommand: pnpm install --frozen-lockfile --prod=false &&/);
 
       // Start command
       expect(content).toContain('startCommand: pnpm --filter @mentora/server start');

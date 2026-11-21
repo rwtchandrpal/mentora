@@ -31,9 +31,3 @@ export const createApiSuccessEnvelopeSchema = <T extends z.ZodTypeAny>(dataSchem
     data: dataSchema,
     meta: ApiResponseMetaSchema.optional(),
   });
-
-export const ApiSuccessEnvelopeSchema = z.object({
-  success: z.literal(true),
-  data: z.unknown(),
-  meta: ApiResponseMetaSchema.optional(),
-});

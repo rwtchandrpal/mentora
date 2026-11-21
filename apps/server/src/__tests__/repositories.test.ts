@@ -135,10 +135,10 @@ describe('IMP-005: User and TopicSession Repositories', () => {
       const userId = user._id.toString();
 
       // Increment quota
-      const inc1 = await userRepository.incrementQuotaCount(userId);
+      const inc1 = await userRepository.tryReserveQuota(userId, 50);
       expect(inc1?.usageQuota.dailyCount).toBe(1);
 
-      const inc2 = await userRepository.incrementQuotaCount(userId);
+      const inc2 = await userRepository.tryReserveQuota(userId, 50);
       expect(inc2?.usageQuota.dailyCount).toBe(2);
 
       // Window not expired yet -> reset returns null (no update)

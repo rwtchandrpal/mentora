@@ -194,16 +194,32 @@ export const computeNextInteractState = (
  * it's an implementation detail, not pedagogy (L-06). The prompt instructs the model to avoid
  * these words; this is the backstop in case it slips up anyway.
  */
-const INTERNAL_TERMINOLOGY_PATTERN = /\b(circuit breakers?|strikes?)\b/gi;
+const CIRCUIT_BREAKER_TERM = 'circuit breakers?';
+const STRIKE_TERM = 'strikes?';
 
-const scrubInternalTerminology = (text: string): string =>
-  text.replace(INTERNAL_TERMINOLOGY_PATTERN, (match) => {
-    const plural = match.toLowerCase().endsWith('s');
-    if (match.toLowerCase().startsWith('circuit')) {
-      return plural ? 'direct explanations' : 'direct explanation';
-    }
-    return plural ? 'attempts' : 'attempt';
-  });
+/**
+ * Builds the scrubber for one session. A term that appears in the subject itself (topic,
+ * milestone titles/descriptions) is real subject vocabulary, e.g. "lightning strikes" or
+ * "circuit breakers trip on overcurrent", so it is left alone; otherwise it can only be
+ * leaked tutor jargon and is rewritten (M-05).
+ */
+export const createTerminologyScrubber = (subjectText = ''): ((text: string) => string) => {
+  const terms = [CIRCUIT_BREAKER_TERM, STRIKE_TERM].filter(
+    (term) => !new RegExp(`\\b${term}\\b`, 'i').test(subjectText)
+  );
+  if (terms.length === 0) {
+    return (text) => text;
+  }
+  const pattern = new RegExp(`\\b(${terms.join('|')})\\b`, 'gi');
+  return (text) =>
+    text.replace(pattern, (match) => {
+      const plural = match.toLowerCase().endsWith('s');
+      if (match.toLowerCase().startsWith('circuit')) {
+        return plural ? 'direct explanations' : 'direct explanation';
+      }
+      return plural ? 'attempts' : 'attempt';
+    });
+};
 
 /**
  * Stream parser that buffers initial chunks, extracts and strips the first-line control header:
@@ -214,14 +230,20 @@ export class ControlHeaderStreamParser {
   private buffer = '';
   private headerFound = false;
   private outcome: SocraticOutcome;
+  private readonly scrub: (text: string) => string;
 
-  constructor(defaultOutcome: SocraticOutcome) {
+  /**
+   * @param subjectText The session's topic and milestone text; terms that appear in it are
+   *   subject vocabulary and are not scrubbed (M-05).
+   */
+  constructor(defaultOutcome: SocraticOutcome, subjectText = '') {
     this.outcome = defaultOutcome;
+    this.scrub = createTerminologyScrubber(subjectText);
   }
 
   processChunk(chunk: string): string {
     if (this.headerFound) {
-      return scrubInternalTerminology(chunk);
+      return this.scrub(chunk);
     }
 
     this.buffer += chunk;
@@ -254,7 +276,7 @@ export class ControlHeaderStreamParser {
 
       this.headerFound = true;
       this.buffer = '';
-      return scrubInternalTerminology(remainder);
+      return this.scrub(remainder);
     }
 
     // Safety fallback: if buffer exceeds 200 chars or has newline without '<<',
@@ -266,7 +288,7 @@ export class ControlHeaderStreamParser {
       this.headerFound = true;
       const textToFlush = this.buffer;
       this.buffer = '';
-      return scrubInternalTerminology(textToFlush);
+      return this.scrub(textToFlush);
     }
 
     // Still buffering looking for '>>'
@@ -280,7 +302,7 @@ export class ControlHeaderStreamParser {
         .replace(/<<MENTORA_STATE:.*?>>/g, '')
         .trimStart();
       this.buffer = '';
-      return scrubInternalTerminology(cleanText);
+      return this.scrub(cleanText);
     }
     return '';
   }
@@ -288,6 +310,11 @@ export class ControlHeaderStreamParser {
   getOutcome(): SocraticOutcome {
     return this.outcome;
   }
+}
+
+export interface TurnPreconditions {
+  session: ITopicSessionDocument;
+  profile: StaticLearnerProfile;
 }
 
 export class InteractService {
@@ -303,7 +330,7 @@ export class InteractService {
   async validateTurnPreconditions(
     learner: LearnerRef,
     sessionId: string
-  ): Promise<{ session: ITopicSessionDocument; profile: StaticLearnerProfile }> {
+  ): Promise<TurnPreconditions> {
     const userId = learnerIdOf(learner);
     const session = await this.sessionRepo.findSession(sessionId, userId);
     if (!session) {
@@ -323,6 +350,16 @@ export class InteractService {
         400,
         ErrorCode.VALIDATION_ERROR,
         'Interact mode has not been initialized for this session. Please initialize interact mode first.'
+      );
+    }
+
+    // Every milestone is mastered: further turns would be charged and could regress the
+    // session back to `active`, so reject them before any quota is kept or SSE is opened.
+    if (session.interactState.status === InteractStatus.COMPLETED) {
+      throw new AppError(
+        409,
+        ErrorCode.CONFLICT,
+        'This Interact session is already complete. Switch to Practice Mode to test yourself.'
       );
     }
 
@@ -448,13 +485,16 @@ export class InteractService {
     sessionId: string,
     payload: InteractStreamRequestDTO,
     sseWriter: SseWriter,
-    reservation?: QuotaReservation
+    reservation?: QuotaReservation,
+    /**
+     * Result of validateTurnPreconditions when the caller already ran it before opening
+     * the stream, so the session and profile are not loaded twice per turn (L-09).
+     */
+    preconditions?: TurnPreconditions
   ): Promise<void> {
     const userId = learnerIdOf(learner);
-    const { session, profile } = await this.validateTurnPreconditions(
-      learner,
-      sessionId
-    );
+    const { session, profile } =
+      preconditions ?? (await this.validateTurnPreconditions(learner, sessionId));
 
     const turnId = crypto.randomUUID();
     const activeMilestoneIndex = session.interactState.activeMilestoneIndex;
@@ -492,7 +532,13 @@ export class InteractService {
     const defaultOutcome = payload.forceDirectExplanation
       ? SocraticOutcome.CIRCUIT_BREAKER_ACK
       : SocraticOutcome.STRIKE;
-    const parser = new ControlHeaderStreamParser(defaultOutcome);
+    // Topic and roadmap text decide which internal terms are real subject vocabulary (M-05).
+    const subjectText = [
+      session.topicQuery,
+      session.normalizedTitle,
+      ...session.interactState.milestones.flatMap((m) => [m.title, m.description]),
+    ].join('\n');
+    const parser = new ControlHeaderStreamParser(defaultOutcome, subjectText);
 
     let accumulatedAssistantText = '';
 

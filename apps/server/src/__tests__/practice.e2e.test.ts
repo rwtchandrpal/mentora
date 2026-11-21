@@ -339,7 +339,7 @@ describe('IMP-024: Backend End-to-End Practice Mode Progression (Easy -> Medium 
         .set('Authorization', `Bearer ${user.token}`)
         .send({ tier: PracticeTier.HARD, answers: [0, 1, 2, 3, 0, 1, 2, 3, 0, 1] });
       expect(resubmitRes.status).toBe(409);
-      expect(resubmitRes.body.error.code).toBe(ErrorCode.VALIDATION_ERROR);
+      expect(resubmitRes.body.error.code).toBe(ErrorCode.CONFLICT);
       const dbAfterResubmit = await TopicSession.findById(sessionId);
       expect(dbAfterResubmit!.practiceState.batches.hard.score).toBe(8);
       expect([...dbAfterResubmit!.practiceState.batches.hard.userAnswers]).toEqual(hardAnswers);

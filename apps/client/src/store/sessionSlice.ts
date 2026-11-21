@@ -17,6 +17,7 @@ import {
   type NormalizedApiErrorData,
 } from '../services/apiClient.js';
 import { setQuota, logout, type QuotaMetadata } from './authSlice.js';
+import { clearQuizDrafts } from '../utils/quizDraftStorage.js';
 import {
   AI_FAST_TIMEOUT_MS,
   AI_REASONING_TIMEOUT_MS,
@@ -191,6 +192,7 @@ export const deleteSessionThunk = createAsyncThunk<
       `/sessions/${id}`
     );
     removeGuestToken(id);
+    clearQuizDrafts(id);
     if (response.data.meta?.quota) {
       dispatch(setQuota(response.data.meta.quota));
     }
@@ -392,6 +394,13 @@ export const sessionSlice = createSlice({
       state.streamingState.streamError = null;
       state.streamingState.activeTurnId = action?.payload?.turnId ?? null;
       state.streamingState.activeTurnMessage = action?.payload?.message ?? null;
+    },
+    /**
+     * Records the server-assigned turn ID from the SSE `start` frame. Unlike startStreaming it
+     * leaves the in-flight learner message and the token buffer untouched.
+     */
+    setActiveTurnId: (state, action: PayloadAction<string>) => {
+      state.streamingState.activeTurnId = action.payload;
     },
     appendStreamToken: (state, action: PayloadAction<string>) => {
       state.streamingState.streamBuffer += action.payload;
@@ -687,6 +696,7 @@ export const {
   clearInteractError,
   clearPracticeError,
   startStreaming,
+  setActiveTurnId,
   appendStreamToken,
   setStreamError,
   clearStreamError,

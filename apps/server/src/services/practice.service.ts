@@ -218,11 +218,7 @@ export class PracticeService {
     // A graded batch is final: once submitted, the answer key is revealed, so a
     // second submission would let the learner overwrite their score (A-05).
     if (batch.status === BatchStatus.COMPLETED) {
-      throw new AppError(
-        409,
-        ErrorCode.VALIDATION_ERROR,
-        'This batch has already been submitted.'
-      );
+      throw this.alreadySubmittedError();
     }
 
     // Must be generated before submission
@@ -272,28 +268,44 @@ export class PracticeService {
       }
     }
 
-    batch.userAnswers = [...answers];
-    batch.score = score;
-    batch.status = BatchStatus.COMPLETED;
-    batch.completedAt = new Date();
-    session.practiceState.activeTier = tier;
-    session.lastActiveMode = LearningMode.PRACTICE;
+    const batchPath = `practiceState.batches.${tier}`;
+    const set: Record<string, unknown> = {
+      [`${batchPath}.userAnswers`]: [...answers],
+      [`${batchPath}.score`]: score,
+      [`${batchPath}.status`]: BatchStatus.COMPLETED,
+      [`${batchPath}.completedAt`]: new Date(),
+      'practiceState.activeTier': tier,
+      lastActiveMode: LearningMode.PRACTICE,
+    };
 
     // Sequential Tier Unlocking (BR-02, AC-PRC-03)
-    if (tier === PracticeTier.EASY) {
-      if (session.practiceState.batches.medium.status === BatchStatus.LOCKED) {
-        session.practiceState.batches.medium.status = BatchStatus.NOT_STARTED;
-      }
-    } else if (tier === PracticeTier.MEDIUM) {
-      if (session.practiceState.batches.hard.status === BatchStatus.LOCKED) {
-        session.practiceState.batches.hard.status = BatchStatus.NOT_STARTED;
-      }
+    const nextTier =
+      tier === PracticeTier.EASY
+        ? PracticeTier.MEDIUM
+        : tier === PracticeTier.MEDIUM
+          ? PracticeTier.HARD
+          : null;
+    if (nextTier && session.practiceState.batches[nextTier].status === BatchStatus.LOCKED) {
+      set[`practiceState.batches.${nextTier}.status`] = BatchStatus.NOT_STARTED;
     }
 
-    session.markModified('practiceState');
-    const savedSession = await this.sessionRepo.save(session);
+    // Filtered write: only lands while the batch is still in progress, so of two
+    // concurrent submissions exactly one is graded and the other gets 409 (M-08).
+    const saved = await this.sessionRepo.setIfMatches(
+      session._id,
+      { [`${batchPath}.status`]: BatchStatus.IN_PROGRESS },
+      set
+    );
+    if (!saved) {
+      throw this.alreadySubmittedError();
+    }
 
-    return toTopicSessionDTO(savedSession);
+    return toTopicSessionDTO(saved);
+  }
+
+  private alreadySubmittedError(): AppError {
+    // A graded batch is final: its answer key is already revealed (A-05).
+    return new AppError(409, ErrorCode.CONFLICT, 'This batch has already been submitted.');
   }
 }
 

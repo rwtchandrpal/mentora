@@ -399,11 +399,48 @@ describe('IMP-022: Backend Practice Mode Service (Reasoning-First Generation, Ma
         .send({ tier: PracticeTier.EASY, answers: [0, 1, 2, 3, 0, 1, 2, 3, 0, 1] });
       expect(second.status).toBe(409);
       expect(second.body.success).toBe(false);
-      expect(second.body.error.code).toBe(ErrorCode.VALIDATION_ERROR);
+      expect(second.body.error.code).toBe(ErrorCode.CONFLICT);
 
       const dbSession = await TopicSession.findById(session._id);
       expect(dbSession!.practiceState.batches.easy.score).toBe(8);
       expect([...dbSession!.practiceState.batches.easy.userAnswers]).toEqual(firstAnswers);
+    });
+
+    it('grades exactly one of two concurrent submissions; the other gets 409 CONFLICT (M-08)', async () => {
+      const { practiceService } = await import('../services/practice.service.js');
+      const user = await setupUser('Concurrent', 'concurrent@test.com');
+      const session = await createTestSession(user.userId);
+      session.practiceState.batches.easy.status = BatchStatus.IN_PROGRESS;
+      session.practiceState.batches.easy.questions = createMockQuestions();
+      await sessionRepository.save(session);
+      const sessionId = session._id.toString();
+
+      const allCorrect = [0, 1, 2, 3, 0, 1, 2, 3, 0, 1]; // score 10
+      const allWrong = [1, 2, 3, 0, 1, 2, 3, 0, 1, 2]; // score 0
+      const results = await Promise.allSettled([
+        practiceService.submitBatch(user.userId, sessionId, PracticeTier.EASY, allCorrect),
+        practiceService.submitBatch(user.userId, sessionId, PracticeTier.EASY, allWrong),
+      ]);
+
+      const fulfilled = results.filter((r) => r.status === 'fulfilled');
+      const rejected = results.filter((r) => r.status === 'rejected');
+      expect(fulfilled).toHaveLength(1);
+      expect(rejected).toHaveLength(1);
+      expect((rejected[0] as PromiseRejectedResult).reason).toMatchObject({
+        statusCode: 409,
+        errorCode: ErrorCode.CONFLICT,
+      });
+
+      // The stored result is the winner's, not a mix or the loser's.
+      const winner = (fulfilled[0] as PromiseFulfilledResult<{
+        practiceState: { batches: { easy: { score: number | null; userAnswers: number[] } } };
+      }>).value;
+      const dbSession = await TopicSession.findById(session._id);
+      const easy = dbSession!.practiceState.batches.easy;
+      expect(easy.status).toBe(BatchStatus.COMPLETED);
+      expect(easy.score).toBe(winner.practiceState.batches.easy.score);
+      expect([...easy.userAnswers]).toEqual(winner.practiceState.batches.easy.userAnswers);
+      expect(dbSession!.practiceState.batches.medium.status).toBe(BatchStatus.NOT_STARTED);
     });
 
     it('rejects submissions with fewer than 10 answers with 400 VALIDATION_ERROR (BR-03)', async () => {

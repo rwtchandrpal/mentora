@@ -1,5 +1,3 @@
-export const MENTORA_WORKSPACE_READY = true as const;
-
 export * from './enums/index.js';
 export * from './constants/index.js';
 export * from './schemas/profile.schema.js';

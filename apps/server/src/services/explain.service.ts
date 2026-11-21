@@ -150,6 +150,15 @@ export class ExplainService {
       );
     }
 
+    // There are no cards to step through until init has run (L-05).
+    if (session.explainState.status !== ExplainStatus.READY) {
+      throw new AppError(
+        409,
+        ErrorCode.CONFLICT,
+        'Explain mode has not been initialized for this session yet.'
+      );
+    }
+
     session.explainState.currentStepIndex = stepIndex;
     const savedSession = await this.sessionRepo.save(session);
 

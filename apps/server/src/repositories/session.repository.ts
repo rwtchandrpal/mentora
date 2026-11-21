@@ -62,16 +62,6 @@ export class SessionRepository {
     }).exec();
   }
 
-  async findGuestSessionById(sessionId: string): Promise<ITopicSessionDocument | null> {
-    if (!mongoose.isValidObjectId(sessionId)) {
-      return null;
-    }
-    return TopicSession.findOne({
-      _id: new mongoose.Types.ObjectId(sessionId),
-      isGuest: true,
-    }).exec();
-  }
-
   async findSession(
     sessionId: string,
     userId?: string

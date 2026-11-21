@@ -1,4 +1,5 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
+import { clearQuizDrafts } from '../utils/quizDraftStorage.js';
 import type {
   UserDTO,
   QuotaMetaDTO,
@@ -152,6 +153,8 @@ export const authSlice = createSlice({
     },
     logout: (state) => {
       clearStoredToken();
+      // Unsubmitted quiz answers belong to this user; don't leave them for the next one (L-12).
+      clearQuizDrafts();
       state.user = null;
       state.token = null;
       state.quota = null;
