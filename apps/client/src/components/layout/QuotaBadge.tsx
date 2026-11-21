@@ -1,9 +1,17 @@
 import React from 'react';
+import { useAppSelector } from '../../store/hooks.js';
 import { useQuotaStatus } from '../../hooks/useQuotaStatus.js';
 
 export const QuotaBadge: React.FC = () => {
   const { used, limit, remaining, isExhausted, formattedResetTime, percentageUsed } =
     useQuotaStatus();
+  const isGuest = useAppSelector((state) => state.auth.user === null);
+  const hasQuotaData = useAppSelector((state) => state.auth.quota !== null);
+
+  // Guests have no stored usage until the server reports it, so show nothing rather than a guess.
+  if (isGuest && !hasQuotaData) {
+    return null;
+  }
 
   if (isExhausted) {
     return (
@@ -29,7 +37,7 @@ export const QuotaBadge: React.FC = () => {
           <span>Daily Quota Reached</span>
         </div>
         <p className="text-[11px] text-amber-800 leading-tight font-medium">
-          You've used all {limit} AI actions today. Quota resets at {formattedResetTime}.
+          You've used all {limit} AI actions today. Quota resets at {formattedResetTime}. You can still browse your current session.
         </p>
       </div>
     );

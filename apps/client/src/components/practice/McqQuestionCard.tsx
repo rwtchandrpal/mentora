@@ -109,7 +109,7 @@ export const McqQuestionCard: React.FC<McqQuestionCardProps> = ({
                   onSelectOption(optIdx);
                 }
               }}
-              className={`flex items-start gap-3 p-3.5 sm:p-4 rounded-xl border transition-all cursor-pointer select-none focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 ${
+              className={`flex items-start gap-3 min-h-[44px] p-3.5 sm:p-4 rounded-xl border transition-all cursor-pointer select-none focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 ${
                 disabled
                   ? 'opacity-60 cursor-not-allowed'
                   : isSelected

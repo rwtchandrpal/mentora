@@ -543,8 +543,8 @@ describe('IMP-011: Route Guards, Auth Pages, Mandatory Onboarding & Profile Sett
       fireEvent.click(submitBtn);
 
       // Inline validation error messages should be visible
-      expect(screen.getByText(/invalid email address/i)).toBeInTheDocument();
-      expect(screen.getByText(/too small|characters/i)).toBeInTheDocument();
+      expect(screen.getByText(/enter a valid email address/i)).toBeInTheDocument();
+      expect(screen.getByText(/password is required/i)).toBeInTheDocument();
       expect(postLoginCalled).toBe(false);
 
       // Now enter valid credentials

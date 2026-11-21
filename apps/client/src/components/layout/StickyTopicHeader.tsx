@@ -21,7 +21,7 @@ export const StickyTopicHeader: React.FC = () => {
         <button
           type="button"
           onClick={() => dispatch(toggleMobileDrawer())}
-          className="lg:hidden p-1.5 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 border-0 outline-none ring-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+          className="lg:hidden min-w-[44px] min-h-[44px] inline-flex items-center justify-center rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 border-0 outline-none ring-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
           aria-label="Open sidebar menu"
         >
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

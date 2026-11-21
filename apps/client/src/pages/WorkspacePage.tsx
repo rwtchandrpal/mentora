@@ -51,7 +51,8 @@ export const WorkspacePage: React.FC = () => {
   const activeMode = useAppSelector((state) => state.session.activeMode);
   const isCreatingSession = useAppSelector((state) => state.session.isCreatingSession);
   const sessionError = useAppSelector((state) => state.session.error);
-  const isSidebarOpen = useAppSelector((state) => state.ui.isSidebarOpen);
+  const isLoadingSession = useAppSelector((state) => state.session.isLoadingSession);
+  const isSidebarOpen =useAppSelector((state) => state.ui.isSidebarOpen);
   const user = useAppSelector((state) => state.auth.user);
 
   const [topicQuery, setTopicQuery] = useState('');
@@ -111,6 +112,18 @@ export const WorkspacePage: React.FC = () => {
 
   const isEducationalRefusal = sessionError?.code === 'EDUCATIONAL_GUARDRAIL_REFUSAL';
 
+  // L-07: a deep link to a session the caller cannot open (unknown or someone else's).
+  const isSessionUnavailable =
+    Boolean(sessionId) &&
+    activeSession === null &&
+    !isLoadingSession &&
+    (sessionError?.statusCode === 401 || sessionError?.statusCode === 404);
+
+  const handleNewTopic = () => {
+    dispatch(clearSessionError());
+    navigate('/workspace');
+  };
+
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
       {/* 1. Left History Sidebar (Desktop & Mobile Drawer) */}
@@ -118,8 +131,28 @@ export const WorkspacePage: React.FC = () => {
 
       {/* 2. Main Workspace Viewport */}
       <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
-        {/* If no active session, render New Topic Input Stage */}
-        {activeSession === null ? (
+        {isSessionUnavailable ? (
+          <main className="flex-1 flex items-center justify-center p-4">
+            <div
+              role="alert"
+              className="max-w-md w-full bg-white rounded-2xl shadow-sm border border-gray-200 p-8 text-center space-y-4"
+            >
+              <h1 className="text-xl font-bold text-gray-900">Session not found</h1>
+              <p className="text-sm text-gray-700">
+                This session doesn&apos;t exist or isn&apos;t available to you. It may have been
+                deleted, or it belongs to a different browser or account.
+              </p>
+              <button
+                type="button"
+                onClick={handleNewTopic}
+                className="inline-flex items-center justify-center py-2.5 px-5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              >
+                New topic
+              </button>
+            </div>
+          </main>
+        ) : /* If no active session, render New Topic Input Stage */
+        activeSession === null ? (
           <div className="flex-1 flex flex-col">
             {/* Mobile Top Navbar for Drawer Access / Desktop Navbar for Collapsed Sidebar or Guest Mode */}
             <div
@@ -131,7 +164,7 @@ export const WorkspacePage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => dispatch(toggleMobileDrawer())}
-                  className="lg:hidden p-1.5 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 border-0 outline-none ring-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                  className="lg:hidden min-w-[44px] min-h-[44px] inline-flex items-center justify-center rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 border-0 outline-none ring-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                   aria-label="Open sidebar menu"
                 >
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
