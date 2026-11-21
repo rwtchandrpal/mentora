@@ -187,7 +187,7 @@ For v1.0 MVP, personalization is driven deterministically by the learner's **Sta
 | **Preferred Explanation Style** | • **Visual**<br>• **Analogy-Heavy**<br>• **Concise & Technical** | • **Visual:** Prioritizes structured diagrams, flowcharts, and comparative tables.<br>• **Analogy-Heavy:** Leads with relatable real-world metaphors before introducing formal jargon.<br>• **Concise & Technical:** Eliminates conversational filler, focusing on formal definitions, equations, code, and edge cases. |
 
 ### 8.2 Session Persistence vs. Deferred Memory Features
-* **Included in v1.0 MVP:** Full persistence of all user-created topic sessions (Explain cards and deep-dives generated, Interact chat history and milestone completion status, and Practice Mode batch scores and review states) accessible via the Left Sidebar.
+* **Included in v1.0 MVP:** Full persistence of all user-created topic sessions (Explain cards generated, Interact chat history and milestone completion status, and Practice Mode batch scores and review states) accessible via the Left Sidebar.
 * **Deferred to Post-MVP (v2.0):** Automated cross-session misconception tracking, aggregated topic mastery dashboards, and automated spaced-repetition revision scheduling.
 
 ---

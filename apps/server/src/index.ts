@@ -55,8 +55,6 @@ process.on('SIGINT', () => {
   void handleShutdown('SIGINT');
 });
 
-export const isServerWorkspaceReady = (): boolean => true;
-
 if (process.env.NODE_ENV !== 'test') {
   void startServer().catch((err) => {
     logger.error({ err }, 'Failed to start Mentora server');

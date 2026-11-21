@@ -175,35 +175,6 @@ export class UserRepository {
 
     return released ?? User.findById(userId).exec();
   }
-
-  async incrementQuotaCount(
-    userId: string,
-    now: Date = new Date()
-  ): Promise<IUserDocument | null> {
-    if (!mongoose.isValidObjectId(userId)) {
-      return null;
-    }
-
-    const synced = await this.syncQuotaWindow(userId, now);
-    if (!synced) {
-      return null;
-    }
-
-    return User.findByIdAndUpdate(
-      userId,
-      {
-        $inc: { 'usageQuota.dailyCount': 1 },
-      },
-      { returnDocument: 'after' }
-    ).exec();
-  }
-
-  async incrementUserQuota(
-    userId: string,
-    now: Date = new Date()
-  ): Promise<IUserDocument | null> {
-    return this.incrementQuotaCount(userId, now);
-  }
 }
 
 export const userRepository = new UserRepository();

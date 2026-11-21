@@ -106,8 +106,13 @@ mentora/
 ├── package.json                   # Root workspace config & shared scripts (build, lint, test, typecheck)
 ├── tsconfig.base.json             # Base strict TypeScript configuration inherited by all workspaces
 ├── .gitignore
-├── product_requirement.md         # Product Requirements Document (Source of Truth)
-├── architecture.md                # System Architecture Document
+├── README.md
+├── render.yaml                    # Render Blueprint (backend)
+├── docs/
+│   ├── requirement.md             # Product Requirements Document (Source of Truth)
+│   ├── architecture.md            # System Architecture Document
+│   ├── AGENTS.md                  # Coding rules for agents and engineers
+│   └── implementation_plan.md     # Historical build plan
 │
 ├── packages/
 │   └── shared/                    # @mentora/shared — Single Source of Truth for Contracts & Types
@@ -218,10 +223,10 @@ Because standard browser `EventSource` only supports `GET` requests and cannot e
 The Express.js (TypeScript) backend enforces a strict 4-layer dependency hierarchy:
 1. **HTTP / Middleware Layer (`app.ts`, `routes/`, `middlewares/`):**
    * `helmet()` for secure HTTP headers.
-   * `cors({ origin: env.CLIENT_ORIGIN, credentials: true, allowedHeaders: ['Content-Type', 'Authorization'] })` for split-domain Vercel $\leftrightarrow$ Render communication.
-   * `authMiddleware`: Extracts and verifies the JWT from `Authorization: Bearer <token>`, attaching `req.user = { id, email, profile }`.
+   * `cors({ origin: env.CLIENT_ORIGIN, credentials: true, allowedHeaders: ['Content-Type', 'Authorization', 'X-Guest-Token'] })` for split-domain Vercel $\leftrightarrow$ Render communication.
+   * `requireAuth` / `optionalAuth`: Extracts and verifies the JWT from `Authorization: Bearer <token>`, attaching `req.user = { id, email, profile }`; `optionalAuth` instead attaches `req.guest` from a valid `X-Guest-Token` (§D.4). `requireCompletedProfile` and `requireSessionAccess` follow.
    * `quotaMiddleware`: Enforces `BR-04` and `FR-018` on all AI generation endpoints.
-   * `validateMiddleware(zodSchema)`: Validates `req.body`, `req.params`, and `req.query` against shared `@mentora/shared` Zod schemas before reaching any controller.
+   * `validateRequest({ body, params, query })`: Validates `req.body`, `req.params`, and `req.query` against shared `@mentora/shared` Zod schemas before reaching any controller.
 2. **Controller Layer (`controllers/`):** Translates Express `Request`/`Response` objects into typed service calls. For `/interact/stream`, sets unbuffered SSE headers (`Content-Type: text/event-stream`, `Cache-Control: no-cache, no-transform`, `Connection: keep-alive`, `X-Accel-Buffering: no`) and flushes headers immediately.
 3. **Domain Service Layer (`services/`):** Implements the core state machines for Explain, Interact, and Practice modes, enforces sequential tier unlocking (`BR-02`) and full-batch submission rules (`BR-03`), and coordinates atomic updates via Repositories.
 4. **Repository & Integration Layer (`repositories/`, `ai/`):** Isolates Mongoose queries and `@google/genai` SDK calls behind clean TypeScript interfaces.

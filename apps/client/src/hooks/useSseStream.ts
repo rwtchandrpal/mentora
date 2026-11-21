@@ -18,6 +18,9 @@ import type {
   SseErrorEventDTO,
 } from '@mentora/shared';
 
+export const CONNECTION_INTERRUPTED_MESSAGE =
+  'Connection interrupted. Your progress on this milestone was preserved.';
+
 export interface UseSseStreamReturn {
   sendMessage: (message: string, forceDirectExplanation?: boolean) => Promise<void>;
   retryLastMessage: () => Promise<void>;
@@ -216,9 +219,7 @@ export const useSseStream = (sessionId: string | undefined): UseSseStreamReturn 
         if (!receivedDone) {
           // The stream closed without `done` or `error` (e.g. the server dropped the
           // connection mid-reply). Nothing was persisted, so offer a retry.
-          dispatch(
-            setStreamError('Connection interrupted. Your progress on this milestone was preserved.')
-          );
+          dispatch(setStreamError(CONNECTION_INTERRUPTED_MESSAGE));
           return;
         }
         dispatch(finishStreaming());
@@ -227,11 +228,9 @@ export const useSseStream = (sessionId: string | undefined): UseSseStreamReturn 
           dispatch(finishStreaming());
           return;
         }
-        const errorMsg =
-          err instanceof Error
-            ? err.message
-            : 'Connection interrupted. Your progress on this milestone was preserved.';
-        dispatch(setStreamError(errorMsg));
+        // Transport failures surface as raw browser text ("Failed to fetch", "network
+        // error"); show one friendly, retryable message instead (L-11).
+        dispatch(setStreamError(CONNECTION_INTERRUPTED_MESSAGE));
       } finally {
         abortControllerRef.current = null;
       }

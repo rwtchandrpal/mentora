@@ -36,7 +36,7 @@
   color: currentColor;
 }
 
-/* Dark Surface Markdown Tokens (e.g. inside ExplainCard & DeepDiveSubCard bg-slate-900 containers) */
+/* Dark Surface Markdown Tokens (e.g. inside ExplainCard bg-slate-900 containers) */
 .bg-slate-900 .rich-markdown-renderer,
 .dark-surface .rich-markdown-renderer,
 .dark .rich-markdown-renderer,

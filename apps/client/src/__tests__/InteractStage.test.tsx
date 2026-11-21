@@ -526,6 +526,13 @@ describe('IMP-020: Frontend SSE Client Hook (useSseStream) & Interact Mode UI St
     // In-flight user message is still preserved in transcript
     expect(screen.getByTestId('chat-message-user-inflight')).toBeInTheDocument();
 
+    // Friendly copy instead of the browser's raw transport error (L-11)
+    const banner = screen.getByTestId('stream-error-banner');
+    expect(banner).toHaveTextContent(
+      'Connection interrupted. Your progress on this milestone was preserved.'
+    );
+    expect(banner).not.toHaveTextContent('Failed to fetch');
+
     // Click Retry
     const retryButton = screen.getByRole('button', {
       name: /Connection interrupted — Retry/i,

@@ -46,7 +46,7 @@ export const PracticeBatchGenerationSchema = z
     if (data.isEducationalValid) {
       if (data.questions.length !== MCQ_BATCH_SIZE) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: 'custom',
           message: `Practice questions must have exactly ${MCQ_BATCH_SIZE} questions when isEducationalValid is true`,
           path: ['questions'],
         });
@@ -57,7 +57,7 @@ export const PracticeBatchGenerationSchema = z
         if (!q) continue;
         if (q.questionNumber !== i + 1) {
           ctx.addIssue({
-            code: z.ZodIssueCode.custom,
+            code: 'custom',
             message: `Question at index ${i} must have questionNumber ${i + 1}`,
             path: ['questions', i, 'questionNumber'],
           });
@@ -66,7 +66,7 @@ export const PracticeBatchGenerationSchema = z
     } else {
       if (!data.refusalReason || data.refusalReason.trim().length === 0) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: 'custom',
           message: 'refusalReason is required and cannot be empty when isEducationalValid is false',
           path: ['refusalReason'],
         });

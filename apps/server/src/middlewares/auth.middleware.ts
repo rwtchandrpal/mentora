@@ -123,8 +123,6 @@ export const requireAuth = async (
   }
 };
 
-export const authMiddleware = requireAuth;
-
 export const requireCompletedProfile = (
   req: Request,
   _res: Response,
@@ -152,8 +150,6 @@ export const requireCompletedProfile = (
     next(error);
   }
 };
-
-export const profileCompletedMiddleware = requireCompletedProfile;
 
 /**
  * Guards every `/sessions/:id/...` route for unauthenticated callers: a guest may only

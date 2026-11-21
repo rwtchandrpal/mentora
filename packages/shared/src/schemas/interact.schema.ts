@@ -55,14 +55,14 @@ export const InteractInitOutputSchema = z
         data.milestones.length > MAX_INTERACT_MILESTONES
       ) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: 'custom',
           message: `Milestones count must be between ${MIN_INTERACT_MILESTONES} and ${MAX_INTERACT_MILESTONES} inclusive`,
           path: ['milestones'],
         });
       }
       if (!data.openingQuestion || data.openingQuestion.trim().length === 0) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: 'custom',
           message: 'openingQuestion is required and cannot be empty when isEducationalValid is true',
           path: ['openingQuestion'],
         });
@@ -70,7 +70,7 @@ export const InteractInitOutputSchema = z
     } else {
       if (!data.refusalReason || data.refusalReason.trim().length === 0) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: 'custom',
           message: 'refusalReason is required and cannot be empty when isEducationalValid is false',
           path: ['refusalReason'],
         });

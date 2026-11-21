@@ -312,6 +312,11 @@ export class ControlHeaderStreamParser {
   }
 }
 
+export interface TurnPreconditions {
+  session: ITopicSessionDocument;
+  profile: StaticLearnerProfile;
+}
+
 export class InteractService {
   constructor(
     private readonly sessionRepo: SessionRepository = sessionRepository,
@@ -325,7 +330,7 @@ export class InteractService {
   async validateTurnPreconditions(
     learner: LearnerRef,
     sessionId: string
-  ): Promise<{ session: ITopicSessionDocument; profile: StaticLearnerProfile }> {
+  ): Promise<TurnPreconditions> {
     const userId = learnerIdOf(learner);
     const session = await this.sessionRepo.findSession(sessionId, userId);
     if (!session) {
@@ -480,13 +485,16 @@ export class InteractService {
     sessionId: string,
     payload: InteractStreamRequestDTO,
     sseWriter: SseWriter,
-    reservation?: QuotaReservation
+    reservation?: QuotaReservation,
+    /**
+     * Result of validateTurnPreconditions when the caller already ran it before opening
+     * the stream, so the session and profile are not loaded twice per turn (L-09).
+     */
+    preconditions?: TurnPreconditions
   ): Promise<void> {
     const userId = learnerIdOf(learner);
-    const { session, profile } = await this.validateTurnPreconditions(
-      learner,
-      sessionId
-    );
+    const { session, profile } =
+      preconditions ?? (await this.validateTurnPreconditions(learner, sessionId));
 
     const turnId = crypto.randomUUID();
     const activeMilestoneIndex = session.interactState.activeMilestoneIndex;

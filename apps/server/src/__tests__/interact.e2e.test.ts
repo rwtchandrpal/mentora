@@ -663,6 +663,49 @@ describe('IMP-021: Backend End-to-End Interact Mode Lifecycle & 3-Strike Circuit
     expect(historyLines.at(-1)).toBe('USER: history-line-99');
   });
 
+  it('L-09: loads the session once per streamed turn', async () => {
+    const user = await registerAndProfileUser('Edsger Dijkstra', 'dijkstra@example.com');
+    const createRes = await request(app)
+      .post('/api/v1/sessions')
+      .set('Authorization', `Bearer ${user.token}`)
+      .send({
+        topicQuery: 'Distributed Consensus in Raft',
+        initialMode: LearningMode.INTERACT,
+        autoInitialize: false,
+      });
+    const sessionId = createRes.body.data.id as string;
+
+    setGeminiClient({
+      models: {
+        generateContent: vi.fn().mockResolvedValue({
+          text: JSON.stringify(mockInteractInitPayload),
+        }),
+      },
+    } as unknown as GoogleGenAI);
+    await request(app)
+      .post(`/api/v1/sessions/${sessionId}/interact/init`)
+      .set('Authorization', `Bearer ${user.token}`);
+
+    setGeminiClient({
+      models: {
+        generateContent: vi.fn(),
+        generateContentStream: vi.fn().mockImplementation(async function* () {
+          yield { text: '<<MENTORA_STATE:{"outcome":"STRIKE"}>>\nThink about randomness.' };
+        }),
+      },
+    } as unknown as GoogleGenAI);
+    const findSessionSpy = vi.spyOn(sessionRepository, 'findSession');
+
+    const turnRes = await request(app)
+      .post(`/api/v1/sessions/${sessionId}/interact/stream`)
+      .set('Authorization', `Bearer ${user.token}`)
+      .send({ message: 'Fixed timeouts?' });
+
+    expect(turnRes.status).toBe(200);
+    expect(turnRes.text).toContain('event: done');
+    expect(findSessionSpy).toHaveBeenCalledTimes(1);
+  });
+
   it('M-01: rejects turns on a completed session with 409, without charging quota or reopening it', async () => {
     const user = await registerAndProfileUser('Leslie Lamport', 'lamport@example.com');
 

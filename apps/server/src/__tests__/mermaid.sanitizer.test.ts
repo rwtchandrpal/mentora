@@ -24,6 +24,22 @@ describe('mermaid sanitizer', () => {
     expect(isStructurallyCompleteMermaid('graph TD\n  A[Start] -->')).toBe(false);
   });
 
+  it('accepts asymmetric nodes and brackets inside edge labels (L-08)', () => {
+    expect(isStructurallyCompleteMermaid('graph TD\n  A>Flag] --> B[Next]')).toBe(true);
+    expect(isStructurallyCompleteMermaid('graph LR\n  start --> note>Remember this]')).toBe(true);
+    expect(isStructurallyCompleteMermaid('graph TD\n  A -->|f(x) > 0]| B')).toBe(true);
+    // Sequence-diagram arrows are not mistaken for asymmetric nodes.
+    expect(
+      isStructurallyCompleteMermaid('sequenceDiagram\n  Alice->>Bob: Hello [world]')
+    ).toBe(true);
+  });
+
+  it('still rejects truncated nodes and edge labels', () => {
+    expect(isStructurallyCompleteMermaid('graph TD\n  A --> B[Unclosed')).toBe(false);
+    expect(isStructurallyCompleteMermaid('graph TD\n  A --> B>Unclosed [x')).toBe(false);
+    expect(isStructurallyCompleteMermaid('graph TD\n  A -->|half a label')).toBe(false);
+  });
+
   it('keeps valid blocks and surrounding text, and drops invalid ones', () => {
     const md = [
       'Intro text.',

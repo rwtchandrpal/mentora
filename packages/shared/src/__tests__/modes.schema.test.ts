@@ -194,11 +194,13 @@ describe('IMP-003: Explain Mode Schemas', () => {
   });
 
   it('should enforce ExplainStepRequestSchema bounds (0..3)', () => {
-    expect(ExplainStepRequestSchema.safeParse({ currentStepIndex: 0 }).success).toBe(true);
-    expect(ExplainStepRequestSchema.safeParse({ currentStepIndex: 3 }).success).toBe(true);
-    expect(ExplainStepRequestSchema.safeParse({ currentStepIndex: -1 }).success).toBe(false);
-    expect(ExplainStepRequestSchema.safeParse({ currentStepIndex: 4 }).success).toBe(false);
-    expect(ExplainStepRequestSchema.safeParse({ currentStepIndex: 1.5 }).success).toBe(false);
+    expect(ExplainStepRequestSchema.safeParse({ stepIndex: 0 }).success).toBe(true);
+    expect(ExplainStepRequestSchema.safeParse({ stepIndex: 3 }).success).toBe(true);
+    expect(ExplainStepRequestSchema.safeParse({ stepIndex: -1 }).success).toBe(false);
+    expect(ExplainStepRequestSchema.safeParse({ stepIndex: 4 }).success).toBe(false);
+    expect(ExplainStepRequestSchema.safeParse({ stepIndex: 1.5 }).success).toBe(false);
+    // Single field contract (L-04): the legacy alias is no longer accepted.
+    expect(ExplainStepRequestSchema.safeParse({ currentStepIndex: 2 }).success).toBe(false);
   });
 
   it('should validate ExplainStateSchema', () => {

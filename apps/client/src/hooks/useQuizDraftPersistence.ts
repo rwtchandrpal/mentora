@@ -8,8 +8,9 @@ import {
   QuizDraftStorageSchema,
 } from '@mentora/shared';
 
-export const getQuizDraftStorageKey = (sessionId: string, tier: PracticeTier): string =>
-  `mentora_quiz_draft_${sessionId}_${tier}`;
+import { getQuizDraftStorageKey } from '../utils/quizDraftStorage.js';
+
+export { getQuizDraftStorageKey };
 
 const FallbackDraftRecordSchema = z.record(
   z.string(),

@@ -6,8 +6,6 @@ import App from './App.js';
 import { ErrorBoundary } from './components/common/ErrorBoundary.js';
 import './index.css';
 
-export const isClientWorkspaceReady = (): boolean => true;
-
 const rootElement = document.getElementById('root');
 
 if (rootElement) {

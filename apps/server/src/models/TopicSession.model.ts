@@ -370,5 +370,3 @@ export const TopicSession =
     'TopicSession',
     TopicSessionSchema
   );
-
-export { TopicSession as TopicSessionModel };

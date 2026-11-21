@@ -17,6 +17,7 @@ import {
   type NormalizedApiErrorData,
 } from '../services/apiClient.js';
 import { setQuota, logout, type QuotaMetadata } from './authSlice.js';
+import { clearQuizDrafts } from '../utils/quizDraftStorage.js';
 import {
   AI_FAST_TIMEOUT_MS,
   AI_REASONING_TIMEOUT_MS,
@@ -191,6 +192,7 @@ export const deleteSessionThunk = createAsyncThunk<
       `/sessions/${id}`
     );
     removeGuestToken(id);
+    clearQuizDrafts(id);
     if (response.data.meta?.quota) {
       dispatch(setQuota(response.data.meta.quota));
     }
