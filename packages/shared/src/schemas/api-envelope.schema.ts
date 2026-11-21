@@ -6,6 +6,12 @@ export const ErrorCodeSchema = z.enum(ERROR_CODES);
 
 export const ApiResponseMetaSchema = z.object({
   quota: QuotaMetaSchema.optional(),
+  /**
+   * Signed access token for an ephemeral guest session. Returned only when a guest
+   * creates a session; the client must send it back in the X-Guest-Token header on
+   * every request for that session.
+   */
+  guestToken: z.string().min(1).optional(),
 });
 
 export const ApiErrorDetailSchema = z.object({

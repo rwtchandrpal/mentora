@@ -464,5 +464,135 @@ describe('IMP-018: End-to-End Explain Mode Workflow & Acceptance Criteria Verifi
       expect(intruderGet.body.error.code).toBe(ErrorCode.RESOURCE_NOT_FOUND);
     });
   });
-});
 
+  describe('5. Concurrent Initialization (A-07)', () => {
+    it('two parallel explain/init calls return identical results and bill exactly once', async () => {
+      const user = await registerAndProfileUser('Grace Hopper', 'grace@example.com');
+      const createRes = await request(app)
+        .post('/api/v1/sessions')
+        .set('Authorization', `Bearer ${user.token}`)
+        .send({
+          topicQuery: 'Deadlocks in Operating Systems',
+          initialMode: LearningMode.EXPLAIN,
+          autoInitialize: false,
+        });
+      expect(createRes.status).toBe(201);
+      const sessionId = createRes.body.data.id as string;
+
+      // Each Gemini call returns differently-titled cards and resolves only after both
+      // requests have started generating, so both race past the idempotency check.
+      let callCount = 0;
+      const mockGenerateContent = vi.fn().mockImplementation(async () => {
+        callCount += 1;
+        const n = callCount;
+        await new Promise((resolve) => setTimeout(resolve, 150));
+        return {
+          text: JSON.stringify({
+            ...mockExplainInitPayload,
+            cards: mockExplainInitPayload.cards.map((c) => ({ ...c, title: `${c.title} #${n}` })),
+          }),
+        };
+      });
+      setGeminiClient({
+        models: { generateContent: mockGenerateContent },
+      } as unknown as GoogleGenAI);
+
+      const [a, b] = await Promise.all([
+        request(app)
+          .post(`/api/v1/sessions/${sessionId}/explain/init`)
+          .set('Authorization', `Bearer ${user.token}`),
+        request(app)
+          .post(`/api/v1/sessions/${sessionId}/explain/init`)
+          .set('Authorization', `Bearer ${user.token}`),
+      ]);
+
+      expect(a.status).toBe(200);
+      expect(b.status).toBe(200);
+      expect(a.body.data.explainState).toEqual(b.body.data.explainState);
+
+      const dbUser = await User.findById(user.userId);
+      expect(dbUser?.usageQuota.dailyCount).toBe(1);
+
+      const dbSession = await TopicSession.findById(sessionId);
+      expect(dbSession?.explainState.cards[0]?.title).toBe(a.body.data.explainState.cards[0].title);
+    });
+  });
+
+  describe('6. User lookups per AI request (A-13)', () => {
+    it('explain/init performs at most 2 User queries (auth + quota reserve)', async () => {
+      const user = await registerAndProfileUser('Ada Lovelace', 'ada@example.com');
+      const createRes = await request(app)
+        .post('/api/v1/sessions')
+        .set('Authorization', `Bearer ${user.token}`)
+        .send({
+          topicQuery: 'Deadlocks in Operating Systems',
+          initialMode: LearningMode.EXPLAIN,
+          autoInitialize: false,
+        });
+      expect(createRes.status).toBe(201);
+
+      setGeminiClient({
+        models: {
+          generateContent: vi.fn().mockResolvedValue({
+            text: JSON.stringify(mockExplainInitPayload),
+          }),
+        },
+      } as unknown as GoogleGenAI);
+
+      const userQueries: string[] = [];
+      mongoose.set('debug', (collectionName: string, method: string) => {
+        if (collectionName === User.collection.collectionName) {
+          userQueries.push(method);
+        }
+      });
+      try {
+        const initRes = await request(app)
+          .post(`/api/v1/sessions/${createRes.body.data.id}/explain/init`)
+          .set('Authorization', `Bearer ${user.token}`);
+        expect(initRes.status).toBe(200);
+        expect(initRes.body.meta.quota.used).toBe(1);
+      } finally {
+        mongoose.set('debug', false);
+      }
+
+      expect(userQueries.length).toBeGreaterThan(0);
+      expect(userQueries.length).toBeLessThanOrEqual(2);
+    });
+
+    it('a quota reservation in an expired window restarts the count at 1', async () => {
+      const user = await registerAndProfileUser('Grace Hopper', 'grace@example.com');
+      await User.updateOne(
+        { _id: user.userId },
+        {
+          $set: {
+            'usageQuota.dailyCount': 999,
+            'usageQuota.windowResetAt': new Date(Date.now() - 1000),
+          },
+        }
+      );
+      const createRes = await request(app)
+        .post('/api/v1/sessions')
+        .set('Authorization', `Bearer ${user.token}`)
+        .send({
+          topicQuery: 'Deadlocks in Operating Systems',
+          initialMode: LearningMode.EXPLAIN,
+          autoInitialize: false,
+        });
+      setGeminiClient({
+        models: {
+          generateContent: vi.fn().mockResolvedValue({
+            text: JSON.stringify(mockExplainInitPayload),
+          }),
+        },
+      } as unknown as GoogleGenAI);
+
+      const initRes = await request(app)
+        .post(`/api/v1/sessions/${createRes.body.data.id}/explain/init`)
+        .set('Authorization', `Bearer ${user.token}`);
+
+      expect(initRes.status).toBe(200);
+      expect(initRes.body.meta.quota.used).toBe(1);
+      expect(new Date(initRes.body.meta.quota.resetAt).getTime()).toBeGreaterThan(Date.now());
+    });
+  });
+});

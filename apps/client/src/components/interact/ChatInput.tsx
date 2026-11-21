@@ -84,6 +84,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         <div className="relative">
           <textarea
             data-testid="chat-input-textarea"
+            aria-label="Your response to Mentora"
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={handleKeyDown}

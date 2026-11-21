@@ -88,14 +88,28 @@ export const loginThunk = createAsyncThunk<
   }
 });
 
+/** Back-off before the single automatic retry of a failed `/auth/me` (A-22). */
+export const FETCH_ME_RETRY_DELAY_MS = 1000;
+
 export const fetchMeThunk = createAsyncThunk<
   ApiSuccessEnvelope<UserDTO>,
   void,
   { rejectValue: NormalizedApiErrorData }
 >('auth/fetchMe', async (_, { rejectWithValue }) => {
+  const attempt = async () =>
+    (await apiClient.get<ApiSuccessEnvelope<UserDTO>>('/auth/me')).data;
   try {
-    const response = await apiClient.get<ApiSuccessEnvelope<UserDTO>>('/auth/me');
-    return response.data;
+    try {
+      return await attempt();
+    } catch (firstError) {
+      // A 401 is final (the token is invalid). Anything else is likely transient,
+      // e.g. a cold-starting backend, so retry once after a short back-off.
+      if (normalizeAxiosError(firstError).statusCode === 401) {
+        throw firstError;
+      }
+      await new Promise((resolve) => setTimeout(resolve, FETCH_ME_RETRY_DELAY_MS));
+      return await attempt();
+    }
   } catch (error) {
     const normalized = normalizeAxiosError(error);
     return rejectWithValue({
@@ -216,8 +230,13 @@ export const authSlice = createSlice({
         state.token = null;
         state.user = null;
         state.quota = null;
+        state.authStatus = 'unauthenticated';
+      } else {
+        // The token may still be valid; the check itself failed (network, 5xx).
+        // Stay 'idle' with the error set so the guards offer a retry instead of
+        // leaving a token with no user marked 'unauthenticated' (A-22).
+        state.authStatus = 'idle';
       }
-      state.authStatus = 'unauthenticated';
       state.error = action.payload ?? {
         statusCode: 0,
         code: 'UNKNOWN_ERROR',

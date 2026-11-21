@@ -2,6 +2,8 @@ import { configureStore, combineReducers } from '@reduxjs/toolkit';
 import authReducer from './authSlice.js';
 import sessionReducer from './sessionSlice.js';
 import uiReducer from './uiSlice.js';
+import { logout } from './authSlice.js';
+import { setUnauthorizedHandler } from '../services/apiClient.js';
 
 export const rootReducer = combineReducers({
   auth: authReducer,
@@ -16,7 +18,7 @@ export type PreloadedRootState = {
 };
 
 export const createAppStore = (preloadedState?: PreloadedRootState) => {
-  return configureStore({
+  const appStore = configureStore({
     reducer: rootReducer,
     preloadedState: preloadedState as unknown as undefined,
     middleware: (getDefaultMiddleware) =>
@@ -33,6 +35,16 @@ export const createAppStore = (preloadedState?: PreloadedRootState) => {
         },
       }),
   });
+
+  // An expired token logs the user out on the first rejected request (A-09). The app
+  // creates a single store; tests that build their own store re-bind the handler to it.
+  setUnauthorizedHandler(() => {
+    if (appStore.getState().auth.token) {
+      appStore.dispatch(logout());
+    }
+  });
+
+  return appStore;
 };
 
 export const store = createAppStore();

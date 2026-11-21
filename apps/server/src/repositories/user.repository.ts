@@ -101,6 +101,81 @@ export class UserRepository {
     return User.findById(userId).exec();
   }
 
+  /**
+   * Atomically consumes one quota unit if the user is still under `limit` (A-07).
+   * The count check and the increment happen in one conditional update, so parallel
+   * requests cannot both pass a stale read. Returns null when the limit is reached
+   * (or the user does not exist).
+   *
+   * The window roll-over is folded into the same update pipeline, so a reservation is a
+   * single `User` query (A-13): an expired window restarts at 1, a live window is
+   * incremented only while under `limit`.
+   */
+  async tryReserveQuota(
+    userId: string,
+    limit: number,
+    now: Date = new Date()
+  ): Promise<IUserDocument | null> {
+    if (!mongoose.isValidObjectId(userId)) {
+      return null;
+    }
+
+    if (limit <= 0) {
+      return null;
+    }
+
+    const nextReset = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    const windowExpired = { $lte: ['$usageQuota.windowResetAt', now] };
+
+    return User.findOneAndUpdate(
+      {
+        _id: userId,
+        $or: [
+          { 'usageQuota.windowResetAt': { $lte: now } },
+          { 'usageQuota.dailyCount': { $lt: limit } },
+        ],
+      },
+      [
+        {
+          $set: {
+            'usageQuota.dailyCount': {
+              $cond: [windowExpired, 1, { $add: ['$usageQuota.dailyCount', 1] }],
+            },
+            'usageQuota.windowResetAt': {
+              $cond: [windowExpired, nextReset, '$usageQuota.windowResetAt'],
+            },
+          },
+        },
+      ],
+      { returnDocument: 'after', updatePipeline: true }
+    ).exec();
+  }
+
+  /**
+   * Gives back one reserved quota unit. Only applies to the window the unit was
+   * reserved in, and never drops below zero.
+   */
+  async releaseQuota(
+    userId: string,
+    windowResetAt: Date
+  ): Promise<IUserDocument | null> {
+    if (!mongoose.isValidObjectId(userId)) {
+      return null;
+    }
+
+    const released = await User.findOneAndUpdate(
+      {
+        _id: userId,
+        'usageQuota.dailyCount': { $gt: 0 },
+        'usageQuota.windowResetAt': windowResetAt,
+      },
+      { $inc: { 'usageQuota.dailyCount': -1 } },
+      { returnDocument: 'after' }
+    ).exec();
+
+    return released ?? User.findById(userId).exec();
+  }
+
   async incrementQuotaCount(
     userId: string,
     now: Date = new Date()

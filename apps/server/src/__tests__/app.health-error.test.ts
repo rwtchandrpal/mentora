@@ -1,9 +1,10 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import mongoose from 'mongoose';
 import request from 'supertest';
 import express, { Request, Response } from 'express';
 import { z } from 'zod';
 import { ErrorCode } from '@mentora/shared';
-import { env, parseEnv } from '../config/env.js';
+import { env, parseEnv, resolveRawEnv } from '../config/env.js';
 import { app } from '../app.js';
 import { AppError } from '../utils/AppError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
@@ -60,8 +61,63 @@ describe('IMP-004: Server Bootstrap, Config, Logger, & Error Handling', () => {
     });
   });
 
+  describe('1b. Standalone env precedence (A-26)', () => {
+    it('lets real process values win over test defaults in standalone mode', () => {
+      const raw = resolveRawEnv({
+        MENTORA_STANDALONE: 'true',
+        GEMINI_FAST_MODEL: 'configured-fast',
+        GEMINI_REASONING_MODEL: 'configured-reasoning',
+        GEMINI_API_KEY: 'real-key',
+      });
+      expect(raw.GEMINI_FAST_MODEL).toBe('configured-fast');
+      expect(raw.GEMINI_REASONING_MODEL).toBe('configured-reasoning');
+      expect(raw.GEMINI_API_KEY).toBe('real-key');
+      // Gaps are still filled by defaults.
+      expect(raw.JWT_SECRET).toBeDefined();
+      expect(() => parseEnv(raw)).not.toThrow();
+    });
+
+    it('ignores empty process values in standalone mode so defaults still fill them', () => {
+      const raw = resolveRawEnv({ MENTORA_STANDALONE: 'true', GEMINI_API_KEY: '' });
+      expect(raw.GEMINI_API_KEY).toBe('test-gemini-api-key');
+    });
+
+    it('keeps test defaults authoritative in test mode', () => {
+      const raw = resolveRawEnv({ NODE_ENV: 'test', GEMINI_FAST_MODEL: 'from-shell' });
+      expect(raw.GEMINI_FAST_MODEL).toBe('gemini-3.5-flash-lite');
+    });
+
+    it('passes process.env through untouched outside test/standalone', () => {
+      const input = { NODE_ENV: 'production', FOO: 'bar' };
+      expect(resolveRawEnv(input)).toBe(input);
+    });
+  });
+
   describe('2. Health Endpoint & Security Headers (GET /api/v1/health)', () => {
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    const mockDbReadyState = (state: number) =>
+      vi.spyOn(mongoose.connection, 'readyState', 'get').mockReturnValue(state as never);
+
+    it('returns 503 with db=false when the database is disconnected (A-29)', async () => {
+      mockDbReadyState(0);
+      const res = await request(app).get('/api/v1/health');
+
+      expect(res.status).toBe(503);
+      expect(res.body).toEqual({
+        success: false,
+        error: {
+          code: ErrorCode.INTERNAL_SERVER_ERROR,
+          message: 'Database unavailable',
+          details: { status: 'degraded', db: false, uptime: expect.any(Number) },
+        },
+      });
+    });
+
     it('returns 200 OK with success envelope, status ok, and positive uptime', async () => {
+      mockDbReadyState(1);
       const res = await request(app)
         .get('/api/v1/health')
         .set('Origin', env.CLIENT_ORIGIN);
@@ -71,6 +127,7 @@ describe('IMP-004: Server Bootstrap, Config, Logger, & Error Handling', () => {
         success: true,
         data: {
           status: 'ok',
+          db: true,
           uptime: expect.any(Number),
         },
       });
@@ -230,6 +287,40 @@ describe('IMP-004: Server Bootstrap, Config, Logger, & Error Handling', () => {
       expect(JSON.stringify(res.body)).not.toContain('supersecret');
       expect(res.body.error.details).toBeUndefined();
       expect(res.body.stack).toBeUndefined();
+    });
+  });
+
+  describe('6. Errors after headers are sent (T2.2)', () => {
+    it('ends the response instead of writing a JSON envelope when headers were already sent', async () => {
+      const testApp = express();
+      testApp.get('/test/stream-crash', (_req: Request, res: Response, next) => {
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.flushHeaders();
+        res.write('event: start\ndata: {}\n\n');
+        next(new Error('late failure'));
+      });
+      testApp.use(errorMiddleware);
+
+      const res = await request(testApp).get('/test/stream-crash');
+      expect(res.status).toBe(200);
+      expect(res.text).toContain('event: start');
+      expect(res.text).not.toContain('success');
+    });
+
+    it('never calls res.status() when headersSent is true', () => {
+      const res = {
+        headersSent: true,
+        writableEnded: false,
+        status: vi.fn(),
+        json: vi.fn(),
+        end: vi.fn(),
+      } as unknown as Response;
+
+      errorMiddleware(new Error('boom'), {} as Request, res, vi.fn());
+
+      expect(res.status).not.toHaveBeenCalled();
+      expect(res.json).not.toHaveBeenCalled();
+      expect(res.end).toHaveBeenCalledTimes(1);
     });
   });
 });

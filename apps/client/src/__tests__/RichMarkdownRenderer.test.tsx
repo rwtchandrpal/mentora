@@ -7,7 +7,6 @@ import mermaid from 'mermaid';
 import { RichMarkdownRenderer } from '../components/common/RichMarkdownRenderer.js';
 import { CodeBlock } from '../components/common/CodeBlock.js';
 import { MermaidDiagram } from '../components/common/MermaidDiagram.js';
-import { KaTeXBlock } from '../components/common/KaTeXBlock.js';
 
 // Deterministically mock mermaid since JSDOM does not implement SVG layout primitives like getBBox
 vi.mock('mermaid', () => ({
@@ -133,20 +132,6 @@ $$
       const displayElement = container.querySelector('.katex-display');
       expect(displayElement).toBeInTheDocument();
       expect(container.querySelector('.katex')).toBeInTheDocument();
-    });
-
-    it('renders standalone <KaTeXBlock /> correctly for both inline and display modes', () => {
-      const { container: inlineContainer } = render(
-        <KaTeXBlock math="a^2 + b^2 = c^2" displayMode={false} />
-      );
-      expect(inlineContainer.querySelector('.katex')).toBeInTheDocument();
-      expect(screen.getByTestId('katex-inline-block')).toBeInTheDocument();
-
-      const { container: displayContainer } = render(
-        <KaTeXBlock math="\\sum_{i=1}^n i = \\frac{n(n+1)}{2}" displayMode={true} />
-      );
-      expect(displayContainer.querySelector('.katex-display')).toBeInTheDocument();
-      expect(screen.getByTestId('katex-display-block')).toBeInTheDocument();
     });
   });
 

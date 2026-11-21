@@ -9,6 +9,7 @@ import {
   UserProfileStateDTO,
   ErrorCode,
   UserDTOSchema,
+  GUEST_SESSION_TTL_SECONDS,
 } from '@mentora/shared';
 import { env } from '../config/env.js';
 import { AppError } from '../utils/AppError.js';
@@ -53,6 +54,41 @@ export const signAccessToken = (payload: { sub: string; email: string }): string
   });
 };
 
+const GUEST_TOKEN_TYPE = 'guest';
+
+/**
+ * Signs a stateless access token that grants a guest access to exactly one
+ * ephemeral session. It expires together with the session's TTL.
+ */
+export const signGuestToken = (sessionId: string): string => {
+  return jwt.sign({ sid: sessionId, typ: GUEST_TOKEN_TYPE }, env.JWT_SECRET, {
+    algorithm: 'HS256',
+    expiresIn: GUEST_SESSION_TTL_SECONDS,
+  });
+};
+
+/**
+ * Returns the session ID a guest token grants access to, or null when the token
+ * is missing, malformed, expired, or not a guest token.
+ */
+export const verifyGuestToken = (token: string): string | null => {
+  try {
+    const decoded = jwt.verify(token, env.JWT_SECRET, { algorithms: ['HS256'] });
+    if (
+      typeof decoded !== 'object' ||
+      decoded === null ||
+      decoded.typ !== GUEST_TOKEN_TYPE ||
+      typeof decoded.sid !== 'string' ||
+      decoded.sid.length === 0
+    ) {
+      return null;
+    }
+    return decoded.sid;
+  } catch {
+    return null;
+  }
+};
+
 export const verifyAccessToken = (token: string): { sub: string; email: string } => {
   try {
     const decoded = jwt.verify(token, env.JWT_SECRET, {
@@ -61,6 +97,7 @@ export const verifyAccessToken = (token: string): { sub: string; email: string }
     if (
       typeof decoded !== 'object' ||
       decoded === null ||
+      decoded.typ === GUEST_TOKEN_TYPE ||
       !('sub' in decoded) ||
       !('email' in decoded)
     ) {
@@ -78,6 +115,13 @@ export const verifyAccessToken = (token: string): { sub: string; email: string }
     );
   }
 };
+
+/**
+ * Valid bcrypt hash (cost 12) of a random throwaway string. Login compares
+ * against it when the email is unknown, so response time doesn't reveal
+ * whether an account exists (A-28).
+ */
+const DUMMY_PASSWORD_HASH = bcrypt.hashSync('mentora-timing-equalizer', 12);
 
 export class AuthService {
   constructor(private readonly userRepo: UserRepository = userRepository) {}
@@ -132,12 +176,12 @@ export class AuthService {
   async login(input: LoginRequestDTO): Promise<AuthResponseDataDTO> {
     const normalizedEmail = input.email.toLowerCase().trim();
     const user = await this.userRepo.findByEmailWithPassword(normalizedEmail);
-    if (!user) {
-      throw new AppError(401, ErrorCode.UNAUTHORIZED, 'Invalid email or password');
-    }
-
-    const isMatch = await bcrypt.compare(input.password, user.passwordHash);
-    if (!isMatch) {
+    // Always pay the bcrypt cost, even for unknown emails (A-28).
+    const isMatch = await bcrypt.compare(
+      input.password,
+      user?.passwordHash ?? DUMMY_PASSWORD_HASH
+    );
+    if (!user || !isMatch) {
       throw new AppError(401, ErrorCode.UNAUTHORIZED, 'Invalid email or password');
     }
 

@@ -12,9 +12,16 @@ import {
 import {
   apiClient,
   normalizeAxiosError,
+  setGuestToken,
+  removeGuestToken,
   type NormalizedApiErrorData,
 } from '../services/apiClient.js';
 import { setQuota, logout, type QuotaMetadata } from './authSlice.js';
+import {
+  AI_FAST_TIMEOUT_MS,
+  AI_REASONING_TIMEOUT_MS,
+  getCreateSessionTimeoutMs,
+} from '../config/timeouts.js';
 
 export interface StreamingState {
   isStreaming: boolean;
@@ -100,8 +107,12 @@ export const createSessionThunk = createAsyncThunk<
   try {
     const response = await apiClient.post<ApiSuccessEnvelope<TopicSessionDTO>>(
       '/sessions',
-      payload
+      payload,
+      { timeout: getCreateSessionTimeoutMs(payload.initialMode) }
     );
+    if (response.data.meta?.guestToken) {
+      setGuestToken(response.data.data.id, response.data.meta.guestToken);
+    }
     if (response.data.meta?.quota) {
       dispatch(setQuota(response.data.meta.quota));
     }
@@ -145,7 +156,7 @@ export const switchSessionModeThunk = createAsyncThunk<
   { rejectValue: NormalizedApiErrorData }
 >('session/switchMode', async ({ id, mode }, { dispatch, rejectWithValue }) => {
   try {
-    const response = await apiClient.patch<ApiSuccessEnvelope<{ lastActiveMode: LearningMode }>>(
+    const response = await apiClient.patch<ApiSuccessEnvelope<TopicSessionDTO>>(
       `/sessions/${id}/mode`,
       { mode }
     );
@@ -170,9 +181,10 @@ export const deleteSessionThunk = createAsyncThunk<
   { rejectValue: NormalizedApiErrorData }
 >('session/delete', async (id, { dispatch, rejectWithValue }) => {
   try {
-    const response = await apiClient.delete<ApiSuccessEnvelope<{ deleted: boolean }>>(
+    const response = await apiClient.delete<ApiSuccessEnvelope<{ deletedId: string }>>(
       `/sessions/${id}`
     );
+    removeGuestToken(id);
     if (response.data.meta?.quota) {
       dispatch(setQuota(response.data.meta.quota));
     }
@@ -197,7 +209,7 @@ export const initializeExplainThunk = createAsyncThunk<
     const response = await apiClient.post<ApiSuccessEnvelope<TopicSessionDTO>>(
       `/sessions/${sessionId}/explain/init`,
       undefined,
-      { timeout: 30000 }
+      { timeout: AI_FAST_TIMEOUT_MS }
     );
     if (response.data.meta?.quota) {
       dispatch(setQuota(response.data.meta.quota));
@@ -248,7 +260,7 @@ export const generateDeepDiveThunk = createAsyncThunk<
     const response = await apiClient.post<ApiSuccessEnvelope<TopicSessionDTO>>(
       `/sessions/${sessionId}/explain/deeper`,
       { stepNumber },
-      { timeout: 30000 }
+      { timeout: AI_REASONING_TIMEOUT_MS }
     );
     if (response.data.meta?.quota) {
       dispatch(setQuota(response.data.meta.quota));
@@ -274,7 +286,7 @@ export const initializeInteractThunk = createAsyncThunk<
     const response = await apiClient.post<ApiSuccessEnvelope<TopicSessionDTO>>(
       `/sessions/${sessionId}/interact/init`,
       undefined,
-      { timeout: 30000 }
+      { timeout: AI_FAST_TIMEOUT_MS }
     );
     if (response.data.meta?.quota) {
       dispatch(setQuota(response.data.meta.quota));
@@ -300,7 +312,7 @@ export const generatePracticeBatchThunk = createAsyncThunk<
     const response = await apiClient.post<ApiSuccessEnvelope<TopicSessionDTO>>(
       `/sessions/${sessionId}/practice/generate`,
       { tier },
-      { timeout: 60000 }
+      { timeout: AI_REASONING_TIMEOUT_MS }
     );
     if (response.data.meta?.quota) {
       dispatch(setQuota(response.data.meta.quota));

@@ -10,8 +10,7 @@ import {
   ExplainDeepDiveOutputDTO,
   ExplainInitOutputSchema,
   ExplainDeepDiveOutputSchema,
-  StaticLearnerProfile,
-  DEFAULT_GUEST_PROFILE,
+  QuotaMetaDTO,
 } from '@mentora/shared';
 import { AppError } from '../utils/AppError.js';
 import {
@@ -29,7 +28,14 @@ import {
   explainDeepDiveGeminiSchema,
 } from '../ai/schemas/index.js';
 import { toTopicSessionDTO } from './session.service.js';
+import { LearnerRef, learnerIdOf, resolveLearnerProfile } from './learner-profile.js';
 import { IDeepDiveSubCard } from '../models/TopicSession.model.js';
+import { QuotaReservation } from '../middlewares/quota.middleware.js';
+
+export interface ExplainResult {
+  session: TopicSessionDTO;
+  quota?: QuotaMetaDTO;
+}
 
 export class ExplainService {
   constructor(
@@ -39,13 +45,17 @@ export class ExplainService {
 
   /**
    * Initializes Explain Mode for a session.
-   * If explainState.status === 'ready', returns existing state idempotently without calling Gemini.
-   * Otherwise, generates 4 progressive cards, updates session, and increments user quota.
+   * If explainState.status === 'ready', returns existing state idempotently without calling
+   * Gemini and releases the reserved quota unit.
+   * Otherwise, generates 4 progressive cards, saves them only if no concurrent request has
+   * already done so, and commits the quota unit for the request whose write landed (A-07).
    */
   async initializeExplain(
-    userId: string | undefined,
-    sessionId: string
-  ): Promise<TopicSessionDTO> {
+    learner: LearnerRef,
+    sessionId: string,
+    reservation?: QuotaReservation
+  ): Promise<ExplainResult> {
+    const userId = learnerIdOf(learner);
     const session = await this.sessionRepo.findSession(sessionId, userId);
     if (!session) {
       throw new AppError(
@@ -57,32 +67,10 @@ export class ExplainService {
 
     // Idempotent initialization: return existing ready state
     if (session.explainState && session.explainState.status === ExplainStatus.READY) {
-      return toTopicSessionDTO(session);
+      return { session: toTopicSessionDTO(session), quota: await reservation?.release() };
     }
 
-    let profile: StaticLearnerProfile = DEFAULT_GUEST_PROFILE;
-
-    if (userId) {
-      // Retrieve user and validate profile completion
-      const user = await this.userRepo.findById(userId);
-      if (
-        !user ||
-        !user.profile.isCompleted ||
-        !user.profile.educationLevel ||
-        !user.profile.preferredStyle
-      ) {
-        throw new AppError(
-          403,
-          ErrorCode.PROFILE_INCOMPLETE,
-          'Learner profile is incomplete.'
-        );
-      }
-
-      profile = {
-        educationLevel: user.profile.educationLevel,
-        preferredStyle: user.profile.preferredStyle,
-      };
-    }
+    const profile = await resolveLearnerProfile(learner, this.userRepo);
 
     const systemInstruction = PromptBuilder.buildSystemInstruction(
       profile,
@@ -99,11 +87,7 @@ export class ExplainService {
       temperature: 0.2,
     });
 
-    if (output.normalizedTitle && output.normalizedTitle.trim().length > 0) {
-      session.normalizedTitle = output.normalizedTitle.trim();
-    }
-
-    session.explainState = {
+    const explainState = {
       status: ExplainStatus.READY,
       currentStepIndex: 0,
       cards: output.cards.map((card) => ({
@@ -123,12 +107,27 @@ export class ExplainService {
         : [],
     };
 
-    const savedSession = await this.sessionRepo.save(session);
-    if (userId) {
-      await this.userRepo.incrementUserQuota(userId);
+    const normalizedTitle =
+      output.normalizedTitle && output.normalizedTitle.trim().length > 0
+        ? output.normalizedTitle.trim()
+        : session.normalizedTitle;
+
+    // Filtered save: only the first concurrent initializer writes its cards (A-07).
+    const saved = await this.sessionRepo.setIfMatches(
+      session._id,
+      { 'explainState.status': { $ne: ExplainStatus.READY } },
+      { explainState, normalizedTitle }
+    );
+
+    if (!saved) {
+      const winner = await this.sessionRepo.findById(session._id);
+      if (!winner) {
+        throw new AppError(404, ErrorCode.RESOURCE_NOT_FOUND, 'Topic session not found.');
+      }
+      return { session: toTopicSessionDTO(winner), quota: await reservation?.release() };
     }
 
-    return toTopicSessionDTO(savedSession);
+    return { session: toTopicSessionDTO(saved), quota: reservation?.commit() };
   }
 
   /**
@@ -171,13 +170,15 @@ export class ExplainService {
   /**
    * Generates a "Go Deeper" sub-card for a specified parent stepNumber (1..4).
    * Appends to the parent card's deepDives array up to MAX_DEEP_DIVE_DEPTH (2),
-   * preserves currentStepIndex, and increments user quota (AC-EXP-03, BR-04).
+   * preserves currentStepIndex, and commits the reserved quota unit (AC-EXP-03, BR-04).
    */
   async generateDeepDive(
-    userId: string | undefined,
+    learner: LearnerRef,
     sessionId: string,
-    stepNumber: number
-  ): Promise<TopicSessionDTO> {
+    stepNumber: number,
+    reservation?: QuotaReservation
+  ): Promise<ExplainResult> {
+    const userId = learnerIdOf(learner);
     if (
       typeof stepNumber !== 'number' ||
       !Number.isInteger(stepNumber) ||
@@ -232,28 +233,7 @@ export class ExplainService {
       );
     }
 
-    let profile: StaticLearnerProfile = DEFAULT_GUEST_PROFILE;
-
-    if (userId) {
-      const user = await this.userRepo.findById(userId);
-      if (
-        !user ||
-        !user.profile.isCompleted ||
-        !user.profile.educationLevel ||
-        !user.profile.preferredStyle
-      ) {
-        throw new AppError(
-          403,
-          ErrorCode.PROFILE_INCOMPLETE,
-          'Learner profile is incomplete.'
-        );
-      }
-
-      profile = {
-        educationLevel: user.profile.educationLevel,
-        preferredStyle: user.profile.preferredStyle,
-      };
-    }
+    const profile = await resolveLearnerProfile(learner, this.userRepo);
 
     const systemInstruction = PromptBuilder.buildSystemInstruction(
       profile,
@@ -288,11 +268,8 @@ export class ExplainService {
     targetCard.deepDives.push(newSubCard);
 
     const savedSession = await this.sessionRepo.save(session);
-    if (userId) {
-      await this.userRepo.incrementUserQuota(userId);
-    }
 
-    return toTopicSessionDTO(savedSession);
+    return { session: toTopicSessionDTO(savedSession), quota: reservation?.commit() };
   }
 }
 

@@ -34,10 +34,24 @@ const TEST_ENV_DEFAULTS: NodeJS.ProcessEnv = {
   DAILY_AI_QUOTA_LIMIT: String(DAILY_AI_QUOTA_LIMIT),
 };
 
-export const env: Env =
-  process.env.NODE_ENV === 'test' || process.env.MENTORA_STANDALONE === 'true'
-    ? parseEnv({
-        ...process.env,
-        ...TEST_ENV_DEFAULTS,
-      })
-    : parseEnv(process.env);
+/**
+ * Picks the raw env object to validate.
+ * - Test mode: defaults win, so a developer's shell can't change test behaviour.
+ * - Standalone mode (e.g. `eval:ai`): real, non-empty values win and defaults
+ *   only fill the gaps (A-26).
+ * - Otherwise: the process env is used as is.
+ */
+export const resolveRawEnv = (rawEnv: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv => {
+  if (rawEnv.NODE_ENV === 'test' && rawEnv.MENTORA_STANDALONE !== 'true') {
+    return { ...rawEnv, ...TEST_ENV_DEFAULTS };
+  }
+  if (rawEnv.MENTORA_STANDALONE === 'true') {
+    const provided = Object.fromEntries(
+      Object.entries(rawEnv).filter(([, value]) => value !== undefined && value !== '')
+    );
+    return { ...TEST_ENV_DEFAULTS, ...provided };
+  }
+  return rawEnv;
+};
+
+export const env: Env = parseEnv(resolveRawEnv(process.env));

@@ -4,18 +4,14 @@ import {
   PracticeSubmitRequestSchema,
 } from '@mentora/shared';
 import { practiceController } from '../controllers/practice.controller.js';
-import {
-  optionalAuth,
-  requireCompletedProfile,
-} from '../middlewares/auth.middleware.js';
 import { quotaMiddleware } from '../middlewares/quota.middleware.js';
 import { validateRequest } from '../middlewares/validate.middleware.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
 export const practiceRouter = Router();
 
-practiceRouter.use(optionalAuth, requireCompletedProfile);
-
+// Mounted only inside sessionRouter, which already runs optionalAuth,
+// requireCompletedProfile and requireSessionAccess for every route here.
 practiceRouter.post(
   '/:id/practice/generate',
   quotaMiddleware,

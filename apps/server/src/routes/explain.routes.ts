@@ -4,18 +4,14 @@ import {
   ExplainDeeperRequestSchema,
 } from '@mentora/shared';
 import { explainController } from '../controllers/explain.controller.js';
-import {
-  optionalAuth,
-  requireCompletedProfile,
-} from '../middlewares/auth.middleware.js';
 import { quotaMiddleware } from '../middlewares/quota.middleware.js';
 import { validateRequest } from '../middlewares/validate.middleware.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
 export const explainRouter = Router();
 
-explainRouter.use(optionalAuth, requireCompletedProfile);
-
+// Mounted only inside sessionRouter, which already runs optionalAuth,
+// requireCompletedProfile and requireSessionAccess for every route here.
 explainRouter.post(
   '/:id/explain/init',
   quotaMiddleware,

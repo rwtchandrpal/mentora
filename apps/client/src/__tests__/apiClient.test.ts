@@ -14,6 +14,7 @@ import {
   NormalizedApiError,
   normalizeAxiosError,
   pingHealthCheck,
+  setUnauthorizedHandler,
 } from '../services/apiClient.js';
 import { ErrorBoundary } from '../components/common/ErrorBoundary.js';
 
@@ -131,6 +132,51 @@ describe('IMP-009: Client Foundation, API Client, and Error Boundary', () => {
   });
 
   // 3. Response / Error Interceptor Normalization Tests
+  describe('2b. Expired Token Recovery (A-09)', () => {
+    const rejectWith = (status: number, code: string): AxiosAdapter => async (config) => {
+      throw new AxiosError(`Request failed with status code ${status}`, 'ERR_BAD_REQUEST', config, {}, {
+        status,
+        statusText: 'Error',
+        headers: {},
+        config,
+        data: { success: false, error: { code, message: 'Rejected' } },
+      });
+    };
+
+    afterEach(() => {
+      setUnauthorizedHandler(null);
+    });
+
+    it('calls the unauthorized handler on a 401 when a bearer token was sent', async () => {
+      const handler = vi.fn();
+      setUnauthorizedHandler(handler);
+      setStoredToken('expired-jwt');
+      apiClient.defaults.adapter = rejectWith(401, 'UNAUTHORIZED');
+
+      await expect(apiClient.get('/sessions')).rejects.toBeInstanceOf(NormalizedApiError);
+      expect(handler).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not call the handler on a 401 without a bearer token (e.g. failed login)', async () => {
+      const handler = vi.fn();
+      setUnauthorizedHandler(handler);
+      apiClient.defaults.adapter = rejectWith(401, 'UNAUTHORIZED');
+
+      await expect(apiClient.post('/auth/login', {})).rejects.toBeInstanceOf(NormalizedApiError);
+      expect(handler).not.toHaveBeenCalled();
+    });
+
+    it('does not call the handler on non-401 errors', async () => {
+      const handler = vi.fn();
+      setUnauthorizedHandler(handler);
+      setStoredToken('valid-jwt');
+      apiClient.defaults.adapter = rejectWith(500, 'INTERNAL_SERVER_ERROR');
+
+      await expect(apiClient.get('/sessions')).rejects.toBeInstanceOf(NormalizedApiError);
+      expect(handler).not.toHaveBeenCalled();
+    });
+  });
+
   describe('3. Response Error Interceptor & Error Normalization', () => {
     it('normalizes 401 UNAUTHORIZED structured backend error envelope', async () => {
       const mockAdapter: AxiosAdapter = async (config: InternalAxiosRequestConfig) => {

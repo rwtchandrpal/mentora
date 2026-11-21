@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
+import bcrypt from 'bcryptjs';
 import request from 'supertest';
 import mongoose from 'mongoose';
 import jwt from 'jsonwebtoken';
@@ -185,6 +186,21 @@ describe('IMP-006: Auth & Profile Routes Integration Tests', () => {
         },
       });
     });
+
+    it('still runs a bcrypt comparison for an unknown email so timing does not reveal accounts (A-28)', async () => {
+      const compareSpy = vi.spyOn(bcrypt, 'compare');
+      try {
+        const res = await request(app)
+          .post('/api/v1/auth/login')
+          .send({ email: 'ghost@example.com', password: 'somepassword123' });
+
+        expect(res.status).toBe(401);
+        expect(compareSpy).toHaveBeenCalledTimes(1);
+        expect(compareSpy.mock.calls[0]?.[0]).toBe('somepassword123');
+      } finally {
+        compareSpy.mockRestore();
+      }
+    });
   });
 
   describe('3. GET /api/v1/auth/me & requireAuth Middleware', () => {
@@ -338,5 +354,65 @@ describe('IMP-006: Auth & Profile Routes Integration Tests', () => {
       expect(res.body.success).toBe(false);
       expect(res.body.error.code).toBe(ErrorCode.VALIDATION_ERROR);
     });
+  });
+
+  describe('5. Auth rate limiter (A-15)', () => {
+    const limitedApp = createApp(undefined, {
+      authRateLimit: { limit: 10, windowMs: 15 * 60 * 1000 },
+    });
+    const credentials = { email: 'brute.force@example.com', password: 'wrong-password' };
+    // Each failed login pays a full bcrypt comparison, even for unknown emails (A-28),
+    // so loops of 10+ attempts need more than the default 5 s.
+    const BCRYPT_LOOP_TIMEOUT_MS = 30_000;
+
+    it('returns 429 RATE_LIMIT_EXCEEDED on the 11th login attempt for the same email and IP', async () => {
+      for (let i = 0; i < 10; i += 1) {
+        const res = await request(limitedApp).post('/api/v1/auth/login').send(credentials);
+        expect(res.status).toBe(401);
+      }
+
+      const blocked = await request(limitedApp).post('/api/v1/auth/login').send(credentials);
+      expect(blocked.status).toBe(429);
+      expect(blocked.body).toEqual({
+        success: false,
+        error: {
+          code: 'RATE_LIMIT_EXCEEDED',
+          message: expect.any(String),
+        },
+      });
+
+      // A different email from the same IP has its own budget.
+      const otherEmail = await request(limitedApp)
+        .post('/api/v1/auth/login')
+        .send({ ...credentials, email: 'someone.else@example.com' });
+      expect(otherEmail.status).toBe(401);
+
+      // Email normalisation: case and whitespace do not open a new budget.
+      const sameEmailVariant = await request(limitedApp)
+        .post('/api/v1/auth/login')
+        .send({ ...credentials, email: '  Brute.Force@Example.com ' });
+      expect(sameEmailVariant.status).toBe(429);
+
+      // Other routes are unaffected.
+      const health = await request(limitedApp).get('/api/v1/health');
+      expect(health.status).not.toBe(429);
+    }, BCRYPT_LOOP_TIMEOUT_MS);
+
+    it('limits /register too', async () => {
+      const payload = { name: 'Spam Bot', email: 'spam@example.com', password: 'password1234' };
+      for (let i = 0; i < 10; i += 1) {
+        await request(limitedApp).post('/api/v1/auth/register').send(payload);
+      }
+      const blocked = await request(limitedApp).post('/api/v1/auth/register').send(payload);
+      expect(blocked.status).toBe(429);
+      expect(blocked.body.error.code).toBe('RATE_LIMIT_EXCEEDED');
+    });
+
+    it('is not applied to the default test app', async () => {
+      for (let i = 0; i < 12; i += 1) {
+        const res = await request(app).post('/api/v1/auth/login').send(credentials);
+        expect(res.status).toBe(401);
+      }
+    }, BCRYPT_LOOP_TIMEOUT_MS);
   });
 });

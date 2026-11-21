@@ -1,5 +1,7 @@
 import React, { useState, useCallback } from 'react';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+// PrismAsyncLight loads each language grammar on demand instead of bundling every
+// Prism language into the entry chunk (A-16). Code shows unhighlighted until it loads.
+import { PrismAsyncLight as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
 export interface CodeBlockProps {
@@ -57,7 +59,8 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({
 
       <div className="overflow-x-auto">
         <SyntaxHighlighter
-          language={normalizedLanguage === 'text' ? undefined : normalizedLanguage}
+          // The async highlighter needs a string; unknown languages (incl. 'text') render plain.
+          language={normalizedLanguage || 'text'}
           style={oneDark}
           customStyle={{
             margin: 0,

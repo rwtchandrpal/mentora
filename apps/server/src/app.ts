@@ -1,18 +1,32 @@
 import express, { Express } from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
-import { rateLimit } from 'express-rate-limit';
+import { GUEST_TOKEN_HEADER } from '@mentora/shared';
 import { env } from './config/env.js';
 import { healthRouter } from './routes/health.routes.js';
 import { authRouter } from './routes/auth.routes.js';
 import { profileRouter } from './routes/profile.routes.js';
 import { sessionRouter } from './routes/session.routes.js';
-import { explainRouter } from './routes/explain.routes.js';
-import { interactRouter } from './routes/interact.routes.js';
-import { practiceRouter } from './routes/practice.routes.js';
 import { notFoundMiddleware, errorMiddleware } from './middlewares/error.middleware.js';
+import {
+  createApiRateLimiter,
+  createAuthRateLimiter,
+  DEFAULT_AUTH_RATE_LIMIT,
+  RateLimitOptions,
+} from './middlewares/rateLimit.middleware.js';
 
-export const createApp = (customRoutes?: (app: Express) => void): Express => {
+export interface CreateAppOptions {
+  /**
+   * Login/register limiter settings. Rate limiters are off under NODE_ENV=test; passing
+   * this enables the auth limiter there too, so tests can exercise it.
+   */
+  authRateLimit?: RateLimitOptions;
+}
+
+export const createApp = (
+  customRoutes?: (app: Express) => void,
+  options: CreateAppOptions = {}
+): Express => {
   const app = express();
 
   app.set('trust proxy', 1);
@@ -22,37 +36,32 @@ export const createApp = (customRoutes?: (app: Express) => void): Express => {
     cors({
       origin: env.CLIENT_ORIGIN,
       credentials: true,
-      allowedHeaders: ['Content-Type', 'Authorization'],
+      allowedHeaders: ['Content-Type', 'Authorization', GUEST_TOKEN_HEADER],
     })
   );
 
-  const apiLimiter = rateLimit({
+  const apiLimiter = createApiRateLimiter({
     windowMs: 15 * 60 * 1000,
     limit: env.NODE_ENV === 'test' ? 10000 : 100,
-    standardHeaders: 'draft-8',
-    legacyHeaders: false,
     skip: () => env.NODE_ENV === 'test',
-    handler: (_req, res) => {
-      res.status(429).json({
-        success: false,
-        error: {
-          code: 'RATE_LIMIT_EXCEEDED',
-          message: 'Too many requests from this IP, please try again later.',
-        },
-      });
-    },
   });
   app.use('/api', apiLimiter);
 
   app.use(express.json({ limit: '100kb' }));
 
+  // Dedicated brute-force limiter for credential endpoints (A-15). Runs after the JSON
+  // parser because it is keyed by IP + email.
+  if (options.authRateLimit || env.NODE_ENV !== 'test') {
+    const authLimiter = createAuthRateLimiter(options.authRateLimit ?? DEFAULT_AUTH_RATE_LIMIT);
+    app.post(['/api/v1/auth/login', '/api/v1/auth/register'], authLimiter);
+  }
+
   app.use('/api/v1', healthRouter);
   app.use('/api/v1/auth', authRouter);
   app.use('/api/v1/profile', profileRouter);
+  // The explain/interact/practice routers are mounted inside sessionRouter, which applies
+  // auth, profile and per-session access checks once for all of them (A-13).
   app.use('/api/v1/sessions', sessionRouter);
-  app.use('/api/v1/sessions', explainRouter);
-  app.use('/api/v1/sessions', interactRouter);
-  app.use('/api/v1/sessions', practiceRouter);
 
   if (customRoutes) {
     customRoutes(app);

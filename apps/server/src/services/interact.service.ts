@@ -13,7 +13,7 @@ import {
   MentoraStreamControlHeaderSchema,
   StaticLearnerProfile,
   QuotaMetaDTO,
-  DEFAULT_GUEST_PROFILE,
+  MAX_INTERACT_PROMPT_HISTORY,
 } from '@mentora/shared';
 import { AppError } from '../utils/AppError.js';
 import { logger } from '../config/logger.js';
@@ -32,15 +32,15 @@ import {
 import { PromptBuilder } from '../ai/prompts/prompt.builder.js';
 import { interactInitGeminiSchema } from '../ai/schemas/index.js';
 import { toTopicSessionDTO } from './session.service.js';
+import { LearnerRef, learnerIdOf, resolveLearnerProfile } from './learner-profile.js';
 import {
   IInteractMilestone,
   IInteractMessage,
   ITopicSessionDocument,
 } from '../models/TopicSession.model.js';
-import { IUserDocument } from '../models/User.model.js';
 import {
-  toQuotaMetaDTO,
-  incrementGuestQuota,
+  QuotaReservation,
+  releasePendingReservation,
 } from '../middlewares/quota.middleware.js';
 import { SseWriter } from '../utils/sse.helper.js';
 
@@ -269,9 +269,10 @@ export class InteractService {
    * Throws standard operational AppErrors before SSE headers are flushed.
    */
   async validateTurnPreconditions(
-    userId: string | undefined,
+    learner: LearnerRef,
     sessionId: string
-  ): Promise<{ session: ITopicSessionDocument; user?: IUserDocument }> {
+  ): Promise<{ session: ITopicSessionDocument; profile: StaticLearnerProfile }> {
+    const userId = learnerIdOf(learner);
     const session = await this.sessionRepo.findSession(sessionId, userId);
     if (!session) {
       throw new AppError(
@@ -293,34 +294,22 @@ export class InteractService {
       );
     }
 
-    if (userId) {
-      const user = await this.userRepo.findById(userId);
-      if (
-        !user ||
-        !user.profile.isCompleted ||
-        !user.profile.educationLevel ||
-        !user.profile.preferredStyle
-      ) {
-        throw new AppError(
-          403,
-          ErrorCode.PROFILE_INCOMPLETE,
-          'Learner profile is incomplete.'
-        );
-      }
-      return { session, user };
-    }
-
-    return { session, user: undefined };
+    const profile = await resolveLearnerProfile(learner, this.userRepo);
+    return { session, profile };
   }
 
   /**
    * Initializes Interact Mode for a session.
-   * Idempotent: If already initialized, returns existing state without calling Gemini or incrementing quota.
+   * Idempotent: If already initialized, returns existing state without calling Gemini and
+   * releases the reserved quota unit. Concurrent initializers: only the first write lands and
+   * only that request keeps its quota unit (A-07).
    */
   async initializeInteract(
-    userId: string | undefined,
-    sessionId: string
+    learner: LearnerRef,
+    sessionId: string,
+    reservation?: QuotaReservation
   ): Promise<{ session: TopicSessionDTO; quota?: QuotaMetaDTO }> {
+    const userId = learnerIdOf(learner);
     const session = await this.sessionRepo.findSession(sessionId, userId);
     if (!session) {
       throw new AppError(
@@ -336,39 +325,13 @@ export class InteractService {
       session.interactState.status !== InteractStatus.NOT_STARTED &&
       session.interactState.milestones.length >= 3
     ) {
-      let quotaMeta: QuotaMetaDTO | undefined;
-      if (userId) {
-        const user = await this.userRepo.findById(userId);
-        quotaMeta = user ? toQuotaMetaDTO(user.usageQuota) : undefined;
-      }
       return {
         session: toTopicSessionDTO(session),
-        quota: quotaMeta,
+        quota: await reservation?.release(),
       };
     }
 
-    let profile: StaticLearnerProfile = DEFAULT_GUEST_PROFILE;
-
-    if (userId) {
-      const user = await this.userRepo.findById(userId);
-      if (
-        !user ||
-        !user.profile.isCompleted ||
-        !user.profile.educationLevel ||
-        !user.profile.preferredStyle
-      ) {
-        throw new AppError(
-          403,
-          ErrorCode.PROFILE_INCOMPLETE,
-          'Learner profile is incomplete.'
-        );
-      }
-
-      profile = {
-        educationLevel: user.profile.educationLevel,
-        preferredStyle: user.profile.preferredStyle,
-      };
-    }
+    const profile = await resolveLearnerProfile(learner, this.userRepo);
 
     const systemInstruction = PromptBuilder.buildSystemInstruction(
       profile,
@@ -383,10 +346,6 @@ export class InteractService {
       responseSchema: interactInitGeminiSchema,
       zodSchema: InteractInitOutputSchema,
     });
-
-    if (output.normalizedTitle && output.normalizedTitle.trim().length > 0) {
-      session.normalizedTitle = output.normalizedTitle.trim();
-    }
 
     const milestones: IInteractMilestone[] = output.milestones.map((m, idx) => ({
       milestoneNumber: m.milestoneNumber,
@@ -405,42 +364,63 @@ export class InteractService {
       createdAt: new Date().toISOString(),
     };
 
-    session.interactState = {
-      status: InteractStatus.ACTIVE,
-      activeMilestoneIndex: 0,
-      strikeCount: 0,
-      milestones,
-      messages: [openingMessage],
+    const set: Record<string, unknown> = {
+      interactState: {
+        status: InteractStatus.ACTIVE,
+        activeMilestoneIndex: 0,
+        strikeCount: 0,
+        milestones,
+        messages: [openingMessage],
+      },
+      lastActiveMode: LearningMode.INTERACT,
     };
-    session.lastActiveMode = LearningMode.INTERACT;
+    if (output.normalizedTitle && output.normalizedTitle.trim().length > 0) {
+      set.normalizedTitle = output.normalizedTitle.trim();
+    }
 
-    const savedSession = await this.sessionRepo.save(session);
-    let quotaMeta: QuotaMetaDTO | undefined;
-    if (userId) {
-      const updatedUser = await this.userRepo.incrementUserQuota(userId);
-      quotaMeta = updatedUser ? toQuotaMetaDTO(updatedUser.usageQuota) : undefined;
+    // Filtered save: the guard is the negation of the idempotency check above.
+    const saved = await this.sessionRepo.setIfMatches(
+      session._id,
+      {
+        $or: [
+          { 'interactState.status': InteractStatus.NOT_STARTED },
+          { 'interactState.milestones.2': { $exists: false } },
+        ],
+      },
+      set
+    );
+
+    if (!saved) {
+      const winner = await this.sessionRepo.findById(session._id);
+      if (!winner) {
+        throw new AppError(404, ErrorCode.RESOURCE_NOT_FOUND, 'Topic session not found.');
+      }
+      return { session: toTopicSessionDTO(winner), quota: await reservation?.release() };
     }
 
     return {
-      session: toTopicSessionDTO(savedSession),
-      quota: quotaMeta,
+      session: toTopicSessionDTO(saved),
+      quota: reservation?.commit(),
     };
   }
 
   /**
    * Processes a streaming Socratic interaction turn over SSE.
-   * On successful stream completion, updates state, appends messages, increments quota, and emits metadata.
-   * On failure mid-flight, leaves MongoDB state unchanged and emits event: error (Edge Case 4).
+   * On successful stream completion, updates state, appends messages, commits the reserved
+   * quota unit, and emits metadata.
+   * On failure mid-flight, leaves MongoDB state unchanged, releases the reserved quota unit
+   * and emits event: error (Edge Case 4).
    */
   async processTurnStream(
-    userId: string | undefined,
+    learner: LearnerRef,
     sessionId: string,
     payload: InteractStreamRequestDTO,
     sseWriter: SseWriter,
-    guestId?: string
+    reservation?: QuotaReservation
   ): Promise<void> {
-    const { session, user } = await this.validateTurnPreconditions(
-      userId,
+    const userId = learnerIdOf(learner);
+    const { session, profile } = await this.validateTurnPreconditions(
+      learner,
       sessionId
     );
 
@@ -452,13 +432,6 @@ export class InteractService {
       turnId,
       activeMilestoneIndex,
     });
-
-    const profile: StaticLearnerProfile = user
-      ? {
-          educationLevel: user.profile.educationLevel!,
-          preferredStyle: user.profile.preferredStyle!,
-        }
-      : DEFAULT_GUEST_PROFILE;
 
     const systemInstruction = PromptBuilder.buildSystemInstruction(
       profile,
@@ -476,7 +449,8 @@ export class InteractService {
       activeMilestoneIndex,
       strikeCount: session.interactState.strikeCount,
       forceDirectExplanation: payload.forceDirectExplanation ?? false,
-      history: session.interactState.messages.map((m) => ({
+      // Only the most recent turns; the milestone roadmap carries longer-range context (A-11).
+      history: session.interactState.messages.slice(-MAX_INTERACT_PROMPT_HISTORY).map((m) => ({
         role: m.role,
         content: m.content,
       })),
@@ -495,7 +469,11 @@ export class InteractService {
         operation: 'INTERACT_STREAM',
         systemInstruction,
         prompt,
+        abortSignal: sseWriter.signal,
       })) {
+        if (sseWriter.isAborted) {
+          break;
+        }
         const textToSend = parser.processChunk(chunk);
         if (textToSend.length > 0) {
           accumulatedAssistantText += textToSend;
@@ -518,15 +496,88 @@ export class InteractService {
         streamErr instanceof AppError
           ? streamErr.errorCode
           : ErrorCode.AI_UPSTREAM_FAILURE;
+      // A-17: only AppError messages are written for clients; raw SDK/runtime
+      // error text stays in the log entry above.
       const message =
-        streamErr instanceof Error
+        streamErr instanceof AppError
           ? streamErr.message
           : 'Failed to stream response from AI tutor.';
+      await releasePendingReservation(reservation);
       sseWriter.sendError({ code, message });
       return;
     }
 
-    const finalOutcome = parser.getOutcome();
+    // Client disconnected mid-stream: the turn was never delivered, so do not
+    // persist it or charge quota (A-14).
+    if (sseWriter.isAborted) {
+      logger.info(
+        { sessionId, userId, turnId },
+        'Client disconnected during Interact stream; turn discarded'
+      );
+      await releasePendingReservation(reservation);
+      return;
+    }
+
+    // Guard: an empty tutor reply must not be persisted or charged (A-04).
+    if (accumulatedAssistantText.trim().length === 0) {
+      logger.warn(
+        { sessionId, userId, turnId },
+        'Gemini returned an empty Interact reply; skipping persistence and quota'
+      );
+      await releasePendingReservation(reservation);
+      sseWriter.sendError({
+        code: ErrorCode.AI_UPSTREAM_FAILURE,
+        message: 'The tutor returned an empty response, please retry.',
+      });
+      return;
+    }
+
+    // Everything below runs after SSE headers were flushed, so failures must be
+    // reported as an SSE `error` frame rather than thrown to the error middleware.
+    try {
+      await this.persistTurnAndEmitMetadata({
+        session,
+        payload,
+        turnId,
+        activeMilestoneIndex,
+        outcome: parser.getOutcome(),
+        assistantText: accumulatedAssistantText,
+        sseWriter,
+        reservation,
+      });
+    } catch (persistErr) {
+      logger.error(
+        { err: persistErr, sessionId, userId, turnId },
+        'Failed to persist Interact turn after streaming'
+      );
+      await releasePendingReservation(reservation);
+      sseWriter.sendError({
+        code: ErrorCode.INTERNAL_SERVER_ERROR,
+        message: 'Your answer could not be saved. Please retry.',
+      });
+    }
+  }
+
+  private async persistTurnAndEmitMetadata(params: {
+    session: ITopicSessionDocument;
+    payload: InteractStreamRequestDTO;
+    turnId: string;
+    activeMilestoneIndex: number;
+    outcome: SocraticOutcome;
+    assistantText: string;
+    sseWriter: SseWriter;
+    reservation: QuotaReservation | undefined;
+  }): Promise<void> {
+    const {
+      session,
+      payload,
+      turnId,
+      activeMilestoneIndex,
+      sseWriter,
+      reservation,
+    } = params;
+    const finalOutcome = params.outcome;
+    const accumulatedAssistantText = params.assistantText;
 
     // 2. Pure state transition calculation
     const transition = computeNextInteractState({
@@ -565,17 +616,9 @@ export class InteractService {
     session.interactState.status = transition.nextStatus;
     session.lastActiveMode = LearningMode.INTERACT;
 
-    // 4. Save and increment quota atomically on turn success
+    // 4. Save, then keep the reserved quota unit: the turn was delivered and persisted
     await this.sessionRepo.save(session);
-    let quotaMeta: QuotaMetaDTO | undefined;
-    if (userId) {
-      const updatedUser = await this.userRepo.incrementUserQuota(userId);
-      quotaMeta = updatedUser
-        ? toQuotaMetaDTO(updatedUser.usageQuota)
-        : undefined;
-    } else if (guestId) {
-      quotaMeta = incrementGuestQuota(guestId);
-    }
+    const quotaMeta = reservation?.commit();
 
     // 5. Emit metadata and done frames
     sseWriter.sendMetadata({

@@ -13,9 +13,9 @@ import { User } from '../models/User.model.js';
 import { requireAuth, requireCompletedProfile } from '../middlewares/auth.middleware.js';
 import {
   quotaMiddleware,
-  incrementUserQuota,
   toQuotaMetaDTO,
 } from '../middlewares/quota.middleware.js';
+import { AppError } from '../utils/AppError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { authService } from '../services/auth.service.js';
 
@@ -29,12 +29,23 @@ describe('IMP-007: Rolling 24-Hour AI Usage Quota Middleware (BR-04)', () => {
       requireCompletedProfile,
       quotaMiddleware,
       asyncHandler(async (req, res) => {
-        const quota = await incrementUserQuota(req.user!.id);
+        // A successful AI action keeps the unit the middleware reserved.
+        const quota = req.quotaReservation!.commit();
         res.status(200).json({
           success: true,
           data: { ok: true },
           meta: { quota },
         });
+      })
+    );
+
+    testApp.post(
+      '/api/v1/test-ai-failure',
+      requireAuth,
+      requireCompletedProfile,
+      quotaMiddleware,
+      asyncHandler(async () => {
+        throw new AppError(502, ErrorCode.AI_UPSTREAM_FAILURE, 'Upstream failed');
       })
     );
 
@@ -233,6 +244,39 @@ describe('IMP-007: Rolling 24-Hour AI Usage Quota Middleware (BR-04)', () => {
 
       const user = await User.findById(userId);
       expect(user?.usageQuota.dailyCount).toBe(1);
+    });
+
+    it('releases the reserved unit when the AI action fails (A-06)', async () => {
+      const res = await request(app)
+        .post('/api/v1/test-ai-failure')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(502);
+      const user = await User.findById(userId);
+      expect(user?.usageQuota.dailyCount).toBe(0);
+    });
+
+    it('N parallel requests at limit-1 produce exactly one success and N-1 429s (A-07)', async () => {
+      await User.findByIdAndUpdate(userId, {
+        $set: {
+          'usageQuota.dailyCount': env.DAILY_AI_QUOTA_LIMIT - 1,
+          'usageQuota.windowResetAt': new Date(Date.now() + 12 * 60 * 60 * 1000),
+        },
+      });
+
+      const N = 6;
+      const responses = await Promise.all(
+        Array.from({ length: N }, () =>
+          request(app).post('/api/v1/test-ai-action').set('Authorization', `Bearer ${token}`)
+        )
+      );
+
+      const statuses = responses.map((r) => r.status).sort();
+      expect(statuses.filter((s) => s === 200)).toHaveLength(1);
+      expect(statuses.filter((s) => s === 429)).toHaveLength(N - 1);
+
+      const user = await User.findById(userId);
+      expect(user?.usageQuota.dailyCount).toBe(env.DAILY_AI_QUOTA_LIMIT);
     });
   });
 });

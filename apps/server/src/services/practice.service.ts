@@ -7,8 +7,7 @@ import {
   TopicSessionDTO,
   PracticeBatchGenerationDTO,
   PracticeBatchGenerationSchema,
-  StaticLearnerProfile,
-  DEFAULT_GUEST_PROFILE,
+  QuotaMetaDTO,
 } from '@mentora/shared';
 import { AppError } from '../utils/AppError.js';
 import {
@@ -23,7 +22,14 @@ import { generateStructuredOutput } from '../ai/gemini.client.js';
 import { PromptBuilder } from '../ai/prompts/prompt.builder.js';
 import { practiceBatchGeminiSchema } from '../ai/schemas/index.js';
 import { toTopicSessionDTO } from './session.service.js';
+import { LearnerRef, learnerIdOf, resolveLearnerProfile } from './learner-profile.js';
 import { AiOperation } from '../ai/model.router.js';
+import { QuotaReservation } from '../middlewares/quota.middleware.js';
+
+export interface PracticeResult {
+  session: TopicSessionDTO;
+  quota?: QuotaMetaDTO;
+}
 
 export class PracticeService {
   constructor(
@@ -36,13 +42,16 @@ export class PracticeService {
    * - Sequential tier lock check: throws 409 TIER_LOCKED if prerequisite tier is not completed (BR-02).
    * - Idempotency / No re-billing: returns existing batch if already in_progress or completed (BR-04).
    * - Reasoning-First structured generation: calls GEMINI_REASONING_MODEL with derivation-first schema (FR-017).
-   * - Saves questions with status = 'in_progress', increments user quota, and returns masked DTO (BR-03).
+   * - Saves questions with status = 'in_progress' only if no concurrent request already did (A-07),
+   *   commits the reserved quota unit for the winning write, and returns masked DTO (BR-03).
    */
   async generateBatch(
-    userId: string | undefined,
+    learner: LearnerRef,
     sessionId: string,
-    tier: PracticeTier
-  ): Promise<TopicSessionDTO> {
+    tier: PracticeTier,
+    reservation?: QuotaReservation
+  ): Promise<PracticeResult> {
+    const userId = learnerIdOf(learner);
     const session = await this.sessionRepo.findSession(sessionId, userId);
     if (!session) {
       throw new AppError(
@@ -85,32 +94,10 @@ export class PracticeService {
         session.markModified('practiceState');
         await this.sessionRepo.save(session);
       }
-      return toTopicSessionDTO(session);
+      return { session: toTopicSessionDTO(session), quota: await reservation?.release() };
     }
 
-    let profile: StaticLearnerProfile = DEFAULT_GUEST_PROFILE;
-
-    if (userId) {
-      // Validate learner profile completion (BR-01)
-      const user = await this.userRepo.findById(userId);
-      if (
-        !user ||
-        !user.profile.isCompleted ||
-        !user.profile.educationLevel ||
-        !user.profile.preferredStyle
-      ) {
-        throw new AppError(
-          403,
-          ErrorCode.PROFILE_INCOMPLETE,
-          'Learner profile is incomplete.'
-        );
-      }
-
-      profile = {
-        educationLevel: user.profile.educationLevel,
-        preferredStyle: user.profile.preferredStyle,
-      };
-    }
+    const profile = await resolveLearnerProfile(learner, this.userRepo);
 
     const systemInstruction = PromptBuilder.buildSystemInstruction(
       profile,
@@ -129,10 +116,6 @@ export class PracticeService {
       zodSchema: PracticeBatchGenerationSchema,
     });
 
-    if (output.normalizedTitle && output.normalizedTitle.trim().length > 0) {
-      session.normalizedTitle = output.normalizedTitle.trim();
-    }
-
     if (!output.questions || output.questions.length !== MCQ_BATCH_SIZE) {
       throw new AppError(
         502,
@@ -141,28 +124,53 @@ export class PracticeService {
       );
     }
 
-    session.practiceState.activeTier = tier;
-    session.practiceState.batches[tier].status = BatchStatus.IN_PROGRESS;
-    session.practiceState.batches[tier].questions = output.questions.map((q) => ({
-      questionNumber: q.questionNumber,
-      questionText: q.questionText.trim(),
-      options: q.options.map((opt) => opt.trim()),
-      hint: q.hint.trim(),
-      solutionExplanation: q.solutionExplanation.trim(),
-      correctOptionIndex: q.correctOptionIndex,
-    }));
-    session.practiceState.batches[tier].userAnswers = [];
-    session.practiceState.batches[tier].score = null;
-    session.practiceState.batches[tier].completedAt = null;
-    session.lastActiveMode = LearningMode.PRACTICE;
-
-    session.markModified('practiceState');
-    const savedSession = await this.sessionRepo.save(session);
-    if (userId) {
-      await this.userRepo.incrementUserQuota(userId);
+    const batchPath = `practiceState.batches.${tier}`;
+    const set: Record<string, unknown> = {
+      'practiceState.activeTier': tier,
+      [`${batchPath}.status`]: BatchStatus.IN_PROGRESS,
+      [`${batchPath}.questions`]: output.questions.map((q) => ({
+        questionNumber: q.questionNumber,
+        questionText: q.questionText.trim(),
+        options: q.options.map((opt) => opt.trim()),
+        hint: q.hint.trim(),
+        solutionExplanation: q.solutionExplanation.trim(),
+        correctOptionIndex: q.correctOptionIndex,
+      })),
+      [`${batchPath}.userAnswers`]: [],
+      [`${batchPath}.score`]: null,
+      [`${batchPath}.completedAt`]: null,
+      lastActiveMode: LearningMode.PRACTICE,
+    };
+    if (output.normalizedTitle && output.normalizedTitle.trim().length > 0) {
+      set.normalizedTitle = output.normalizedTitle.trim();
     }
 
-    return toTopicSessionDTO(savedSession);
+    // Filtered save: write only while the batch is still un-generated, i.e. the negation
+    // of the idempotency check above, so a concurrent generator cannot overwrite (A-07).
+    const saved = await this.sessionRepo.setIfMatches(
+      session._id,
+      {
+        $or: [
+          {
+            [`${batchPath}.status`]: {
+              $nin: [BatchStatus.IN_PROGRESS, BatchStatus.COMPLETED],
+            },
+          },
+          { [`${batchPath}.questions.${MCQ_BATCH_SIZE - 1}`]: { $exists: false } },
+        ],
+      },
+      set
+    );
+
+    if (!saved) {
+      const winner = await this.sessionRepo.findById(session._id);
+      if (!winner) {
+        throw new AppError(404, ErrorCode.RESOURCE_NOT_FOUND, 'Topic session not found.');
+      }
+      return { session: toTopicSessionDTO(winner), quota: await reservation?.release() };
+    }
+
+    return { session: toTopicSessionDTO(saved), quota: reservation?.commit() };
   }
 
   /**
@@ -204,6 +212,16 @@ export class PracticeService {
         409,
         ErrorCode.TIER_LOCKED,
         `Cannot submit locked batch for ${tier} tier.`
+      );
+    }
+
+    // A graded batch is final: once submitted, the answer key is revealed, so a
+    // second submission would let the learner overwrite their score (A-05).
+    if (batch.status === BatchStatus.COMPLETED) {
+      throw new AppError(
+        409,
+        ErrorCode.VALIDATION_ERROR,
+        'This batch has already been submitted.'
       );
     }
 

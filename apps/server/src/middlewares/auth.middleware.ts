@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
-import { UserProfileStateDTO, ErrorCode } from '@mentora/shared';
+import { UserProfileStateDTO, ErrorCode, GUEST_TOKEN_HEADER } from '@mentora/shared';
 import { AppError } from '../utils/AppError.js';
-import { verifyAccessToken } from '../services/auth.service.js';
+import { verifyAccessToken, verifyGuestToken } from '../services/auth.service.js';
 import { userRepository } from '../repositories/user.repository.js';
 import { IUserDocument } from '../models/User.model.js';
 
@@ -13,6 +13,10 @@ declare global {
         id: string;
         email: string;
         profile: UserProfileStateDTO;
+      };
+      /** Set when an unauthenticated request carries a valid guest token. */
+      guest?: {
+        sessionId: string;
       };
     }
   }
@@ -37,21 +41,31 @@ const toUserProfileDTO = (user: IUserDocument): UserProfileStateDTO => {
   };
 };
 
+const attachGuestIdentity = (req: Request): void => {
+  const rawGuestToken = req.get(GUEST_TOKEN_HEADER);
+  if (!rawGuestToken) {
+    return;
+  }
+  const sessionId = verifyGuestToken(rawGuestToken.trim());
+  if (sessionId) {
+    req.guest = { sessionId };
+  }
+};
+
 export const optionalAuth = async (
   req: Request,
   _res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      req.user = undefined;
-      return next();
-    }
+    req.user = undefined;
+    req.guest = undefined;
 
-    const token = authHeader.slice(7).trim();
+    const authHeader = req.headers.authorization;
+    const token =
+      authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
     if (!token) {
-      req.user = undefined;
+      attachGuestIdentity(req);
       return next();
     }
 
@@ -140,3 +154,35 @@ export const requireCompletedProfile = (
 };
 
 export const profileCompletedMiddleware = requireCompletedProfile;
+
+/**
+ * Guards every `/sessions/:id/...` route for unauthenticated callers: a guest may only
+ * touch the single session its guest token was issued for. Authenticated users pass
+ * through; their ownership is enforced by the userId filter in the repository.
+ *
+ * - no user and no valid guest token -> 401
+ * - valid guest token for a different session -> 404 (does not reveal whether the ID exists)
+ */
+export const requireSessionAccess = (
+  req: Request,
+  _res: Response,
+  next: NextFunction
+): void => {
+  if (req.user) {
+    return next();
+  }
+
+  if (!req.guest) {
+    return next(new AppError(401, ErrorCode.UNAUTHORIZED, 'Authentication required'));
+  }
+
+  const rawId = req.params.id;
+  const sessionId = Array.isArray(rawId) ? rawId[0] : rawId;
+  if (!sessionId || sessionId !== req.guest.sessionId) {
+    return next(
+      new AppError(404, ErrorCode.RESOURCE_NOT_FOUND, 'Topic session not found')
+    );
+  }
+
+  next();
+};

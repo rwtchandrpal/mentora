@@ -8,7 +8,7 @@ import {
   applyInteractMetadata,
 } from '../store/sessionSlice.js';
 import { setQuota } from '../store/authSlice.js';
-import { getStoredToken } from '../services/apiClient.js';
+import { buildAuthHeaders, notifyUnauthorized } from '../services/apiClient.js';
 import { env } from '../config/env.js';
 import type {
   SseStartEventDTO,
@@ -78,15 +78,15 @@ export const useSseStream = (sessionId: string | undefined): UseSseStreamReturn 
         })
       );
 
-      const token = getStoredToken();
       const url = `${env.VITE_API_BASE_URL}/sessions/${sessionId}/interact/stream`;
 
       try {
+        const authHeaders = buildAuthHeaders(`/sessions/${sessionId}/interact/stream`);
         const response = await fetch(url, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            ...authHeaders,
           },
           body: JSON.stringify({
             message: effectiveMessage,
@@ -96,6 +96,11 @@ export const useSseStream = (sessionId: string | undefined): UseSseStreamReturn 
         });
 
         if (!response.ok) {
+          // Same rule as the axios interceptor: a rejected bearer token means the
+          // session expired, so log out instead of leaving a dead session (A-09).
+          if (response.status === 401 && 'Authorization' in authHeaders) {
+            notifyUnauthorized();
+          }
           let errorMsg = `Server error (${response.status})`;
           try {
             const errJson = (await response.json()) as {

@@ -10,7 +10,7 @@ import {
   ExplanationStyle,
   type UserDTO,
 } from '@mentora/shared';
-import { apiClient, clearStoredToken } from '../services/apiClient.js';
+import { apiClient, clearStoredToken, getStoredToken, setStoredToken } from '../services/apiClient.js';
 import { createAppStore, type RootState } from '../store/index.js';
 import { AppRouter } from '../routes/AppRouter.js';
 import { LoginPage } from '../pages/LoginPage.js';
@@ -102,7 +102,7 @@ describe('IMP-011: Route Guards, Auth Pages, Mandatory Onboarding & Profile Sett
   // 1. Unauthenticated Route Guard (AC-1)
   // =========================================================================
   describe('1. Unauthenticated Guard (AC-1)', () => {
-    it('allows unauthenticated users (guest mode) to land directly on /workspace', () => {
+    it('allows unauthenticated users (guest mode) to land directly on /workspace', async () => {
       renderWithAppRouter(['/workspace'], {
         auth: {
           token: null,
@@ -113,9 +113,9 @@ describe('IMP-011: Route Guards, Auth Pages, Mandatory Onboarding & Profile Sett
         },
       });
 
-      // Verification: WorkspacePage is rendered in Guest Mode (bypasses login)
+      // Verification: WorkspacePage (lazy-loaded) is rendered in Guest Mode (bypasses login)
       expect(
-        screen.getByRole('heading', { name: /what topic would you like to master/i })
+        await screen.findByRole('heading', { name: /what topic would you like to master/i })
       ).toBeInTheDocument();
       expect(screen.getByText(/no history in guest mode/i)).toBeInTheDocument();
       expect(screen.getAllByRole('button', { name: /get started/i }).length).toBeGreaterThan(0);
@@ -152,6 +152,99 @@ describe('IMP-011: Route Guards, Auth Pages, Mandatory Onboarding & Profile Sett
 
       expect(screen.getByRole('status')).toBeInTheDocument();
       expect(screen.getByText(/authenticating session\.\.\./i)).toBeInTheDocument();
+    });
+  });
+
+  // =========================================================================
+  // 1b. Expired Token & /auth/me Failure Recovery (A-09, A-22)
+  // =========================================================================
+  describe('1b. Auth Recovery (A-09, A-22)', () => {
+    const errorAdapter = (status: number, code: string): AxiosAdapter => async (config) => {
+      throw new AxiosError(`Request failed with status code ${status}`, 'ERR_BAD_REQUEST', config as InternalAxiosRequestConfig, {}, {
+        status,
+        statusText: 'Error',
+        headers: {},
+        config: config as InternalAxiosRequestConfig,
+        data: { success: false, error: { code, message: 'Rejected' } },
+      });
+    };
+
+    it('logs the user out on the first 401 with an expired token and recovers into guest mode without a reload', async () => {
+      setStoredToken('expired-jwt');
+      apiClient.defaults.adapter = errorAdapter(401, 'UNAUTHORIZED');
+
+      const { store } = renderWithAppRouter(['/workspace'], {
+        auth: {
+          token: 'expired-jwt',
+          user: mockCompletedUser,
+          quota: null,
+          authStatus: 'authenticated',
+          error: null,
+        },
+      });
+
+      await waitFor(() => expect(store.getState().auth.token).toBeNull());
+      expect(store.getState().auth.authStatus).toBe('unauthenticated');
+      expect(getStoredToken()).toBeNull();
+      expect(
+        await screen.findByText(/no history in guest mode/i)
+      ).toBeInTheDocument();
+    });
+
+    it('does not leave a half-authenticated state when /auth/me fails with a 5xx, and offers a retry', async () => {
+      setStoredToken('valid-jwt');
+      let meCalls = 0;
+      let failMe = true;
+      apiClient.defaults.adapter = async (config) => {
+        if (config.url === '/auth/me') {
+          meCalls += 1;
+          if (failMe) {
+            return errorAdapter(503, 'INTERNAL_SERVER_ERROR')(config);
+          }
+          return {
+            data: { success: true, data: mockCompletedUser },
+            status: 200,
+            statusText: 'OK',
+            headers: {},
+            config: config as InternalAxiosRequestConfig,
+          };
+        }
+        return {
+          data: { success: true, data: [] },
+          status: 200,
+          statusText: 'OK',
+          headers: {},
+          config: config as InternalAxiosRequestConfig,
+        };
+      };
+
+      const { store } = renderWithAppRouter(['/workspace'], {
+        auth: {
+          token: 'valid-jwt',
+          user: null,
+          quota: null,
+          authStatus: 'idle',
+          error: null,
+        },
+      });
+
+      const retryButton = await screen.findByRole(
+        'button',
+        { name: /retry/i },
+        { timeout: 4000 }
+      );
+      // One automatic retry with back-off before surfacing the failure
+      expect(meCalls).toBe(2);
+      const auth = store.getState().auth;
+      expect(auth.token).toBe('valid-jwt');
+      expect(auth.user).toBeNull();
+      expect(auth.authStatus).not.toBe('unauthenticated');
+      expect(getStoredToken()).toBe('valid-jwt');
+
+      failMe = false;
+      fireEvent.click(retryButton);
+      await waitFor(() => expect(store.getState().auth.authStatus).toBe('authenticated'));
+      expect(store.getState().auth.user?.id).toBe(mockCompletedUser.id);
     });
   });
 
