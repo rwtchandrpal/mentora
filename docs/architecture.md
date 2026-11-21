@@ -77,7 +77,7 @@ flowchart TB
 ### A.3 Primary Request & Response Flows
 
 1. **Explain Mode Flow (Structured JSON Request/Response):**
-   * The client dispatches `POST /api/v1/sessions` (or `/explain/init`) with `{ topic, initialMode: 'explain' }`.
+   * The client dispatches `POST /api/v1/sessions` (or `/explain/init`) with `{ topicQuery, initialMode: 'explain' }`.
    * The backend verifies the user's JWT and daily quota (`< 50` actions/day), injects the user's **Static Learner Profile** (`educationLevel`, `preferredStyle`), and requests a 4-card structured JSON payload from Gemini (`Intuition`, `Core Mechanism`, `Example`, `Check-for-Understanding`).
    * The backend validates the JSON response against the shared Zod schema, persists the 4 cards inside `TopicSession.explainState`, increments the user's quota counter, and returns the session state. Advancing via **`Next`** is instantaneous on the client (updating `currentStepIndex`).
 2. **Interact Mode Flow (Diagnostic Initialization + Real-Time SSE Turn Streaming):**
@@ -248,7 +248,7 @@ Unauthenticated visitors can create and use **guest sessions**. The same routes 
 * **Guest token:** the create response returns `meta.guestToken`, a JWT `{ sid, typ: 'guest' }` signed with `JWT_SECRET` and expiring with the session. Its `typ` differs from user tokens, so neither can be used as the other.
 * **Access check:** clients send the token as `X-Guest-Token` (allowed in CORS). `optionalAuth` verifies it and sets `req.guest = { sessionId }`. `requireSessionAccess` guards every `/sessions/:id/...` route: no user and no valid token returns `401`; a token for a different session returns `404`, so the response doesn't reveal whether the ID exists.
 * **Profile:** guests use `DEFAULT_GUEST_PROFILE` for prompt building; `requireCompletedProfile` only applies to users.
-* **Quota:** guests get `GUEST_DAILY_AI_QUOTA_LIMIT` (15) AI actions per 24 h window, keyed by `req.ip` (resolved by Express with `trust proxy`, which must equal the number of proxy hops). Counters live in the `guestquotas` collection (`{ _id: guestId, count, windowResetAt }`, TTL on `windowResetAt`) and are reserved atomically, then released if no AI work runs.
+* **Quota:** guests get `GUEST_DAILY_AI_QUOTA_LIMIT` (15) AI actions per 24 h window, keyed by `req.ip` (resolved by Express with `trust proxy` = `TRUST_PROXY`, default `1`, which must equal the number of proxy hops). Counters live in the `guestquotas` collection (`{ _id: guestId, count, windowResetAt }`, TTL on `windowResetAt`) and are reserved atomically, then released if no AI work runs.
 * **Client:** `localStorage` (key `mentora_guest_tokens`) holds a `sessionId → guestToken` map; expired tokens are dropped on read. Any tab in the same browser can reopen the session until its TTL; other browsers and devices hold no token and are denied. Both the axios interceptor and the SSE `fetch` attach the header. Guests have no session history (`GET /sessions` requires auth).
 
 ---
@@ -279,7 +279,7 @@ Every call to the Google Gemini API is constructed by the **`PromptBuilder`** se
 * **Inputs:** `topicQuery` and `StaticLearnerProfile`.
 * **Outputs:**
   * On initialization: A validated 4-element `ExplainCard[]` array persisted to `TopicSession.explainState.cards`, with `currentStepIndex` set to `0` (so only Card 1 is visible initially, per `AC-EXP-01`).
-  * On `Next`: Client increments `currentStepIndex` (up to `3`) and syncs via `PATCH /api/v1/sessions/:id/explain/progress`.
+  * On `Next`: Client increments `currentStepIndex` (up to `3`) and syncs via `PATCH /api/v1/sessions/:id/explain/step` (`{ stepIndex }`).
 
 ### E.4 Mode 2: Interact Mode Engine & 3-Strike Socratic Circuit Breaker (`FR-010`–`FR-013`)
 * **Responsibility:** Guide the learner through 3–5 explicit conceptual milestones via Socratic dialogue while preventing infinite questioning loops using a deterministic server-side state machine.
@@ -448,17 +448,19 @@ All endpoints are prefixed with `/api/v1`.
 | **Auth** | `POST /api/v1/auth/login` | Public | Verifies credentials, returns JWT + `UserDTO`. |
 | **Auth** | `GET /api/v1/auth/me` | JWT | Returns current authenticated `UserDTO` and live `usageQuota` counter. |
 | **Profile** | `PUT /api/v1/profile` | JWT | Saves/updates Static Learner Profile (`educationLevel`, `preferredStyle`) and sets `isCompleted = true` (`FR-002`, `FR-003`). |
-| **Sessions** | `GET /api/v1/sessions` | JWT + Profile | Lists user's saved `TopicSession` summaries sorted by `updatedAt DESC` for the Left Sidebar (`FR-006`). |
-| **Sessions** | `POST /api/v1/sessions` | JWT + Profile + Quota | Creates a new `TopicSession` for `{ topicQuery, initialMode }` and automatically initializes the selected mode (`FR-004`). |
-| **Sessions** | `GET /api/v1/sessions/:id` | JWT + Profile | Returns full `TopicSessionDTO` (with unsubmitted Practice answer keys masked per `BR-03`). |
-| **Sessions** | `PATCH /api/v1/sessions/:id/mode` | JWT + Profile | Updates `lastActiveMode` (`explain` \| `interact` \| `practice`) when switching tabs (`FR-005`). |
-| **Sessions** | `DELETE /api/v1/sessions/:id` | JWT + Profile | Permanently deletes a saved `TopicSession` (`FR-006`). |
-| **Explain** | `POST /api/v1/sessions/:id/explain/init` | JWT + Profile + Quota | Generates the 4 core Explain cards if `explainState.status === 'not_started'` (`FR-007`). |
-| **Explain** | `PATCH /api/v1/sessions/:id/explain/step` | JWT + Profile | Advances `currentStepIndex` when user clicks `Next` (`FR-008`, `AC-EXP-02`). |
-| **Interact** | `POST /api/v1/sessions/:id/interact/init` | JWT + Profile + Quota | Generates 3–5 conceptual milestones and opening diagnostic prompt (`FR-010`, `AC-INT-01`). |
-| **Interact** | `POST /api/v1/sessions/:id/interact/stream`| JWT + Profile + Quota | Accepts `{ message, forceDirectExplanation? }`, runs 3-Strike state machine, streams SSE response (`FR-011`–`FR-013`). |
-| **Practice** | `POST /api/v1/sessions/:id/practice/generate` | JWT + Profile + Quota | Generates 10 MCQs for `{ tier: 'easy' \| 'medium' \| 'hard' }` if unlocked (`FR-014`, `BR-02`). |
-| **Practice** | `POST /api/v1/sessions/:id/practice/submit` | JWT + Profile | Accepts `{ tier, answers: number[10] }`, grades batch, reveals explanations, and unlocks next tier (`FR-016`, `BR-03`). |
+| **Sessions** | `GET /api/v1/sessions` | JWT + Profile (users only; guests get `401`) | Lists user's saved `TopicSession` summaries sorted by `updatedAt DESC` for the Left Sidebar (`FR-006`). |
+| **Sessions** | `POST /api/v1/sessions` | (JWT + Profile) or Guest† + Quota | Creates a new `TopicSession` for `{ topicQuery, initialMode, autoInitialize? }` and automatically initializes the selected mode (`FR-004`). Without a bearer token it creates a guest session and returns `meta.guestToken`. |
+| **Sessions** | `GET /api/v1/sessions/:id` | (JWT + Profile) or Guest† | Returns full `TopicSessionDTO` (with unsubmitted Practice answer keys masked per `BR-03`). |
+| **Sessions** | `PATCH /api/v1/sessions/:id/mode` | (JWT + Profile) or Guest† | Updates `lastActiveMode` (`explain` \| `interact` \| `practice`) when switching tabs (`FR-005`). |
+| **Sessions** | `DELETE /api/v1/sessions/:id` | (JWT + Profile) or Guest† | Permanently deletes a saved `TopicSession` (`FR-006`). |
+| **Explain** | `POST /api/v1/sessions/:id/explain/init` | (JWT + Profile) or Guest† + Quota | Generates the 4 core Explain cards if `explainState.status === 'not_started'` (`FR-007`). |
+| **Explain** | `PATCH /api/v1/sessions/:id/explain/step` | (JWT + Profile) or Guest† | Advances `currentStepIndex` when user clicks `Next` (`FR-008`, `AC-EXP-02`). |
+| **Interact** | `POST /api/v1/sessions/:id/interact/init` | (JWT + Profile) or Guest† + Quota | Generates 3–5 conceptual milestones and opening diagnostic prompt (`FR-010`, `AC-INT-01`). |
+| **Interact** | `POST /api/v1/sessions/:id/interact/stream`| (JWT + Profile) or Guest† + Quota | Accepts `{ message, forceDirectExplanation? }`, runs 3-Strike state machine, streams SSE response (`FR-011`–`FR-013`). Returns `409 CONFLICT` (no charge) once the session is `completed`. |
+| **Practice** | `POST /api/v1/sessions/:id/practice/generate` | (JWT + Profile) or Guest† + Quota | Generates 10 MCQs for `{ tier: 'easy' \| 'medium' \| 'hard' }` if unlocked (`FR-014`, `BR-02`). |
+| **Practice** | `POST /api/v1/sessions/:id/practice/submit` | (JWT + Profile) or Guest† | Accepts `{ tier, answers: number[10] }`, grades batch, reveals explanations, and unlocks next tier (`FR-016`, `BR-03`). A batch is graded once; a repeat or concurrent submit returns `409 CONFLICT`. |
+
+† **Guest:** no bearer token, plus `X-Guest-Token` for `/sessions/:id/**` routes; the token only unlocks the session it was issued for (see §D.4). Request-rate limits return `429 RATE_LIMIT_EXCEEDED`; the daily AI quota returns `429 DAILY_QUOTA_EXCEEDED`.
 
 ### G.3 SSE Streaming Protocol Specification (`POST /api/v1/sessions/:id/interact/stream`)
 The endpoint emits standard SSE frames:

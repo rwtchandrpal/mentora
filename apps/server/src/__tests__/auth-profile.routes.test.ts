@@ -8,6 +8,7 @@ import {
   EducationLevel,
   ExplanationStyle,
   ErrorCode,
+  ApiErrorEnvelopeSchema,
 } from '@mentora/shared';
 import { env } from '../config/env.js';
 import { createApp } from '../app.js';
@@ -376,10 +377,12 @@ describe('IMP-006: Auth & Profile Routes Integration Tests', () => {
       expect(blocked.body).toEqual({
         success: false,
         error: {
-          code: 'RATE_LIMIT_EXCEEDED',
+          code: ErrorCode.RATE_LIMIT_EXCEEDED,
           message: expect.any(String),
         },
       });
+      // The envelope satisfies the shared contract (M-02).
+      expect(ApiErrorEnvelopeSchema.safeParse(blocked.body).success).toBe(true);
 
       // A different email from the same IP has its own budget.
       const otherEmail = await request(limitedApp)

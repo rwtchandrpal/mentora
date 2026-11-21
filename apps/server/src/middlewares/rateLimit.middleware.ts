@@ -1,5 +1,6 @@
 import { Request, Response, RequestHandler } from 'express';
 import { rateLimit, ipKeyGenerator } from 'express-rate-limit';
+import { ErrorCode, type ApiErrorEnvelope } from '@mentora/shared';
 
 export interface RateLimitOptions {
   limit: number;
@@ -14,15 +15,16 @@ export const DEFAULT_AUTH_RATE_LIMIT: RateLimitOptions = {
   windowMs: FIFTEEN_MINUTES_MS,
 };
 
-const sendRateLimitExceeded = (message: string) => (_req: Request, res: Response) => {
-  res.status(429).json({
-    success: false,
-    error: {
-      code: 'RATE_LIMIT_EXCEEDED',
-      message,
-    },
-  });
-};
+const sendRateLimitExceeded =
+  (message: string) => (_req: Request, res: Response<ApiErrorEnvelope>) => {
+    res.status(429).json({
+      success: false,
+      error: {
+        code: ErrorCode.RATE_LIMIT_EXCEEDED,
+        message,
+      },
+    });
+  };
 
 export const createApiRateLimiter = (
   options: RateLimitOptions & { skip: () => boolean }

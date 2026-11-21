@@ -662,4 +662,70 @@ describe('IMP-021: Backend End-to-End Interact Mode Lifecycle & 3-Strike Circuit
     );
     expect(historyLines.at(-1)).toBe('USER: history-line-99');
   });
+
+  it('M-01: rejects turns on a completed session with 409, without charging quota or reopening it', async () => {
+    const user = await registerAndProfileUser('Leslie Lamport', 'lamport@example.com');
+
+    const createRes = await request(app)
+      .post('/api/v1/sessions')
+      .set('Authorization', `Bearer ${user.token}`)
+      .send({
+        topicQuery: 'Distributed Consensus in Raft',
+        initialMode: LearningMode.INTERACT,
+        autoInitialize: false,
+      });
+    expect(createRes.status).toBe(201);
+    const sessionId = createRes.body.data.id as string;
+
+    setGeminiClient({
+      models: {
+        generateContent: vi.fn().mockResolvedValue({
+          text: JSON.stringify(mockInteractInitPayload),
+        }),
+      },
+    } as unknown as GoogleGenAI);
+    const initRes = await request(app)
+      .post(`/api/v1/sessions/${sessionId}/interact/init`)
+      .set('Authorization', `Bearer ${user.token}`);
+    expect(initRes.status).toBe(200);
+
+    // Mark every milestone mastered, as the final ADVANCE turn would.
+    await TopicSession.updateOne(
+      { _id: sessionId },
+      {
+        $set: {
+          'interactState.status': InteractStatus.COMPLETED,
+          'interactState.activeMilestoneIndex': 2,
+          'interactState.milestones.$[].status': MilestoneStatus.COMPLETED,
+        },
+      }
+    );
+    const quotaBefore = (await User.findById(user.userId))?.usageQuota.dailyCount;
+
+    const generateContentStream = vi.fn().mockImplementation(async function* () {
+      yield { text: '<<MENTORA_STATE:{"outcome":"STRIKE"}>>\nOne more question...' };
+    });
+    setGeminiClient({
+      models: { generateContent: vi.fn(), generateContentStream },
+    } as unknown as GoogleGenAI);
+
+    const turnRes = await request(app)
+      .post(`/api/v1/sessions/${sessionId}/interact/stream`)
+      .set('Authorization', `Bearer ${user.token}`)
+      .send({ message: 'Can we keep going?' });
+
+    // Rejected as a plain JSON error before any SSE headers are sent.
+    expect(turnRes.status).toBe(409);
+    expect(turnRes.headers['content-type']).toContain('application/json');
+    expect(turnRes.body.success).toBe(false);
+    expect(turnRes.body.error.code).toBe(ErrorCode.CONFLICT);
+    expect(generateContentStream).not.toHaveBeenCalled();
+
+    const sessionInDb = await TopicSession.findById(sessionId);
+    expect(sessionInDb?.interactState.status).toBe(InteractStatus.COMPLETED);
+    expect(sessionInDb?.interactState.messages).toHaveLength(1);
+
+    const quotaAfter = (await User.findById(user.userId))?.usageQuota.dailyCount;
+    expect(quotaAfter).toBe(quotaBefore);
+  });
 });

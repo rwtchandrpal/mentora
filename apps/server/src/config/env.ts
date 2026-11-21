@@ -13,6 +13,12 @@ export const EnvSchema = z.object({
   GEMINI_FAST_MODEL: z.string().trim().min(1).default('gemini-3.5-flash-lite'),
   GEMINI_REASONING_MODEL: z.string().trim().min(1).default('gemini-3.5-flash-lite'),
   DAILY_AI_QUOTA_LIMIT: z.coerce.number().int().positive().default(DAILY_AI_QUOTA_LIMIT),
+  /**
+   * Number of reverse-proxy hops in front of the server, passed to Express `trust proxy`.
+   * `req.ip` (guest quota key and rate-limit key) is only the real client IP when this
+   * matches the platform; too low and every client looks like the proxy.
+   */
+  TRUST_PROXY: z.coerce.number().int().min(0).max(10).default(1),
 });
 
 export type Env = z.infer<typeof EnvSchema>;

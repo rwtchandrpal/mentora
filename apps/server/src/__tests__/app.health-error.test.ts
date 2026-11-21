@@ -5,7 +5,7 @@ import express, { Request, Response } from 'express';
 import { z } from 'zod';
 import { ErrorCode } from '@mentora/shared';
 import { env, parseEnv, resolveRawEnv } from '../config/env.js';
-import { app } from '../app.js';
+import { app, createApp } from '../app.js';
 import { AppError } from '../utils/AppError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { validateRequest } from '../middlewares/validate.middleware.js';
@@ -58,6 +58,28 @@ describe('IMP-004: Server Bootstrap, Config, Logger, & Error Handling', () => {
     it('throws validation error when JWT_SECRET is shorter than 32 characters', () => {
       const invalidEnv = { ...validRawEnv, JWT_SECRET: 'short-secret-under-32-chars' };
       expect(() => parseEnv(invalidEnv)).toThrow();
+    });
+
+    it('TRUST_PROXY defaults to 1 hop, accepts a numeric override, and rejects non-integers (M-04)', () => {
+      expect(parseEnv(validRawEnv).TRUST_PROXY).toBe(1);
+      expect(parseEnv({ ...validRawEnv, TRUST_PROXY: '2' }).TRUST_PROXY).toBe(2);
+      expect(() => parseEnv({ ...validRawEnv, TRUST_PROXY: 'true' })).toThrow();
+      expect(() => parseEnv({ ...validRawEnv, TRUST_PROXY: '-1' })).toThrow();
+    });
+
+    it('resolves req.ip from X-Forwarded-For using the configured hop count (M-04)', async () => {
+      const ipApp = createApp((a) => {
+        a.get('/__test/ip', (req, res) => {
+          res.json({ ip: req.ip });
+        });
+      });
+      // One trusted hop: the right-most X-Forwarded-For entry is the client, while
+      // left-most entries (client-controlled) are ignored.
+      const res = await request(ipApp)
+        .get('/__test/ip')
+        .set('X-Forwarded-For', '6.6.6.6, 203.0.113.7');
+      expect(env.TRUST_PROXY).toBe(1);
+      expect(res.body.ip).toBe('203.0.113.7');
     });
   });
 
