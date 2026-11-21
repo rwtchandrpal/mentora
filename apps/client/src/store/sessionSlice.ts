@@ -393,6 +393,13 @@ export const sessionSlice = createSlice({
       state.streamingState.activeTurnId = action?.payload?.turnId ?? null;
       state.streamingState.activeTurnMessage = action?.payload?.message ?? null;
     },
+    /**
+     * Records the server-assigned turn ID from the SSE `start` frame. Unlike startStreaming it
+     * leaves the in-flight learner message and the token buffer untouched.
+     */
+    setActiveTurnId: (state, action: PayloadAction<string>) => {
+      state.streamingState.activeTurnId = action.payload;
+    },
     appendStreamToken: (state, action: PayloadAction<string>) => {
       state.streamingState.streamBuffer += action.payload;
     },
@@ -687,6 +694,7 @@ export const {
   clearInteractError,
   clearPracticeError,
   startStreaming,
+  setActiveTurnId,
   appendStreamToken,
   setStreamError,
   clearStreamError,

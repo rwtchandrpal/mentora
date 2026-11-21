@@ -542,6 +542,106 @@ describe('IMP-020: Frontend SSE Client Hook (useSseStream) & Interact Mode UI St
     });
   });
 
+  // 6b. In-flight learner message stays visible for the whole turn (H-03)
+  describe('in-flight learner message', () => {
+    const encode = (chunk: string) => new TextEncoder().encode(chunk);
+
+    const sendLearnerMessage = (text: string) => {
+      fireEvent.change(screen.getByTestId('chat-input-textarea'), { target: { value: text } });
+      fireEvent.click(screen.getByTestId('chat-send-button'));
+    };
+
+    it('stays visible after the SSE start frame until the turn is persisted', async () => {
+      let pushRest: (() => void) | undefined;
+      const stream = new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(
+            encode('event: start\ndata: {"turnId":"turn-live","activeMilestoneIndex":0}\n\n')
+          );
+          controller.enqueue(encode('event: token\ndata: {"delta":"Partial tutor reply"}\n\n'));
+          pushRest = () => {
+            controller.enqueue(
+              encode(
+                'event: metadata\ndata: {"activeMilestoneIndex":0,"strikeCount":1,"milestones":[],"isCompleted":false,' +
+                  '"userMessage":{"id":"user-live","role":"user","content":"My in-flight answer","milestoneNumber":1,"strikeNumberAtTurn":0,"isCircuitBreakerExplanation":false,"createdAt":"2026-10-27T10:09:00.000Z"},' +
+                  '"assistantMessage":{"id":"turn-live","role":"assistant","content":"Partial tutor reply","milestoneNumber":1,"strikeNumberAtTurn":1,"isCircuitBreakerExplanation":false,"createdAt":"2026-10-27T10:09:01.000Z"}}\n\n'
+              )
+            );
+            controller.enqueue(encode('event: done\ndata: [DONE]\n\n'));
+            controller.close();
+          };
+        },
+      });
+      globalThis.fetch = vi.fn().mockResolvedValue(
+        new Response(stream, { status: 200, headers: { 'Content-Type': 'text/event-stream' } })
+      );
+
+      renderStage();
+      sendLearnerMessage('My in-flight answer');
+
+      // The start and first token frames have been processed...
+      await waitFor(() => {
+        expect(screen.getByText('Partial tutor reply')).toBeInTheDocument();
+      });
+      // ...and the learner's message is still on screen.
+      expect(screen.getByTestId('chat-message-user-inflight')).toHaveTextContent(
+        'My in-flight answer'
+      );
+
+      pushRest?.();
+
+      // Once persisted, the in-flight bubble is replaced by the saved transcript message.
+      await waitFor(() => {
+        expect(screen.queryByTestId('chat-message-user-inflight')).not.toBeInTheDocument();
+      });
+      expect(screen.getByText('My in-flight answer')).toBeInTheDocument();
+    });
+
+    it('stays visible next to Retry when the server sends an SSE error frame', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue(
+        new Response(
+          createMockSseStream([
+            'event: start\ndata: {"turnId":"turn-err","activeMilestoneIndex":0}\n\n',
+            'event: error\ndata: {"code":"AI_UPSTREAM_FAILURE","message":"Failed to stream response from AI tutor."}\n\n',
+          ]),
+          { status: 200, headers: { 'Content-Type': 'text/event-stream' } }
+        )
+      );
+
+      renderStage();
+      sendLearnerMessage('Answer that hits an upstream error');
+
+      await waitFor(() => {
+        expect(screen.getByTestId('stream-error-banner')).toBeInTheDocument();
+      });
+      expect(screen.getByTestId('chat-message-user-inflight')).toHaveTextContent(
+        'Answer that hits an upstream error'
+      );
+    });
+
+    it('shows a retryable error when the stream closes without a done frame', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue(
+        new Response(
+          createMockSseStream([
+            'event: start\ndata: {"turnId":"turn-cut","activeMilestoneIndex":0}\n\n',
+            'event: token\ndata: {"delta":"Half a sente"}\n\n',
+          ]),
+          { status: 200, headers: { 'Content-Type': 'text/event-stream' } }
+        )
+      );
+
+      renderStage();
+      sendLearnerMessage('Answer whose reply gets cut off');
+
+      await waitFor(() => {
+        expect(screen.getByTestId('stream-error-banner')).toBeInTheDocument();
+      });
+      expect(screen.getByTestId('chat-message-user-inflight')).toHaveTextContent(
+        'Answer whose reply gets cut off'
+      );
+    });
+  });
+
   // 7. All Milestones Mastered Completion Banner & Mode Switch CTA
   it('displays completion banner and Practice Mode CTA when all milestones are completed', () => {
     const allCompletedMilestones: InteractMilestoneDTO[] = mockMilestones.map((m) => ({

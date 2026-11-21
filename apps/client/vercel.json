@@ -1,6 +1,9 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "vite",
+  "installCommand": "cd ../.. && pnpm install --frozen-lockfile",
+  "buildCommand": "cd ../.. && pnpm --filter @mentora/shared build && pnpm --filter @mentora/client build",
+  "outputDirectory": "dist",
   "rewrites": [
     {
       "source": "/(.*)",

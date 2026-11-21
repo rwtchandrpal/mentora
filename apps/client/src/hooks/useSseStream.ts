@@ -2,6 +2,7 @@ import { useCallback, useRef } from 'react';
 import { useAppDispatch, useAppSelector } from '../store/hooks.js';
 import {
   startStreaming,
+  setActiveTurnId,
   appendStreamToken,
   setStreamError,
   finishStreaming,
@@ -126,6 +127,9 @@ export const useSseStream = (sessionId: string | undefined): UseSseStreamReturn 
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let sseBuffer = '';
+        // Set once the turn ends cleanly (`done`) or the server reported a failure (`error`).
+        let receivedDone = false;
+        let receivedError = false;
 
         while (true) {
           const { done, value } = await reader.read();
@@ -164,7 +168,9 @@ export const useSseStream = (sessionId: string | undefined): UseSseStreamReturn 
             if (eventType === 'start') {
               try {
                 const startData = JSON.parse(dataStr) as SseStartEventDTO;
-                dispatch(startStreaming({ turnId: startData.turnId }));
+                // Only record the turn ID: re-running startStreaming here would wipe the
+                // learner's in-flight message while the reply streams.
+                dispatch(setActiveTurnId(startData.turnId));
               } catch {
                 // Ignore parse errors on start frame
               }
@@ -189,8 +195,10 @@ export const useSseStream = (sessionId: string | undefined): UseSseStreamReturn 
                 console.error('[useSseStream] Failed to parse metadata SSE frame:', e);
               }
             } else if (eventType === 'done') {
+              receivedDone = true;
               dispatch(finishStreaming());
             } else if (eventType === 'error') {
+              receivedError = true;
               try {
                 const errorData = JSON.parse(dataStr) as SseErrorEventDTO;
                 dispatch(setStreamError(errorData.message || 'Stream error'));
@@ -201,7 +209,18 @@ export const useSseStream = (sessionId: string | undefined): UseSseStreamReturn 
           }
         }
 
-        // Final safety cleanup if done event was omitted
+        if (receivedError) {
+          // Keep the learner's message on screen next to the Retry control (Edge Case 4).
+          return;
+        }
+        if (!receivedDone) {
+          // The stream closed without `done` or `error` (e.g. the server dropped the
+          // connection mid-reply). Nothing was persisted, so offer a retry.
+          dispatch(
+            setStreamError('Connection interrupted. Your progress on this milestone was preserved.')
+          );
+          return;
+        }
         dispatch(finishStreaming());
       } catch (err: unknown) {
         if (err instanceof DOMException && err.name === 'AbortError') {
