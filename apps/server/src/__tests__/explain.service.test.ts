@@ -99,7 +99,6 @@ describe('IMP-016: Backend Explain Mode Service & Endpoints (FR-007, FR-008, BR-
           'Think of searching for a word in a physical dictionary by opening to the middle.',
         checkQuestion: null,
         checkAnswer: null,
-        deepDives: [],
       },
       {
         stepNumber: 2,
@@ -109,7 +108,6 @@ describe('IMP-016: Backend Explain Mode Service & Endpoints (FR-007, FR-008, BR-
           'Maintain pointers $L$ and $R$. The midpoint is $M = \\lfloor (L + R) / 2 \\rfloor$. Halves search space each iteration: $\\mathcal{O}(\\log n)$.',
         checkQuestion: null,
         checkAnswer: null,
-        deepDives: [],
       },
       {
         stepNumber: 3,
@@ -119,7 +117,6 @@ describe('IMP-016: Backend Explain Mode Service & Endpoints (FR-007, FR-008, BR-
           '```typescript\nfunction binarySearch(arr: number[], target: number): number {\n  let l = 0, r = arr.length - 1;\n  while (l <= r) {\n    const m = Math.floor((l + r) / 2);\n    if (arr[m] === target) return m;\n    if (arr[m] < target) l = m + 1;\n    else r = m - 1;\n  }\n  return -1;\n}\n```',
         checkQuestion: null,
         checkAnswer: null,
-        deepDives: [],
       },
       {
         stepNumber: 4,
@@ -130,16 +127,8 @@ describe('IMP-016: Backend Explain Mode Service & Endpoints (FR-007, FR-008, BR-
         checkQuestion: 'What is the time complexity if the array is unsorted?',
         checkAnswer:
           'Binary search yields incorrect results on unsorted inputs; linear search $\\mathcal{O}(n)$ is required.',
-        deepDives: [],
       },
     ],
-    suggestedSubTopics: ['Exponential Search', 'Ternary Search', 'Order-Agnostic Binary Search'],
-  };
-
-  const mockExplainDeeperPayload = {
-    title: 'Midpoint Overflow Avoidance & Bitwise Halving',
-    contentMarkdown:
-      'In systems with 32-bit signed integers, `(L + R) / 2` can overflow when $L + R > 2^{31} - 1$. Instead, calculate $M = L + \\lfloor (R - L) / 2 \\rfloor$ or `(L + R) >>> 1`.',
   };
 
   describe('1. Explain Mode 4-Card Progressive Initialization (AC-EXP-01, FR-007)', () => {
@@ -301,143 +290,7 @@ describe('IMP-016: Backend Explain Mode Service & Endpoints (FR-007, FR-008, BR-
     });
   });
 
-  describe('3. "Go Deeper" Sub-Card Generation (AC-EXP-03, FR-008, BR-04)', () => {
-    it('generates and appends a DeepDiveSubCard under target card, preserves currentStepIndex, and increments quota', async () => {
-      const user = await setupUser('Katherine Johnson', 'katherine@example.com');
-      const session = await createTestSession(user.userId);
-
-      let callCount = 0;
-      const mockGenerateContent = vi.fn().mockImplementation(async () => {
-        callCount++;
-        if (callCount === 1) {
-          return { text: JSON.stringify(mockExplainInitPayload) };
-        }
-        return { text: JSON.stringify(mockExplainDeeperPayload) };
-      });
-
-      setGeminiClient({
-        models: { generateContent: mockGenerateContent },
-      } as unknown as GoogleGenAI);
-
-      // Initialize
-      await request(app)
-        .post(`/api/v1/sessions/${session._id.toString()}/explain/init`)
-        .set('Authorization', `Bearer ${user.token}`);
-
-      // Advance to step 1
-      await request(app)
-        .patch(`/api/v1/sessions/${session._id.toString()}/explain/step`)
-        .set('Authorization', `Bearer ${user.token}`)
-        .send({ stepIndex: 1 });
-
-      // Generate Go Deeper for Step 2 (Core Mechanism)
-      const deeperRes = await request(app)
-        .post(`/api/v1/sessions/${session._id.toString()}/explain/deeper`)
-        .set('Authorization', `Bearer ${user.token}`)
-        .send({ stepNumber: 2 });
-
-      expect(deeperRes.status).toBe(200);
-      expect(deeperRes.body.success).toBe(true);
-
-      const sessionData = deeperRes.body.data;
-      // AC-EXP-03: currentStepIndex preserved
-      expect(sessionData.explainState.currentStepIndex).toBe(1);
-
-      // Deep dive sub-card appended under card 2
-      const card2 = sessionData.explainState.cards[1];
-      expect(card2.deepDives).toHaveLength(1);
-      expect(card2.deepDives[0].depthLevel).toBe(1);
-      expect(card2.deepDives[0].title).toBe('Midpoint Overflow Avoidance & Bitwise Halving');
-      expect(card2.deepDives[0].id).toBeDefined();
-
-      // Quota incremented to 2
-      expect(deeperRes.body.meta?.quota?.used).toBe(2);
-      const dbUser = await User.findById(user.userId);
-      expect(dbUser?.usageQuota.dailyCount).toBe(2);
-    });
-
-    it('enforces MAX_DEEP_DIVE_DEPTH = 2 on repeated deep dives on the same card', async () => {
-      const user = await setupUser('Margaret Hamilton', 'margaret@example.com');
-      const session = await createTestSession(user.userId);
-
-      const mockGenerateContent = vi.fn().mockImplementation(async (req) => {
-        if (req.model.includes('flash')) {
-          return { text: JSON.stringify(mockExplainInitPayload) };
-        }
-        return { text: JSON.stringify(mockExplainDeeperPayload) };
-      });
-
-      setGeminiClient({
-        models: { generateContent: mockGenerateContent },
-      } as unknown as GoogleGenAI);
-
-      await request(app)
-        .post(`/api/v1/sessions/${session._id.toString()}/explain/init`)
-        .set('Authorization', `Bearer ${user.token}`);
-
-      // Deep dive 1 (depth 1)
-      const d1 = await request(app)
-        .post(`/api/v1/sessions/${session._id.toString()}/explain/deeper`)
-        .set('Authorization', `Bearer ${user.token}`)
-        .send({ stepNumber: 2 });
-      expect(d1.status).toBe(200);
-      expect(d1.body.data.explainState.cards[1].deepDives).toHaveLength(1);
-
-      // Deep dive 2 (depth 2)
-      const d2 = await request(app)
-        .post(`/api/v1/sessions/${session._id.toString()}/explain/deeper`)
-        .set('Authorization', `Bearer ${user.token}`)
-        .send({ stepNumber: 2 });
-      expect(d2.status).toBe(200);
-      expect(d2.body.data.explainState.cards[1].deepDives).toHaveLength(2);
-
-      // Deep dive 3: MUST fail with 400 VALIDATION_ERROR
-      const d3 = await request(app)
-        .post(`/api/v1/sessions/${session._id.toString()}/explain/deeper`)
-        .set('Authorization', `Bearer ${user.token}`)
-        .send({ stepNumber: 2 });
-      expect(d3.status).toBe(400);
-      expect(d3.body.error.code).toBe(ErrorCode.VALIDATION_ERROR);
-      expect(d3.body.error.message).toContain('Maximum deep-dive depth');
-    });
-
-    it('rejects invalid stepNumber (< 1 or > 4) with 400 VALIDATION_ERROR', async () => {
-      const user = await setupUser('Barbara Liskov', 'barbara@example.com');
-      const session = await createTestSession(user.userId);
-
-      const resZero = await request(app)
-        .post(`/api/v1/sessions/${session._id.toString()}/explain/deeper`)
-        .set('Authorization', `Bearer ${user.token}`)
-        .send({ stepNumber: 0 });
-
-      expect(resZero.status).toBe(400);
-      expect(resZero.body.error.code).toBe(ErrorCode.VALIDATION_ERROR);
-
-      const resFive = await request(app)
-        .post(`/api/v1/sessions/${session._id.toString()}/explain/deeper`)
-        .set('Authorization', `Bearer ${user.token}`)
-        .send({ stepNumber: 5 });
-
-      expect(resFive.status).toBe(400);
-      expect(resFive.body.error.code).toBe(ErrorCode.VALIDATION_ERROR);
-    });
-
-    it('rejects deep dive if explain mode has not been initialized for session', async () => {
-      const user = await setupUser('Claude Shannon', 'claude@example.com');
-      const session = await createTestSession(user.userId);
-
-      const res = await request(app)
-        .post(`/api/v1/sessions/${session._id.toString()}/explain/deeper`)
-        .set('Authorization', `Bearer ${user.token}`)
-        .send({ stepNumber: 1 });
-
-      expect(res.status).toBe(400);
-      expect(res.body.error.code).toBe(ErrorCode.VALIDATION_ERROR);
-      expect(res.body.error.message).toContain('Explain mode has not been initialized');
-    });
-  });
-
-  describe('4. Multi-Tenant User Isolation (NFR-005)', () => {
+  describe('3. Multi-Tenant User Isolation (NFR-005)', () => {
     it('returns 404 RESOURCE_NOT_FOUND when user attempts to access another user session', async () => {
       const userA = await setupUser('User A', 'userA@example.com');
       const userB = await setupUser('User B', 'userB@example.com');
@@ -459,20 +312,11 @@ describe('IMP-016: Backend Explain Mode Service & Endpoints (FR-007, FR-008, BR-
 
       expect(resStep.status).toBe(404);
       expect(resStep.body.error.code).toBe(ErrorCode.RESOURCE_NOT_FOUND);
-
-      // User B tries to call /deeper on User A's session
-      const resDeeper = await request(app)
-        .post(`/api/v1/sessions/${sessionA._id.toString()}/explain/deeper`)
-        .set('Authorization', `Bearer ${userB.token}`)
-        .send({ stepNumber: 1 });
-
-      expect(resDeeper.status).toBe(404);
-      expect(resDeeper.body.error.code).toBe(ErrorCode.RESOURCE_NOT_FOUND);
     });
   });
 
-  describe('5. Daily Quota Enforcement (BR-04)', () => {
-    it('blocks /init and /deeper with 429 DAILY_QUOTA_EXCEEDED when quota is exhausted, while /step remains allowed', async () => {
+  describe('4. Daily Quota Enforcement (BR-04)', () => {
+    it('blocks /init with 429 DAILY_QUOTA_EXCEEDED when quota is exhausted, while /step remains allowed', async () => {
       const exhaustedUser = await setupUser('Exhausted User', 'exhausted@example.com', true, 50);
       const session = await createTestSession(exhaustedUser.userId);
 
@@ -484,16 +328,6 @@ describe('IMP-016: Backend Explain Mode Service & Endpoints (FR-007, FR-008, BR-
       expect(resInit.status).toBe(429);
       expect(resInit.body.error.code).toBe(ErrorCode.DAILY_QUOTA_EXCEEDED);
       expect(resInit.body.error.details.used).toBe(50);
-
-      // 2. /deeper is blocked by quotaMiddleware
-      const resDeeper = await request(app)
-        .post(`/api/v1/sessions/${session._id.toString()}/explain/deeper`)
-        .set('Authorization', `Bearer ${exhaustedUser.token}`)
-        .send({ stepNumber: 1 });
-
-      expect(resDeeper.status).toBe(429);
-      expect(resDeeper.body.error.code).toBe(ErrorCode.DAILY_QUOTA_EXCEEDED);
-
       // 3. /step is a local progression control and MUST NOT be blocked by quota (BR-04)
       const resStep = await request(app)
         .patch(`/api/v1/sessions/${session._id.toString()}/explain/step`)
@@ -505,7 +339,7 @@ describe('IMP-016: Backend Explain Mode Service & Endpoints (FR-007, FR-008, BR-
     });
   });
 
-  describe('6. Educational Scope Guardrails (FR-018, Edge Case 1)', () => {
+  describe('5. Educational Scope Guardrails (FR-018, Edge Case 1)', () => {
     it('returns 422 EDUCATIONAL_GUARDRAIL_REFUSAL when model returns isEducationalValid = false', async () => {
       const user = await setupUser('Test Student', 'student@example.com');
       const session = await createTestSession(user.userId, 'How to write a keylogger');
@@ -539,7 +373,7 @@ describe('IMP-016: Backend Explain Mode Service & Endpoints (FR-007, FR-008, BR-
     });
   });
 
-  describe('7. Auth & Profile Guards (BR-01)', () => {
+  describe('6. Auth & Profile Guards (BR-01)', () => {
     it('rejects unauthenticated requests with 401 UNAUTHORIZED', async () => {
       const user = await setupUser('Valid User', 'valid@example.com');
       const session = await createTestSession(user.userId);

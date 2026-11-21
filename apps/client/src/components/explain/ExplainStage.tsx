@@ -1,5 +1,4 @@
 import React, { useEffect, useCallback, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   LearningMode,
   ExplainStatus,
@@ -8,9 +7,7 @@ import { useAppDispatch, useAppSelector } from '../../store/hooks.js';
 import {
   initializeExplainThunk,
   advanceExplainStepThunk,
-  generateDeepDiveThunk,
   switchSessionModeThunk,
-  createSessionThunk,
   clearExplainError,
 } from '../../store/sessionSlice.js';
 import { StepProgressBar } from './StepProgressBar.js';
@@ -18,14 +15,10 @@ import { ExplainCard } from './ExplainCard.js';
 
 export const ExplainStage: React.FC = () => {
   const dispatch = useAppDispatch();
-  const navigate = useNavigate();
 
   const activeSession = useAppSelector((state) => state.session.activeSession);
   const isInitializingExplain = useAppSelector(
     (state) => state.session.isInitializingExplain
-  );
-  const deepDiveLoadingStep = useAppSelector(
-    (state) => state.session.deepDiveLoadingStep
   );
   const explainError = useAppSelector((state) => state.session.explainError);
 
@@ -63,41 +56,12 @@ export const ExplainStage: React.FC = () => {
     [sessionId, explainState, dispatch]
   );
 
-  const handleGoDeeper = useCallback(
-    (stepNumber: number) => {
-      if (!sessionId) return;
-      void dispatch(
-        generateDeepDiveThunk({
-          sessionId,
-          stepNumber,
-        })
-      );
-    },
-    [sessionId, dispatch]
-  );
-
   const handleSwitchMode = useCallback(
     (mode: LearningMode) => {
       if (!sessionId) return;
       void dispatch(switchSessionModeThunk({ id: sessionId, mode }));
     },
     [sessionId, dispatch]
-  );
-
-  const handleSelectSubTopic = useCallback(
-    async (subTopic: string) => {
-      const result = await dispatch(
-        createSessionThunk({
-          topicQuery: subTopic,
-          initialMode: LearningMode.EXPLAIN,
-        })
-      );
-      if (createSessionThunk.fulfilled.match(result)) {
-        const created = result.payload.data;
-        navigate(`/workspace/${created.id}`);
-      }
-    },
-    [dispatch, navigate]
   );
 
   const handleSelectStep = useCallback((stepIndex: number) => {
@@ -285,11 +249,16 @@ export const ExplainStage: React.FC = () => {
         </div>
       )}
 
-      {/* 3. Visual 4-Step Progress Bar */}
-      <StepProgressBar
-        currentStepIndex={explainState.currentStepIndex}
-        onSelectRevealedStep={handleSelectStep}
-      />
+      {/* 3. Visual 4-Step Progress Bar (sticks just below StickyTopicHeader) */}
+      <div
+        data-testid="explain-progress-sticky"
+        className="sticky top-[var(--topic-header-height,4.25rem)] z-10 -mx-1 px-1 py-2 bg-gray-50/90 backdrop-blur-sm"
+      >
+        <StepProgressBar
+          currentStepIndex={explainState.currentStepIndex}
+          onSelectRevealedStep={handleSelectStep}
+        />
+      </div>
 
       {/* 4. Progressive Cards List (AC-EXP-01, AC-EXP-02) */}
       {/* Slices explainState.cards so ONLY cards up to currentStepIndex are rendered in DOM */}
@@ -298,22 +267,12 @@ export const ExplainStage: React.FC = () => {
           .slice(0, explainState.currentStepIndex + 1)
           .map((card, index, visibleSlice) => {
             const isLatestVisible = index === visibleSlice.length - 1;
-            const isCardGoingDeeper = deepDiveLoadingStep === card.stepNumber;
-
             return (
               <ExplainCard
                 key={`${sessionId}-${card.stepNumber}`}
                 card={card}
                 isLatestVisibleCard={isLatestVisible}
-                isGoingDeeper={isCardGoingDeeper}
                 onNext={() => handleNext(card.stepNumber)}
-                onGoDeeper={() => handleGoDeeper(card.stepNumber)}
-                suggestedSubTopics={
-                  card.stepNumber === 4
-                    ? explainState.suggestedSubTopics
-                    : undefined
-                }
-                onSelectSubTopic={handleSelectSubTopic}
                 onSwitchMode={handleSwitchMode}
               />
             );

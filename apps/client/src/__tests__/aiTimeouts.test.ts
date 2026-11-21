@@ -7,7 +7,6 @@ import { createAppStore } from '../store/index.js';
 import {
   createSessionThunk,
   initializeExplainThunk,
-  generateDeepDiveThunk,
   initializeInteractThunk,
   generatePracticeBatchThunk,
 } from '../store/sessionSlice.js';
@@ -55,13 +54,11 @@ describe('T2.1: AI thunks use shared timeout constants', () => {
     apiClient.defaults.adapter = captureAdapter;
     const store = createAppStore();
     await store.dispatch(initializeExplainThunk('s1'));
-    await store.dispatch(generateDeepDiveThunk({ sessionId: 's1', stepNumber: 1 }));
     await store.dispatch(initializeInteractThunk('s1'));
     await store.dispatch(generatePracticeBatchThunk({ sessionId: 's1', tier: PracticeTier.EASY }));
 
     expect(captured.map((c) => c.timeout)).toEqual([
       AI_FAST_TIMEOUT_MS,
-      AI_REASONING_TIMEOUT_MS,
       AI_FAST_TIMEOUT_MS,
       AI_REASONING_TIMEOUT_MS,
     ]);

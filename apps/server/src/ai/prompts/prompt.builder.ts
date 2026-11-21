@@ -5,16 +5,6 @@ import {
   type StaticLearnerProfile,
 } from '@mentora/shared';
 
-export interface ExplainDeeperPromptParams {
-  topicQuery: string;
-  parentCard: {
-    stepType: string;
-    title: string;
-    contentMarkdown: string;
-    depthLevel?: number;
-  };
-}
-
 export interface InteractTurnPromptParams {
   topicQuery?: string;
   activeMilestone?: string;
@@ -51,7 +41,7 @@ export class PromptBuilder {
       '- Overly Broad Topics (Edge Case 2): If the learner enters an overly broad topic (e.g., "Science", "Coding", "Mathematics", "History"):',
       '  - Do not refuse the topic.',
       '  - Scope the explanation or milestones to the foundational pillars and core conceptual framework of the discipline.',
-      '  - Provide structured suggestions for narrower sub-topics in the final step or summary to guide the learner\'s next deep dive.',
+      '  - Provide structured suggestions for narrower sub-topics in the final step or summary to guide the learner\'s further study.',
     ].join('\n');
   }
 
@@ -217,24 +207,6 @@ export class PromptBuilder {
       `- cards[3]: stepNumber: 4, stepType: "check_for_understanding" (CFU: Card 4 MUST contain BOTH "checkQuestion" AND "checkAnswer" within the SAME card object. "checkQuestion" tests comprehension of "${topicQuery}", and "checkAnswer" is the accurate explanatory answer reveal. checkAnswer MUST NOT BE NULL. Do NOT create a separate 5th card for the answer — the total cards array length MUST be exactly 4).`,
       'Never omit any card, never combine cards, and never add extra cards. The "cards" array length must be exactly 4.',
       'Ensure every card is calibrated strictly to the system instruction profile and formatting rules.',
-    ].join('\n');
-  }
-
-  /**
-   * Prompt for Explain Mode "Go Deeper" Sub-Card Generation
-   */
-  static buildExplainDeeperPrompt(params: ExplainDeeperPromptParams): string {
-    const { topicQuery, parentCard } = params;
-    const depth = (parentCard.depthLevel ?? 0) + 1;
-    return [
-      `Generate a vertical "Go Deeper" sub-card for the topic: "${topicQuery}".`,
-      `Target Parent Step: Step ${parentCard.stepType} ("${parentCard.title}")`,
-      `Current Sub-Card Depth Level: ${depth}`,
-      'Parent Card Content Summary:',
-      parentCard.contentMarkdown,
-      '',
-      'Provide deeper technical analysis, architectural details, proofs, or edge cases beyond the parent card content.',
-      'Calibrate according to the learner profile and adhere strictly to all formatting rules.',
     ].join('\n');
   }
 
@@ -415,7 +387,6 @@ export class PromptBuilder {
 
 export const buildSystemInstruction = PromptBuilder.buildSystemInstruction;
 export const buildExplainInitPrompt = PromptBuilder.buildExplainInitPrompt;
-export const buildExplainDeeperPrompt = PromptBuilder.buildExplainDeeperPrompt;
 export const buildInteractInitPrompt = PromptBuilder.buildInteractInitPrompt;
 export const buildInteractTurnPrompt = PromptBuilder.buildInteractTurnPrompt;
 export const buildPracticeGeneratePrompt = PromptBuilder.buildPracticeGeneratePrompt;

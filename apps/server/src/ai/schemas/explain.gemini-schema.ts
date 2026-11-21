@@ -64,34 +64,6 @@ export const explainInitGeminiSchema: Schema = {
         required: ['stepNumber', 'stepType', 'title', 'contentMarkdown', 'checkQuestion', 'checkAnswer'],
       },
     },
-    suggestedSubTopics: {
-      type: Type.ARRAY,
-      description: '3 to 5 narrower sub-topics or logical next steps for deeper learning.',
-      items: {
-        type: Type.STRING,
-      },
-    },
   },
   required: ['isEducationalValid', 'cards'],
 };
-
-/**
- * Gemini responseSchema for Explain Mode vertical "Go Deeper" sub-card.
- * Aligns with @mentora/shared ExplainDeepDiveOutputSchema.
- */
-export const explainDeepDiveGeminiSchema: Schema = {
-  type: Type.OBJECT,
-  description: 'Vertical deep-dive sub-card providing deeper mathematical, algorithmic, or architectural detail.',
-  properties: {
-    title: {
-      type: Type.STRING,
-      description: 'Specific technical or architectural title for this vertical deep-dive sub-card.',
-    },
-    contentMarkdown: {
-      type: Type.STRING,
-      description: 'Advanced technical explanations, formal derivations, proofs, code, or architecture diagrams in rich Markdown adhering to LaTeX and quoted Mermaid syntax.',
-    },
-  },
-  required: ['title', 'contentMarkdown'],
-};
-

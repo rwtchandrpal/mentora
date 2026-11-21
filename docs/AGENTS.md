@@ -8,7 +8,7 @@
 
 ## A. Project Context and Source of Truth
 
-**Mentora** is a cloud-native, AI-powered personalized web tutoring application built on a TypeScript MERN stack monorepo (`@mentora/shared`, `@mentora/server`, `@mentora/client`) and deployed across **Vercel** (frontend), **Render** (backend), and **MongoDB Atlas** (database), powered by the **Google Gemini API**. It enables learners to master any topic through three integrated pedagogical modes: **Explain Mode** (progressive 4-card breakdown + `Go Deeper`), **Interact Mode** (milestone-driven Socratic dialogue with a deterministic 3-Strike Circuit Breaker via SSE), and **Practice Mode** (tiered 10-question MCQ batches across Easy $\rightarrow$ Medium $\rightarrow$ Hard).
+**Mentora** is a cloud-native, AI-powered personalized web tutoring application built on a TypeScript MERN stack monorepo (`@mentora/shared`, `@mentora/server`, `@mentora/client`) and deployed across **Vercel** (frontend), **Render** (backend), and **MongoDB Atlas** (database), powered by the **Google Gemini API**. It enables learners to master any topic through three integrated pedagogical modes: **Explain Mode** (progressive 4-card breakdown with `Next` stepping), **Interact Mode** (milestone-driven Socratic dialogue with a deterministic 3-Strike Circuit Breaker via SSE), and **Practice Mode** (tiered 10-question MCQ batches across Easy $\rightarrow$ Medium $\rightarrow$ Hard).
 
 ### Document Hierarchy
 1. **`requirement.md` (`product_requirement.md`)** is the **source of truth** for product behavior, functional requirements (`FR-*`), non-functional requirements (`NFR-*`), business rules (`BR-*`), and acceptance criteria (`AC-*`).
@@ -85,7 +85,7 @@ Agents **MUST** follow the monorepo layout established in Section B.2 of `archit
 ## D. Shared Types and Validation
 
 * **Single Source of Truth (`@mentora/shared`):** Agents **MUST** reuse existing interfaces, types, enums, constants, and Zod schemas from `@mentora/shared`.
-* **Zero Duplication:** Agents **MUST NOT** redefine local interfaces in `apps/client` or `apps/server` for `User`, `StaticLearnerProfile`, `TopicSession`, `ExplainCard`, `DeepDiveSubCard`, `InteractMilestone`, `InteractMessage`, `PracticeBatch`, or `McqQuestion`.
+* **Zero Duplication:** Agents **MUST NOT** redefine local interfaces in `apps/client` or `apps/server` for `User`, `StaticLearnerProfile`, `TopicSession`, `ExplainCard`, `InteractMilestone`, `InteractMessage`, `PracticeBatch`, or `McqQuestion`.
 * **No Magic Literals:** Do not hardcode education levels (`'high_school'`, `'undergraduate'`, `'professional'`), explanation styles (`'visual'`, `'analogy_heavy'`, `'concise_technical'`), batch statuses, or quota/strike limits; always import the shared enums and constants.
 * **Schema-First Inference:** Define Zod schemas in `packages/shared/src/schemas/` first and infer TypeScript types using `z.infer<typeof Schema>`.
 * **Runtime Validation of Untrusted Input:** Never assume TypeScript compile-time types guarantee runtime validity. Validate all untrusted inputs using Zod at:
@@ -179,7 +179,7 @@ Agents **MUST** follow the monorepo layout established in Section B.2 of `archit
 * **Required Test Coverage:**
   * **Unit Tests (`Vitest`):** Shared Zod schemas (`@mentora/shared`), 3-Strike Socratic state transitions (`interact.service.ts`), Practice tier unlocking, answer masking, and $O(1)$ batch grading (`practice.service.ts`), and rolling 24h quota enforcement (`quota.middleware.ts`).
   * **Integration Tests (`Supertest` + `mongodb-memory-server`):** Auth flows, `OnboardingGuard` / `PROFILE_INCOMPLETE` (`BR-01`) enforcement, cross-user session isolation (`404` on foreign session ID), and REST/SSE error envelopes.
-  * **Frontend Tests (`Vitest` + `React Testing Library`):** Progressive Explain card navigation (`Next` / `Go Deeper`), `<MermaidDiagram />` fallback on syntax errors (`Edge Case 3`), and `localStorage` quiz draft persistence (`Edge Case 5`).
+  * **Frontend Tests (`Vitest` + `React Testing Library`):** Progressive Explain card navigation (`Next`), `<MermaidDiagram />` fallback on syntax errors (`Edge Case 3`), and `localStorage` quiz draft persistence (`Edge Case 5`).
 * **Deterministic CI vs. Live AI Evaluation:** Standard test runs **MUST** mock `@google/genai` so tests execute deterministically offline. Live Gemini API accuracy checks belong exclusively in the standalone `eval:ai` script.
 * **Agent Verification Protocol:**
   1. Inspect `package.json` scripts across workspaces before running commands; never invent nonexistent scripts.

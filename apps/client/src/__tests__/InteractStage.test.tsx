@@ -114,10 +114,8 @@ describe('IMP-020: Frontend SSE Client Hook (useSseStream) & Interact Mode UI St
           stepType: ExplainStepType.INTUITION,
           title: 'Intuition of Raft',
           contentMarkdown: 'Leader election maintains order.',
-          deepDives: [],
         },
       ],
-      suggestedSubTopics: [],
     },
     interactState: {
       status: interactStatus,
@@ -195,7 +193,6 @@ describe('IMP-020: Frontend SSE Client Hook (useSseStream) & Interact Mode UI St
           activeTurnMessage: null,
         },
         isInitializingExplain: false,
-        deepDiveLoadingStep: null,
         explainError: null,
         isInitializingInteract: false,
         interactError: null,

@@ -1,8 +1,5 @@
 import { Router } from 'express';
-import {
-  ExplainStepRequestSchema,
-  ExplainDeeperRequestSchema,
-} from '@mentora/shared';
+import { ExplainStepRequestSchema } from '@mentora/shared';
 import { explainController } from '../controllers/explain.controller.js';
 import { quotaMiddleware } from '../middlewares/quota.middleware.js';
 import { validateRequest } from '../middlewares/validate.middleware.js';
@@ -22,12 +19,5 @@ explainRouter.patch(
   '/:id/explain/step',
   validateRequest({ body: ExplainStepRequestSchema }),
   asyncHandler(explainController.stepExplain)
-);
-
-explainRouter.post(
-  '/:id/explain/deeper',
-  quotaMiddleware,
-  validateRequest({ body: ExplainDeeperRequestSchema }),
-  asyncHandler(explainController.deeperExplain)
 );
 

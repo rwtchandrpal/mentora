@@ -9,8 +9,7 @@ import { LearningMode } from '@mentora/shared';
  * generating (and still charging quota).
  *
  * - Fast: operations routed to GEMINI_FAST_MODEL (explain/init, interact/init).
- * - Reasoning: operations routed to GEMINI_REASONING_MODEL (explain/deeper,
- *   practice/generate).
+ * - Reasoning: operations routed to GEMINI_REASONING_MODEL (practice/generate).
  */
 export const AI_FAST_TIMEOUT_MS = 45_000;
 export const AI_REASONING_TIMEOUT_MS = 90_000;

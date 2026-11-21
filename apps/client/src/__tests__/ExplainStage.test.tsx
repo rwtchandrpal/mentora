@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import React from 'react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor, cleanup, act } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, cleanup, act, within } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { MemoryRouter } from 'react-router-dom';
 import { AxiosError, type AxiosAdapter, type InternalAxiosRequestConfig } from 'axios';
@@ -36,7 +36,7 @@ vi.mock('mermaid', () => ({
   },
 }));
 
-describe('IMP-017: Frontend Explain Mode Stage, Stepper, & Go Deeper UI', () => {
+describe('IMP-017: Frontend Explain Mode Stage & Stepper UI', () => {
   const originalAdapter = apiClient.defaults.adapter;
 
   const mockUser: UserDTO = {
@@ -64,21 +64,18 @@ describe('IMP-017: Frontend Explain Mode Stage, Stepper, & Go Deeper UI', () => 
       stepType: ExplainStepType.INTUITION,
       title: 'Intuition: The Classroom Election',
       contentMarkdown: 'Think of Raft as a classroom electing a single class representative.',
-      deepDives: [],
     },
     {
       stepNumber: 2,
       stepType: ExplainStepType.CORE_MECHANISM,
       title: 'Core Mechanism: Terms and Invariants',
       contentMarkdown: 'Leader election uses terms numbered monotonically. Mathematical safety: $\\forall t, |L_t| \\le 1$.',
-      deepDives: [],
     },
     {
       stepNumber: 3,
       stepType: ExplainStepType.EXAMPLE,
       title: 'Applied Example: Heartbeats and Election Timeouts',
       contentMarkdown: '```python\ndef elect_leader(nodes):\n    return nodes[0]\n```',
-      deepDives: [],
     },
     {
       stepNumber: 4,
@@ -87,15 +84,13 @@ describe('IMP-017: Frontend Explain Mode Stage, Stepper, & Go Deeper UI', () => 
       contentMarkdown: 'Let us test your understanding of split votes and randomized timeouts.',
       checkQuestion: 'What happens when two candidate nodes split votes evenly in term $T$?',
       checkAnswer: 'Neither candidate achieves a majority, the election times out, and a new election starts with randomized timeouts in term $T+1$.',
-      deepDives: [],
     },
   ];
 
   const createBaseSession = (
     currentStepIndex = 0,
     status: ExplainStatus = ExplainStatus.READY,
-    cards: ExplainCardDTO[] = mock4Cards,
-    suggestedSubTopics: string[] = []
+    cards: ExplainCardDTO[] = mock4Cards
   ): TopicSessionDTO => ({
     id: 'session-exp-1',
     _id: 'session-exp-1',
@@ -107,7 +102,6 @@ describe('IMP-017: Frontend Explain Mode Stage, Stepper, & Go Deeper UI', () => 
       status,
       currentStepIndex,
       cards,
-      suggestedSubTopics,
     },
     interactState: {
       status: InteractStatus.NOT_STARTED,
@@ -204,7 +198,6 @@ describe('IMP-017: Frontend Explain Mode Stage, Stepper, & Go Deeper UI', () => 
           activeTurnId: null,
         },
         isInitializingExplain: false,
-        deepDiveLoadingStep: null,
         explainError: null,
       },
     });
@@ -288,7 +281,6 @@ describe('IMP-017: Frontend Explain Mode Stage, Stepper, & Go Deeper UI', () => 
           activeTurnId: null,
         },
         isInitializingExplain: false,
-        deepDiveLoadingStep: null,
         explainError: null,
       },
     });
@@ -341,128 +333,6 @@ describe('IMP-017: Frontend Explain Mode Stage, Stepper, & Go Deeper UI', () => 
     expect(
       screen.queryByRole('button', { name: /advance to step 5/i })
     ).not.toBeInTheDocument();
-  });
-
-  // 3. On-Demand Depth via Go Deeper (AC-EXP-03)
-  it('AC-EXP-03: clicking Go Deeper generates and appends DeepDiveSubCard directly beneath the card without resetting currentStepIndex', async () => {
-    const session = createBaseSession(0);
-    const mockDeepDive = {
-      id: 'subcard-99',
-      depthLevel: 1,
-      title: 'Formal Safety Invariant Proof',
-      contentMarkdown: 'Every term has at most one leader by majority pigeonhole principle.',
-      createdAt: '2026-10-28T12:00:00.000Z',
-    };
-
-    let deeperCalled = false;
-    let receivedStepNumber = 0;
-
-    const mockAdapter: AxiosAdapter = async (config: InternalAxiosRequestConfig) => {
-      if (
-        config.url?.includes('/explain/deeper') &&
-        config.method?.toLowerCase() === 'post'
-      ) {
-        deeperCalled = true;
-        const body = typeof config.data === 'string' ? JSON.parse(config.data) : config.data;
-        receivedStepNumber = body.stepNumber;
-
-        const updatedCards = session.explainState.cards.map((c) =>
-          c.stepNumber === 1
-            ? { ...c, deepDives: [...c.deepDives, mockDeepDive] }
-            : c
-        );
-
-        const updated: TopicSessionDTO = {
-          ...session,
-          explainState: {
-            ...session.explainState,
-            cards: updatedCards,
-            currentStepIndex: 0, // Preserves currentStepIndex
-          },
-        };
-
-        return {
-          data: {
-            success: true,
-            data: updated,
-            meta: {
-              quota: {
-                used: 6,
-                limit: 50,
-                resetAt: '2026-10-28T00:00:00.000Z',
-              },
-            },
-          },
-          status: 200,
-          statusText: 'OK',
-          headers: {},
-          config,
-        };
-      }
-      return {
-        data: { success: true, data: session },
-        status: 200,
-        statusText: 'OK',
-        headers: {},
-        config,
-      };
-    };
-    apiClient.defaults.adapter = mockAdapter;
-
-    const { store } = renderComponent({
-      auth: {
-        token: 'token',
-        user: mockUser,
-        quota: null,
-        authStatus: 'authenticated',
-        error: null,
-      },
-      session: {
-        sessionList: [],
-        activeSession: session,
-        activeMode: LearningMode.EXPLAIN,
-        isLoadingList: false,
-        isLoadingSession: false,
-        isCreatingSession: false,
-        error: null,
-        streamingState: {
-          isStreaming: false,
-          streamBuffer: '',
-          streamError: null,
-          activeTurnId: null,
-        },
-        isInitializingExplain: false,
-        deepDiveLoadingStep: null,
-        explainError: null,
-      },
-    });
-
-    // Click Go Deeper on Card 1
-    const goDeeperBtn = screen.getByRole('button', {
-      name: /go deeper into this step/i,
-    });
-    fireEvent.click(goDeeperBtn);
-
-    // Verify sub-card is rendered
-    await waitFor(() => {
-      expect(
-        screen.getByTestId('deep-dive-card-subcard-99')
-      ).toBeInTheDocument();
-    });
-
-    expect(deeperCalled).toBe(true);
-    expect(receivedStepNumber).toBe(1);
-    expect(screen.getByText('Formal Safety Invariant Proof')).toBeInTheDocument();
-    expect(
-      screen.getByText(/Every term has at most one leader/i)
-    ).toBeInTheDocument();
-
-    // Verify currentStepIndex is still 0 (Card 2 is still not rendered)
-    expect(store.getState().session.activeSession?.explainState.currentStepIndex).toBe(0);
-    expect(screen.queryByTestId('explain-card-2')).not.toBeInTheDocument();
-
-    // Quota was updated in auth slice
-    expect(store.getState().auth.quota?.used).toBe(6);
   });
 
   // 4. Check-for-Understanding Answer Reveal & Mode Switch CTAs
@@ -522,7 +392,6 @@ describe('IMP-017: Frontend Explain Mode Stage, Stepper, & Go Deeper UI', () => 
           activeTurnId: null,
         },
         isInitializingExplain: false,
-        deepDiveLoadingStep: null,
         explainError: null,
       },
     });
@@ -620,7 +489,6 @@ describe('IMP-017: Frontend Explain Mode Stage, Stepper, & Go Deeper UI', () => 
           activeTurnId: null,
         },
         isInitializingExplain: false,
-        deepDiveLoadingStep: null,
         explainError: null,
       },
     });
@@ -708,7 +576,6 @@ describe('IMP-017: Frontend Explain Mode Stage, Stepper, & Go Deeper UI', () => 
           activeTurnId: null,
         },
         isInitializingExplain: false,
-        deepDiveLoadingStep: null,
         explainError: null,
       },
     });
@@ -730,49 +597,9 @@ describe('IMP-017: Frontend Explain Mode Stage, Stepper, & Go Deeper UI', () => 
     });
   });
 
-  // 6. Broad-Topic Sub-Topic Chips (Edge Case 2)
-  it('Edge Case 2: renders clickable sub-topic chips on Card 4 when topic is broad and suggests sub-topics', async () => {
-    const subTopics = [
-      'Raft Log Replication',
-      'Cluster Membership Changes',
-      'Log Compaction and Snapshots',
-    ];
-    const session = createBaseSession(3, ExplainStatus.READY, mock4Cards, subTopics);
-
-    let sessionCreatedTopic: string | null = null;
-    const mockAdapter: AxiosAdapter = async (config: InternalAxiosRequestConfig) => {
-      if (
-        config.url === '/sessions' &&
-        config.method?.toLowerCase() === 'post'
-      ) {
-        const body = typeof config.data === 'string' ? JSON.parse(config.data) : config.data;
-        sessionCreatedTopic = body.topicQuery;
-        const newSession = {
-          ...createBaseSession(0),
-          id: 'session-new-subtopic',
-          topicQuery: body.topicQuery,
-        };
-        return {
-          data: {
-            success: true,
-            data: newSession,
-          },
-          status: 201,
-          statusText: 'Created',
-          headers: {},
-          config,
-        };
-      }
-      return {
-        data: { success: true, data: session },
-        status: 200,
-        statusText: 'OK',
-        headers: {},
-        config,
-      };
-    };
-    apiClient.defaults.adapter = mockAdapter;
-
+  // 6. Explain card layout: no Go Deeper, no sub-topic chips, no card counter label,
+  //    downward Next arrow, sticky progress bar
+  const renderReadySession = (currentStepIndex: number) =>
     renderComponent({
       auth: {
         token: 'token',
@@ -783,7 +610,7 @@ describe('IMP-017: Frontend Explain Mode Stage, Stepper, & Go Deeper UI', () => 
       },
       session: {
         sessionList: [],
-        activeSession: session,
+        activeSession: createBaseSession(currentStepIndex),
         activeMode: LearningMode.EXPLAIN,
         isLoadingList: false,
         isLoadingSession: false,
@@ -796,22 +623,38 @@ describe('IMP-017: Frontend Explain Mode Stage, Stepper, & Go Deeper UI', () => 
           activeTurnId: null,
         },
         isInitializingExplain: false,
-        deepDiveLoadingStep: null,
         explainError: null,
       },
     });
 
-    // Verify sub-topic chips appear
-    expect(screen.getByText('Explore Focused Sub-Topics:')).toBeInTheDocument();
-    const chip = screen.getByRole('button', { name: /Raft Log Replication/i });
-    expect(chip).toBeInTheDocument();
+  it('renders Card 4 with CFU and mode CTAs but no Go Deeper, sub-topic chips, or card counter label', () => {
+    renderReadySession(3);
 
-    // Click sub-topic chip
-    fireEvent.click(chip);
+    expect(screen.getByTestId('explain-card-4')).toBeInTheDocument();
+    expect(screen.getByTestId('cfu-section')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /discuss in interact mode/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /test yourself in practice mode/i })
+    ).toBeInTheDocument();
 
-    await waitFor(() => {
-      expect(sessionCreatedTopic).toBe('Raft Log Replication');
-    });
+    expect(screen.queryByRole('button', { name: /go deeper/i })).not.toBeInTheDocument();
+    expect(screen.queryByText(/explore focused sub-topics/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/progressive card \d of 4/i)).not.toBeInTheDocument();
+  });
+
+  it('uses a downward arrow on Next and keeps the 4-step progress bar sticky below the topic header', () => {
+    renderReadySession(0);
+
+    const nextBtn = screen.getByRole('button', { name: /advance to step 2/i });
+    const arrowPath = within(nextBtn).getByTestId('next-arrow-down').querySelector('path');
+    expect(arrowPath).toHaveAttribute('d', 'M19 14l-7 7m0 0l-7-7m7 7V3');
+
+    const sticky = screen.getByTestId('explain-progress-sticky');
+    expect(sticky).toHaveClass('sticky', 'z-10');
+    expect(sticky.className).toContain('top-[var(--topic-header-height');
+    expect(
+      within(sticky).getByRole('navigation', { name: /explain mode progress/i })
+    ).toBeInTheDocument();
   });
 
   // 7. Educational Guardrail Refusal & Error Alert (Edge Case 1)
@@ -880,7 +723,6 @@ describe('IMP-017: Frontend Explain Mode Stage, Stepper, & Go Deeper UI', () => 
           activeTurnId: null,
         },
         isInitializingExplain: false,
-        deepDiveLoadingStep: null,
         explainError: null,
       },
     });

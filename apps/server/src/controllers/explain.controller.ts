@@ -47,27 +47,6 @@ export class ExplainController {
     });
   };
 
-  deeperExplain = async (
-    req: Request,
-    res: Response<ApiSuccessEnvelope<TopicSessionDTO>>
-  ): Promise<void> => {
-    const sessionId = extractSessionId(req);
-    const stepNumber = req.body.stepNumber;
-
-    const result = await this.service.generateDeepDive(
-      req.user,
-      sessionId,
-      stepNumber,
-      req.quotaReservation
-    );
-    const quotaMeta = result.quota ?? req.quota;
-
-    res.status(200).json({
-      success: true,
-      data: result.session,
-      ...(quotaMeta ? { meta: { quota: quotaMeta } } : {}),
-    });
-  };
 }
 
 export const explainController = new ExplainController();

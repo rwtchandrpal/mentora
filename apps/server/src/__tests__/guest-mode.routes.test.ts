@@ -37,9 +37,7 @@ const explainInitPayload = {
     contentMarkdown: `Content for card ${idx + 1}.`,
     checkQuestion: idx === 3 ? 'Why?' : null,
     checkAnswer: idx === 3 ? 'Because.' : null,
-    deepDives: [],
   })),
-  suggestedSubTopics: ['Next Topic'],
 };
 
 const mockExplainGemini = () => {
@@ -200,9 +198,6 @@ describe('Guest Mode Backend Integration Tests', () => {
         request(app)
           .patch(`/api/v1/sessions/${sessionId}/explain/step`)
           .send({ stepIndex: 1 }),
-        request(app)
-          .post(`/api/v1/sessions/${sessionId}/explain/deeper`)
-          .send({ stepNumber: 1 }),
         request(app).post(`/api/v1/sessions/${sessionId}/interact/init`),
         request(app)
           .post(`/api/v1/sessions/${sessionId}/interact/stream`)

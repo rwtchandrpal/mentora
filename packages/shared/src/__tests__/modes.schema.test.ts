@@ -8,7 +8,6 @@ import {
   MAX_INTERACT_MILESTONES,
   MAX_TOPIC_QUERY_LENGTH,
   MAX_INTERACT_MESSAGE_LENGTH,
-  MAX_DEEP_DIVE_DEPTH,
   MAX_SOCRATIC_STRIKES,
   // Enums
   ExplainStepType,
@@ -26,12 +25,9 @@ import {
   LearningMode,
   ErrorCode,
   // Explain Schemas
-  DeepDiveSubCardSchema,
   ExplainCardSchema,
   ExplainInitOutputSchema,
-  ExplainDeepDiveOutputSchema,
   ExplainStepRequestSchema,
-  ExplainDeeperRequestSchema,
   ExplainStateSchema,
   // Interact Schemas
   InteractMilestoneSchema,
@@ -70,7 +66,6 @@ describe('IMP-003: Mode Constants and Enums Verification', () => {
     expect(EXPLAIN_CORE_STEPS_COUNT).toBe(4);
     expect(MIN_INTERACT_MILESTONES).toBe(3);
     expect(MAX_INTERACT_MILESTONES).toBe(5);
-    expect(MAX_DEEP_DIVE_DEPTH).toBe(2);
     expect(MAX_SOCRATIC_STRIKES).toBe(3);
   });
 
@@ -131,14 +126,14 @@ describe('IMP-003: Explain Mode Schemas', () => {
     const parsed = ExplainInitOutputSchema.parse(validOutput);
     expect(parsed.isEducationalValid).toBe(true);
     expect(parsed.cards).toHaveLength(4);
-    expect(parsed.cards[0]?.deepDives).toEqual([]);
+    expect(parsed).not.toHaveProperty('suggestedSubTopics');
     expect(parsed.cards[3]?.checkQuestion).toBe('What is the primary constraint?');
   });
 
   it('should validate single ExplainCardSchema', () => {
     const card = ExplainCardSchema.parse(valid4Cards[0]);
     expect(card.stepNumber).toBe(1);
-    expect(card.deepDives).toEqual([]);
+    expect(card).not.toHaveProperty('deepDives');
   });
 
   it('should reject ExplainInitOutputSchema when isEducationalValid is true but cards length is not 4', () => {
@@ -206,39 +201,11 @@ describe('IMP-003: Explain Mode Schemas', () => {
     expect(ExplainStepRequestSchema.safeParse({ currentStepIndex: 1.5 }).success).toBe(false);
   });
 
-  it('should enforce ExplainDeeperRequestSchema bounds (1..4)', () => {
-    expect(ExplainDeeperRequestSchema.safeParse({ stepNumber: 1 }).success).toBe(true);
-    expect(ExplainDeeperRequestSchema.safeParse({ stepNumber: 4 }).success).toBe(true);
-    expect(ExplainDeeperRequestSchema.safeParse({ stepNumber: 0 }).success).toBe(false);
-    expect(ExplainDeeperRequestSchema.safeParse({ stepNumber: 5 }).success).toBe(false);
-  });
-
-  it('should validate DeepDiveSubCardSchema and ExplainDeepDiveOutputSchema', () => {
-    const deepDiveOutput = {
-      title: 'Mathematical Proof of Asymptotic Bound',
-      contentMarkdown: 'Theorem: $\\sum_{i=1}^n i = \\frac{n(n+1)}{2}$...',
-    };
-    expect(ExplainDeepDiveOutputSchema.safeParse(deepDiveOutput).success).toBe(true);
-
-    const deepDiveCard = {
-      id: 'subcard_1',
-      depthLevel: 1,
-      title: deepDiveOutput.title,
-      contentMarkdown: deepDiveOutput.contentMarkdown,
-      createdAt: '2026-10-26T00:00:00.000Z',
-    };
-    expect(DeepDiveSubCardSchema.safeParse(deepDiveCard).success).toBe(true);
-
-    // Max depth level is 2
-    expect(DeepDiveSubCardSchema.safeParse({ ...deepDiveCard, depthLevel: 3 }).success).toBe(false);
-  });
-
   it('should validate ExplainStateSchema', () => {
     const explainState = {
       status: ExplainStatus.READY,
       currentStepIndex: 1,
-      cards: valid4Cards.map((c) => ({ ...c, deepDives: [] })),
-      suggestedSubTopics: ['Topic A', 'Topic B'],
+      cards: valid4Cards,
     };
     const parsed = ExplainStateSchema.parse(explainState);
     expect(parsed.status).toBe('ready');
@@ -765,21 +732,18 @@ describe('IMP-003: Session Schemas', () => {
             stepType: ExplainStepType.INTUITION,
             title: 'Intuition',
             contentMarkdown: 'Remember subproblems...',
-            deepDives: [],
           },
           {
             stepNumber: 2,
             stepType: ExplainStepType.CORE_MECHANISM,
             title: 'Core Mechanism',
             contentMarkdown: 'State transitions and memoization...',
-            deepDives: [],
           },
           {
             stepNumber: 3,
             stepType: ExplainStepType.EXAMPLE,
             title: 'Example',
             contentMarkdown: '0/1 Knapsack...',
-            deepDives: [],
           },
           {
             stepNumber: 4,
@@ -788,10 +752,8 @@ describe('IMP-003: Session Schemas', () => {
             contentMarkdown: 'What is optimal substructure?',
             checkQuestion: 'Define it.',
             checkAnswer: 'Optimal solution contains optimal solutions to subproblems.',
-            deepDives: [],
           },
         ],
-        suggestedSubTopics: [],
       },
       interactState: {
         status: InteractStatus.NOT_STARTED,
@@ -866,21 +828,18 @@ describe('IMP-003: Session Schemas', () => {
             stepType: ExplainStepType.INTUITION,
             title: 'Intuition',
             contentMarkdown: 'Vertices and edges...',
-            deepDives: [],
           },
           {
             stepNumber: 2,
             stepType: ExplainStepType.CORE_MECHANISM,
             title: 'Core Mechanism',
             contentMarkdown: 'Adjacency list representation...',
-            deepDives: [],
           },
           {
             stepNumber: 3,
             stepType: ExplainStepType.EXAMPLE,
             title: 'Example',
             contentMarkdown: 'DFS traversal...',
-            deepDives: [],
           },
           {
             stepNumber: 4,
@@ -889,10 +848,8 @@ describe('IMP-003: Session Schemas', () => {
             contentMarkdown: 'Is a tree a connected acyclic graph?',
             checkQuestion: 'Tree definition?',
             checkAnswer: 'Yes.',
-            deepDives: [],
           },
         ],
-        suggestedSubTopics: [],
       },
       interactState: {
         status: InteractStatus.NOT_STARTED,

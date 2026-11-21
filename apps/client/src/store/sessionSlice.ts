@@ -41,7 +41,6 @@ export interface SessionState {
   error: NormalizedApiErrorData | null;
   streamingState: StreamingState;
   isInitializingExplain: boolean;
-  deepDiveLoadingStep: number | null;
   explainError: NormalizedApiErrorData | null;
   isInitializingInteract: boolean;
   interactError: NormalizedApiErrorData | null;
@@ -76,7 +75,6 @@ export const initialSessionState: SessionState = {
   error: null,
   streamingState: initialStreamingState,
   isInitializingExplain: false,
-  deepDiveLoadingStep: null,
   explainError: null,
   isInitializingInteract: false,
   interactError: null,
@@ -259,32 +257,6 @@ export const advanceExplainStepThunk = createAsyncThunk<
   }
 });
 
-export const generateDeepDiveThunk = createAsyncThunk<
-  ApiSuccessEnvelope<TopicSessionDTO>,
-  { sessionId: string; stepNumber: number },
-  { rejectValue: NormalizedApiErrorData }
->('session/generateDeepDive', async ({ sessionId, stepNumber }, { dispatch, rejectWithValue }) => {
-  try {
-    const response = await apiClient.post<ApiSuccessEnvelope<TopicSessionDTO>>(
-      `/sessions/${sessionId}/explain/deeper`,
-      { stepNumber },
-      { timeout: AI_REASONING_TIMEOUT_MS }
-    );
-    if (response.data.meta?.quota) {
-      dispatch(setQuota(response.data.meta.quota));
-    }
-    return response.data;
-  } catch (error) {
-    const normalized = normalizeAxiosError(error);
-    return rejectWithValue({
-      statusCode: normalized.statusCode,
-      code: normalized.code,
-      message: normalized.message,
-      details: normalized.details,
-    });
-  }
-});
-
 export const initializeInteractThunk = createAsyncThunk<
   ApiSuccessEnvelope<TopicSessionDTO>,
   string,
@@ -379,7 +351,6 @@ export const sessionSlice = createSlice({
       }
       state.streamingState = { ...initialStreamingState };
       state.isInitializingExplain = false;
-      state.deepDiveLoadingStep = null;
       state.explainError = null;
       state.isInitializingInteract = false;
       state.interactError = null;
@@ -393,7 +364,6 @@ export const sessionSlice = createSlice({
       state.isLoadingSession = false;
       state.streamingState = { ...initialStreamingState };
       state.isInitializingExplain = false;
-      state.deepDiveLoadingStep = null;
       state.explainError = null;
       state.isInitializingInteract = false;
       state.interactError = null;
@@ -641,25 +611,6 @@ export const sessionSlice = createSlice({
         statusCode: 0,
         code: 'UNKNOWN_ERROR',
         message: action.error.message || 'Failed to advance step',
-      };
-    });
-
-    // generateDeepDiveThunk
-    builder.addCase(generateDeepDiveThunk.pending, (state, action) => {
-      state.deepDiveLoadingStep = action.meta.arg.stepNumber;
-      state.explainError = null;
-    });
-    builder.addCase(generateDeepDiveThunk.fulfilled, (state, action) => {
-      state.deepDiveLoadingStep = null;
-      state.activeSession = action.payload.data;
-      state.explainError = null;
-    });
-    builder.addCase(generateDeepDiveThunk.rejected, (state, action) => {
-      state.deepDiveLoadingStep = null;
-      state.explainError = action.payload ?? {
-        statusCode: 0,
-        code: 'UNKNOWN_ERROR',
-        message: action.error.message || 'Failed to generate deep dive',
       };
     });
 

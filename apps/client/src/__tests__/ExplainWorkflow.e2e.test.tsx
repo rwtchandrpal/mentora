@@ -20,7 +20,6 @@ import {
   type SessionSummaryDTO,
   type UserDTO,
   type ExplainCardDTO,
-  type DeepDiveSubCardDTO,
 } from '@mentora/shared';
 import { apiClient, clearStoredToken } from '../services/apiClient.js';
 import { createAppStore, type PreloadedRootState } from '../store/index.js';
@@ -66,7 +65,6 @@ describe('IMP-018: Frontend End-to-End Explain Mode Workflow & Acceptance Criter
       title: 'Intuition: The Four-Way Traffic Gridlock',
       contentMarkdown:
         'Imagine four vehicles arriving simultaneously at an uncontrolled four-way intersection. Each car waits on the vehicle to its right, causing complete gridlock where no one can proceed.',
-      deepDives: [],
     },
     {
       stepNumber: 2,
@@ -74,7 +72,6 @@ describe('IMP-018: Frontend End-to-End Explain Mode Workflow & Acceptance Criter
       title: "Core Mechanism: Coffman's Four Invariants",
       contentMarkdown:
         'A system deadlock occurs if and only if four necessary conditions hold simultaneously: Mutual Exclusion, Hold and Wait, No Preemption, and Circular Wait: $\\forall i, P_i \\rightarrow R_i \\rightarrow P_{(i+1)\\%N}$.',
-      deepDives: [],
     },
     {
       stepNumber: 3,
@@ -82,7 +79,6 @@ describe('IMP-018: Frontend End-to-End Explain Mode Workflow & Acceptance Criter
       title: 'Applied Example: Dining Philosophers Deadlock Scenario',
       contentMarkdown:
         '```typescript\nasync function philosopher(id: number) {\n  await acquireFork(id);\n  await acquireFork((id + 1) % 5);\n  eat();\n}\n```',
-      deepDives: [],
     },
     {
       stepNumber: 4,
@@ -94,7 +90,6 @@ describe('IMP-018: Frontend End-to-End Explain Mode Workflow & Acceptance Criter
         'If resources are numbered $1..N$ and all processes must acquire locks in strictly ascending numerical order, can a cycle ever form in the Resource Allocation Graph?',
       checkAnswer:
         'No. Strict monotonic lock acquisition mathematically guarantees that any directed dependency chain is strictly increasing in index, making a closed cycle topologically impossible.',
-      deepDives: [],
     },
   ];
 
@@ -112,7 +107,6 @@ describe('IMP-018: Frontend End-to-End Explain Mode Workflow & Acceptance Criter
       status: ExplainStatus.NOT_STARTED,
       currentStepIndex: 0,
       cards: [],
-      suggestedSubTopics: [],
     },
     interactState: {
       status: InteractStatus.NOT_STARTED,
@@ -193,9 +187,9 @@ describe('IMP-018: Frontend End-to-End Explain Mode Workflow & Acceptance Criter
     vi.restoreAllMocks();
   });
 
-  describe('1. Full Interactive Learner Journey (Topic Entry -> Auto-init -> Stepping -> Go Deeper -> CFU -> Mode Switch)', () => {
+  describe('1. Full Interactive Learner Journey (Topic Entry -> Auto-init -> Stepping -> CFU -> Mode Switch)', () => {
     it(
-      'walks through entering topic, progressive cards reveal, deep-dive expansion, and CFU answer toggle',
+      'walks through entering topic, progressive cards reveal, and CFU answer toggle',
       async () => {
       // In-memory mock session state that evolves across requests
       let activeSessionData = createInitialSessionDTO();
@@ -240,10 +234,6 @@ describe('IMP-018: Frontend End-to-End Explain Mode Workflow & Acceptance Criter
               status: ExplainStatus.READY,
               currentStepIndex: 0,
               cards: mockExplainCards,
-              suggestedSubTopics: [
-                "Banker's Algorithm",
-                'Resource Allocation Graphs',
-              ],
             },
           };
           return {
@@ -280,52 +270,7 @@ describe('IMP-018: Frontend End-to-End Explain Mode Workflow & Acceptance Criter
           };
         }
 
-        // 5. Go Deeper on Step 2
-        if (url.includes('/explain/deeper') && method === 'POST') {
-          const body = JSON.parse(config.data as string);
-          const deepDive: DeepDiveSubCardDTO = {
-            id: 'dd-cycle-proof-1',
-            depthLevel: 1,
-            title: 'Formal Proof of Cycle Prevention via Partial Order',
-            contentMarkdown:
-              'Assume a cycle exists: $P_0 \\rightarrow R_1 \\rightarrow P_1 \\rightarrow \\dots \\rightarrow P_0$. Strict order leads to contradiction.',
-            createdAt: '2026-10-27T10:05:00.000Z',
-          };
-
-          const updatedCards = activeSessionData.explainState.cards.map((c) => {
-            if (c.stepNumber === body.stepNumber) {
-              return {
-                ...c,
-                deepDives: [...(c.deepDives || []), deepDive],
-              };
-            }
-            return c;
-          });
-
-          activeSessionData = {
-            ...activeSessionData,
-            explainState: {
-              ...activeSessionData.explainState,
-              cards: updatedCards,
-            },
-          };
-
-          return {
-            data: {
-              success: true,
-              data: activeSessionData,
-              meta: {
-                quota: { used: 5, limit: 50, resetAt: '2026-10-28T00:00:00.000Z' },
-              },
-            },
-            status: 200,
-            statusText: 'OK',
-            headers: {},
-            config,
-          };
-        }
-
-        // 6. Switch mode
+        // 5. Switch mode
         if (url.includes('/mode') && method === 'PATCH') {
           const body = JSON.parse(config.data as string);
           activeSessionData = {
@@ -369,7 +314,6 @@ describe('IMP-018: Frontend End-to-End Explain Mode Workflow & Acceptance Criter
           isLoadingSession: false,
           isCreatingSession: false,
           isInitializingExplain: false,
-          deepDiveLoadingStep: null,
           explainError: null,
           error: null,
         },
@@ -406,7 +350,8 @@ describe('IMP-018: Frontend End-to-End Explain Mode Workflow & Acceptance Criter
         screen.queryByText(/Core Mechanism: Coffman's Four Invariants/i)
       ).not.toBeInTheDocument();
 
-      // Card 1 has Next button and Go Deeper button
+      // Card 1 has a Next button and no Go Deeper button
+      expect(screen.queryByRole('button', { name: /go deeper/i })).not.toBeInTheDocument();
       const nextBtn1 = screen.getByRole('button', { name: /Advance to Step 2/i });
       expect(nextBtn1).toBeInTheDocument();
 
@@ -432,25 +377,6 @@ describe('IMP-018: Frontend End-to-End Explain Mode Workflow & Acceptance Criter
         name: /Step 2: Core Mechanism/i,
       });
       expect(step2Button.closest('li')).toHaveAttribute('aria-current', 'step');
-
-      // Step D: Trigger Go Deeper on Step 2 (AC-EXP-03)
-      const goDeeperBtns = screen.getAllByRole('button', {
-        name: /Go deeper into this step/i,
-      });
-      // Click Go Deeper on Card 2 (second Go Deeper button)
-      fireEvent.click(goDeeperBtns[1]!);
-
-      await waitFor(() => {
-        expect(
-          screen.getByText(
-            'Formal Proof of Cycle Prevention via Partial Order'
-          )
-        ).toBeInTheDocument();
-      });
-
-      expect(
-        screen.getByText(/Strict order leads to contradiction/i)
-      ).toBeInTheDocument();
 
       // Step E: Click Next on Card 2 -> Reveal Card 3 (Example)
       const nextBtn2 = screen.getByRole('button', { name: /Advance to Step 3/i });
@@ -524,7 +450,7 @@ describe('IMP-018: Frontend End-to-End Explain Mode Workflow & Acceptance Criter
   });
 
   describe('2. History Sidebar Session Navigation & Persistence (FR-006, Journey 3)', () => {
-    it('restores saved session with existing currentStepIndex and deep-dives when selected from history', async () => {
+    it('restores saved session with existing currentStepIndex when selected from history', async () => {
       const savedSession: TopicSessionDTO = {
         ...createInitialSessionDTO('session-restored', 'Distributed Raft Consensus'),
         topicQuery: 'Distributed Raft Consensus',
@@ -534,22 +460,10 @@ describe('IMP-018: Frontend End-to-End Explain Mode Workflow & Acceptance Criter
           currentStepIndex: 1, // Steps 1 and 2 already revealed
           cards: [
             mockExplainCards[0]!,
-            {
-              ...mockExplainCards[1]!,
-              deepDives: [
-                {
-                  id: 'dd-saved-1',
-                  depthLevel: 1,
-                  title: 'Restored Leader Invariant Breakdown',
-                  contentMarkdown: 'Leader election safety proof.',
-                  createdAt: '2026-10-27T10:02:00.000Z',
-                },
-              ],
-            },
+            mockExplainCards[1]!,
             mockExplainCards[2]!,
             mockExplainCards[3]!,
           ],
-          suggestedSubTopics: ['Log Replication', 'Safety Invariants'],
         },
       };
 
@@ -612,7 +526,6 @@ describe('IMP-018: Frontend End-to-End Explain Mode Workflow & Acceptance Criter
           isLoadingSession: false,
           isCreatingSession: false,
           isInitializingExplain: false,
-          deepDiveLoadingStep: null,
           explainError: null,
           error: null,
         },
@@ -639,11 +552,6 @@ describe('IMP-018: Frontend End-to-End Explain Mode Workflow & Acceptance Criter
         screen.getByText(/Core Mechanism: Coffman's Four Invariants/i)
       ).toBeInTheDocument();
 
-      // Restored deep-dive sub-card is rendered
-      expect(
-        screen.getByText('Restored Leader Invariant Breakdown')
-      ).toBeInTheDocument();
-
       // Stepper shows Step 2 as current
       const step2Button = screen.getByRole('button', {
         name: /Step 2: Core Mechanism/i,
@@ -657,103 +565,7 @@ describe('IMP-018: Frontend End-to-End Explain Mode Workflow & Acceptance Criter
     });
   });
 
-  describe('3. Suggested Sub-Topic Chips Navigation (Edge Case 2)', () => {
-    it('dispatches new session creation with subtopic query when user clicks a suggested chip on Card 4', async () => {
-      let createdSubTopicQuery = '';
-
-      const readySession: TopicSessionDTO = {
-        ...createInitialSessionDTO('session-cfu', 'Deadlocks in Operating Systems'),
-        explainState: {
-          status: ExplainStatus.READY,
-          currentStepIndex: 3, // On Card 4
-          cards: mockExplainCards,
-          suggestedSubTopics: [
-            "Banker's Algorithm",
-            'Resource Allocation Graphs',
-          ],
-        },
-      };
-
-      const mockAdapter: AxiosAdapter = async (config) => {
-        const url = config.url || '';
-        const method = (config.method || 'GET').toUpperCase();
-
-        if ((url === '/sessions' || url.endsWith('/sessions')) && method === 'GET') {
-          return {
-            data: { success: true, data: [] },
-            status: 200,
-            statusText: 'OK',
-            headers: {},
-            config,
-          };
-        }
-
-        if ((url === '/sessions' || url.endsWith('/sessions')) && method === 'POST') {
-          const body = JSON.parse(config.data as string);
-          createdSubTopicQuery = body.topicQuery;
-          return {
-            data: {
-              success: true,
-              data: createInitialSessionDTO('session-new-subtopic', body.topicQuery),
-            },
-            status: 201,
-            statusText: 'Created',
-            headers: {},
-            config,
-          };
-        }
-
-        return {
-          data: { success: true, data: readySession },
-          status: 200,
-          statusText: 'OK',
-          headers: {},
-          config,
-        };
-      };
-
-      apiClient.defaults.adapter = mockAdapter;
-
-      renderWorkspace(['/workspace/session-cfu'], {
-        auth: {
-          user: mockUser,
-          token: 'mock-jwt-token',
-          authStatus: 'authenticated',
-          quota: null,
-          error: null,
-        },
-        session: {
-          sessionList: [],
-          activeSession: readySession,
-          activeMode: LearningMode.EXPLAIN,
-          isLoadingList: false,
-          isLoadingSession: false,
-          isCreatingSession: false,
-          isInitializingExplain: false,
-          deepDiveLoadingStep: null,
-          explainError: null,
-          error: null,
-        },
-      });
-
-      // Verify suggested sub-topic chip is displayed
-      await waitFor(() => {
-        expect(
-          screen.getByRole('button', { name: "Banker's Algorithm" })
-        ).toBeInTheDocument();
-      });
-
-      const chip = screen.getByRole('button', { name: "Banker's Algorithm" });
-      fireEvent.click(chip);
-
-      // Verify createSessionThunk was dispatched with the sub-topic query
-      await waitFor(() => {
-        expect(createdSubTopicQuery).toBe("Banker's Algorithm");
-      });
-    });
-  });
-
-  describe('4. Error Handling & Retry on Failed Initialization (Edge Case 4)', () => {
+  describe('3. Error Handling & Retry on Failed Initialization (Edge Case 4)', () => {
     it('displays error notice and allows user to retry initialization when network error occurs', async () => {
       let initAttemptCount = 0;
       const initialSession = createInitialSessionDTO('session-fail-init');
@@ -808,7 +620,6 @@ describe('IMP-018: Frontend End-to-End Explain Mode Workflow & Acceptance Criter
                   status: ExplainStatus.READY,
                   currentStepIndex: 0,
                   cards: mockExplainCards,
-                  suggestedSubTopics: [],
                 },
               },
             },
@@ -846,7 +657,6 @@ describe('IMP-018: Frontend End-to-End Explain Mode Workflow & Acceptance Criter
           isLoadingSession: false,
           isCreatingSession: false,
           isInitializingExplain: false,
-          deepDiveLoadingStep: null,
           explainError: null,
           error: null,
         },

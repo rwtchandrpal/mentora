@@ -88,10 +88,8 @@ describe('IMP-012: Unified Workspace Shell, Left History Sidebar, & Mode Switche
           stepType: ExplainStepType.INTUITION,
           title: 'Intuition of Raft',
           contentMarkdown: 'Leader election maintains a single source of truth.',
-          deepDives: [],
         },
       ],
-      suggestedSubTopics: [],
     },
     interactState: {
       status: InteractStatus.ACTIVE,

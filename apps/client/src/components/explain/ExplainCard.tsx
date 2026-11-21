@@ -1,21 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import {
-  MAX_DEEP_DIVE_DEPTH,
-  type ExplainCardDTO,
-  type LearningMode,
-} from '@mentora/shared';
+import { type ExplainCardDTO, type LearningMode } from '@mentora/shared';
 import { RichMarkdownRenderer } from '../common/RichMarkdownRenderer.js';
-import { DeepDiveSubCard } from './DeepDiveSubCard.js';
 import { CardControls } from './CardControls.js';
 
 export interface ExplainCardProps {
   card: ExplainCardDTO;
   isLatestVisibleCard: boolean;
-  isGoingDeeper: boolean;
   onNext: () => void;
-  onGoDeeper: () => void;
-  suggestedSubTopics?: string[];
-  onSelectSubTopic?: (subTopic: string) => void;
   onSwitchMode?: (mode: LearningMode) => void;
 }
 
@@ -44,11 +35,7 @@ const STEP_TYPE_CONFIG: Record<
 export const ExplainCard: React.FC<ExplainCardProps> = ({
   card,
   isLatestVisibleCard,
-  isGoingDeeper,
   onNext,
-  onGoDeeper,
-  suggestedSubTopics,
-  onSelectSubTopic,
   onSwitchMode,
 }) => {
   const [isAnswerRevealed, setIsAnswerRevealed] = useState(false);
@@ -63,8 +50,6 @@ export const ExplainCard: React.FC<ExplainCardProps> = ({
   };
 
   const hasCFU = card.stepNumber === 4 || Boolean(card.checkQuestion);
-  const deepDives = card.deepDives ?? [];
-  const canGoDeeper = deepDives.length < MAX_DEEP_DIVE_DEPTH && !isGoingDeeper;
 
   return (
     <article
@@ -75,20 +60,14 @@ export const ExplainCard: React.FC<ExplainCardProps> = ({
     >
       {/* Card Header */}
       <header className="space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center space-x-2">
-            <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-indigo-600 text-white font-bold text-xs shadow-xs">
-              {card.stepNumber}
-            </span>
-            <span
-              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${stepMeta.badgeClasses}`}
-            >
-              {stepMeta.label}
-            </span>
-          </div>
-
-          <span className="text-[11px] font-semibold text-slate-600">
-            Progressive Card {card.stepNumber} of 4
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-indigo-600 text-white font-bold text-xs shadow-xs">
+            {card.stepNumber}
+          </span>
+          <span
+            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${stepMeta.badgeClasses}`}
+          >
+            {stepMeta.label}
           </span>
         </div>
 
@@ -183,30 +162,12 @@ export const ExplainCard: React.FC<ExplainCardProps> = ({
         </section>
       )}
 
-      {/* Nested Deep-Dive Sub-Cards (AC-EXP-03) */}
-      {deepDives.length > 0 && (
-        <div className="space-y-3 pt-2">
-          {deepDives.map((deepDive, idx) => (
-            <DeepDiveSubCard
-              key={deepDive.id || `${card.stepNumber}-deep-${idx}`}
-              deepDive={deepDive}
-              index={idx}
-            />
-          ))}
-        </div>
-      )}
-
       {/* Card Controls */}
       <CardControls
         stepNumber={card.stepNumber}
         isLatestVisibleCard={isLatestVisibleCard}
         canAdvanceNext={card.stepNumber < 4}
-        canGoDeeper={canGoDeeper}
-        isGoingDeeper={isGoingDeeper}
         onNext={onNext}
-        onGoDeeper={onGoDeeper}
-        suggestedSubTopics={suggestedSubTopics}
-        onSelectSubTopic={onSelectSubTopic}
         onSwitchMode={onSwitchMode}
       />
     </article>
