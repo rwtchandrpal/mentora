@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LearningMode, type SessionSummaryDTO } from '@mentora/shared';
 import { useAppDispatch, useAppSelector } from '../../store/hooks.js';
@@ -28,6 +28,44 @@ export const LeftHistorySidebar: React.FC = () => {
   const isMobileDrawerOpen = useAppSelector((state) => state.ui.isMobileDrawerOpen);
 
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const drawerRef = useRef<HTMLDivElement | null>(null);
+
+  // L-11: move focus into the drawer, close on Esc, trap Tab, and restore focus on close.
+  useEffect(() => {
+    if (!isMobileDrawerOpen) return;
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    const getFocusable = (): HTMLElement[] =>
+      Array.from(
+        drawerRef.current?.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])'
+        ) ?? []
+      ).filter((el) => el.getClientRects().length > 0); // skip display:none (desktop-only) controls
+    getFocusable()[0]?.focus();
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        dispatch(setMobileDrawerOpen(false));
+        return;
+      }
+      if (e.key !== 'Tab') return;
+      const items = getFocusable();
+      if (items.length === 0) return;
+      const first = items[0]!;
+      const last = items[items.length - 1]!;
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      previouslyFocused?.focus?.();
+    };
+  }, [isMobileDrawerOpen, dispatch]);
 
   const safeSessionList = Array.isArray(sessionList) ? sessionList : [];
   const sortedSessions = [...safeSessionList].sort(
@@ -35,8 +73,10 @@ export const LeftHistorySidebar: React.FC = () => {
   );
 
   const handleNewTopic = () => {
-    dispatch(clearActiveSession());
+    // Leave the /workspace/:id route first so the deep-link effect cannot re-fetch the
+    // session that is being cleared.
     navigate('/workspace');
+    dispatch(clearActiveSession());
     dispatch(setMobileDrawerOpen(false));
   };
 
@@ -59,8 +99,8 @@ export const LeftHistorySidebar: React.FC = () => {
         return;
       }
       if (activeSession?.id === sessionId || activeSession?._id === sessionId) {
-        dispatch(clearActiveSession());
         navigate('/workspace');
+        dispatch(clearActiveSession());
       }
     } finally {
       setConfirmDeleteId(null);
@@ -97,7 +137,7 @@ export const LeftHistorySidebar: React.FC = () => {
             <button
               type="button"
               onClick={() => dispatch(setMobileDrawerOpen(false))}
-              className="lg:hidden p-1 text-gray-600 hover:text-gray-900 rounded-lg border-0 outline-none ring-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+              className="lg:hidden min-w-[44px] min-h-[44px] inline-flex items-center justify-center text-gray-600 hover:text-gray-900 rounded-lg border-0 outline-none ring-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
               aria-label="Close sidebar"
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -111,7 +151,7 @@ export const LeftHistorySidebar: React.FC = () => {
         <button
           type="button"
           onClick={handleNewTopic}
-          className="w-full flex items-center justify-center space-x-2 py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          className="w-full min-h-[44px] flex items-center justify-center space-x-2 py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
@@ -255,6 +295,7 @@ export const LeftHistorySidebar: React.FC = () => {
       {/* Quota Badge & User Profile Footer */}
       {!user ? (
         <div className="p-4 border-t border-gray-200 bg-gray-50/80 space-y-3">
+          <QuotaBadge />
           <div className="space-y-1">
             <p className="text-xs font-semibold text-gray-900">Personalized Learning</p>
             <p className="text-[11px] text-gray-600 leading-relaxed">
@@ -264,7 +305,7 @@ export const LeftHistorySidebar: React.FC = () => {
           <button
             type="button"
             onClick={() => navigate('/login')}
-            className="w-full flex items-center justify-center py-2 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            className="w-full min-h-[44px] flex items-center justify-center py-2 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
           >
             Get Started
           </button>
@@ -337,7 +378,7 @@ export const LeftHistorySidebar: React.FC = () => {
             className="fixed inset-0 bg-gray-900/50 backdrop-blur-xs transition-opacity"
             onClick={() => dispatch(setMobileDrawerOpen(false))}
           />
-          <div className="fixed inset-y-0 left-0 w-72 max-w-[85vw] shadow-2xl">
+          <div ref={drawerRef} className="fixed inset-y-0 left-0 w-72 max-w-[85vw] shadow-2xl">
             {renderSidebarContent()}
           </div>
         </div>

@@ -104,7 +104,7 @@ export const LoginPage: React.FC = () => {
                   placeholder="learner@university.edu"
                 />
                 {fieldErrors.email && (
-                  <p id="email-error" className="mt-1 text-xs text-red-600 font-medium">
+                  <p id="email-error" role="alert" className="mt-1 text-xs text-red-600 font-medium">
                     {fieldErrors.email}
                   </p>
                 )}
@@ -132,7 +132,7 @@ export const LoginPage: React.FC = () => {
                   placeholder="••••••••"
                 />
                 {fieldErrors.password && (
-                  <p id="password-error" className="mt-1 text-xs text-red-600 font-medium">
+                  <p id="password-error" role="alert" className="mt-1 text-xs text-red-600 font-medium">
                     {fieldErrors.password}
                   </p>
                 )}

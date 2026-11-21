@@ -8,6 +8,7 @@ import { PublicOnlyGuard } from './PublicOnlyGuard.js';
 import { LoginPage } from '../pages/LoginPage.js';
 import { RegisterPage } from '../pages/RegisterPage.js';
 import { OnboardingPage } from '../pages/OnboardingPage.js';
+import { NotFoundPage } from '../pages/NotFoundPage.js';
 
 // The workspace pulls in the markdown/KaTeX/Mermaid/code-highlighting stack, so it is
 // split out of the entry chunk and loaded when a workspace route is first visited (A-16).
@@ -78,7 +79,7 @@ export const AppRouter: React.FC = () => {
 
       {/* Fallback routes */}
       <Route path="/" element={<Navigate to="/workspace" replace />} />
-      <Route path="*" element={<Navigate to="/workspace" replace />} />
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
 };

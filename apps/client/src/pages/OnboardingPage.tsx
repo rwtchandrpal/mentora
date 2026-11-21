@@ -133,7 +133,7 @@ export const OnboardingPage: React.FC = () => {
         <div>
           <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-indigo-700 mb-2">
             <span>Step {step} of 2</span>
-            <span>{step === 1 ? '50% Completed' : '95% Completed'}</span>
+            <span>{step === 1 ? '50% Completed' : '100% Completed'}</span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2 mb-6">
             <div

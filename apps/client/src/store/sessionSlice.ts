@@ -48,7 +48,15 @@ export interface SessionState {
   isGeneratingPractice: boolean;
   isSubmittingPractice: boolean;
   practiceError: NormalizedApiErrorData | null;
+  /**
+   * Request id of the newest by-id fetch, or CLEARED_FETCH once the active session was
+   * deliberately cleared. A fetch that resolves with any other id is stale and ignored, so a
+   * slow response cannot bring back a session the user already navigated away from.
+   */
+  latestFetchRequestId?: string | null;
 }
+
+export const CLEARED_FETCH = '__cleared__';
 
 export const initialStreamingState: StreamingState = {
   isStreaming: false,
@@ -381,6 +389,8 @@ export const sessionSlice = createSlice({
     },
     clearActiveSession: (state) => {
       state.activeSession = null;
+      state.latestFetchRequestId = CLEARED_FETCH;
+      state.isLoadingSession = false;
       state.streamingState = { ...initialStreamingState };
       state.isInitializingExplain = false;
       state.deepDiveLoadingStep = null;
@@ -518,11 +528,18 @@ export const sessionSlice = createSlice({
     });
 
     // fetchSessionByIdThunk
-    builder.addCase(fetchSessionByIdThunk.pending, (state) => {
+    builder.addCase(fetchSessionByIdThunk.pending, (state, action) => {
+      state.latestFetchRequestId = action.meta.requestId;
       state.isLoadingSession = true;
       state.error = null;
     });
     builder.addCase(fetchSessionByIdThunk.fulfilled, (state, action) => {
+      if (
+        state.latestFetchRequestId != null &&
+        state.latestFetchRequestId !== action.meta.requestId
+      ) {
+        return; // stale: superseded or cleared while in flight
+      }
       const session = action.payload.data;
       state.isLoadingSession = false;
       state.activeSession = session;
@@ -531,6 +548,12 @@ export const sessionSlice = createSlice({
       state.streamingState = { ...initialStreamingState };
     });
     builder.addCase(fetchSessionByIdThunk.rejected, (state, action) => {
+      if (
+        state.latestFetchRequestId != null &&
+        state.latestFetchRequestId !== action.meta.requestId
+      ) {
+        return;
+      }
       state.isLoadingSession = false;
       state.error = action.payload ?? {
         statusCode: 0,

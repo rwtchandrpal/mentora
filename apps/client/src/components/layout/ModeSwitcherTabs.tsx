@@ -72,7 +72,7 @@ export const ModeSwitcherTabs: React.FC = () => {
             tabIndex={isActive ? 0 : -1}
             onClick={() => handleSelectMode(tab.mode)}
             onKeyDown={(e) => handleKeyDown(e, idx)}
-            className={`flex items-center px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500 ${getModeTabClasses(
+            className={`flex items-center min-h-[44px] sm:min-h-0 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500 ${getModeTabClasses(
               tab.mode,
               isActive
             )}`}

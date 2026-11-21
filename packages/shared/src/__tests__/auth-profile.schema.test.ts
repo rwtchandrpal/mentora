@@ -76,6 +76,7 @@ describe('IMP-002: Domain Enums and Business Rule Constants', () => {
       'UNAUTHORIZED',
       'PROFILE_INCOMPLETE',
       'RESOURCE_NOT_FOUND',
+      'CONFLICT',
       'TIER_LOCKED',
       'EDUCATIONAL_GUARDRAIL_REFUSAL',
       'DAILY_QUOTA_EXCEEDED',

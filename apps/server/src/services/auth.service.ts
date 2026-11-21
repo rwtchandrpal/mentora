@@ -131,8 +131,8 @@ export class AuthService {
     const existing = await this.userRepo.findByEmail(normalizedEmail);
     if (existing) {
       throw new AppError(
-        400,
-        ErrorCode.VALIDATION_ERROR,
+        409,
+        ErrorCode.CONFLICT,
         'An account with this email already exists'
       );
     }
@@ -154,8 +154,8 @@ export class AuthService {
         (err as { code: number }).code === 11000
       ) {
         throw new AppError(
-          400,
-          ErrorCode.VALIDATION_ERROR,
+          409,
+          ErrorCode.CONFLICT,
           'An account with this email already exists'
         );
       }

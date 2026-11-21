@@ -15,7 +15,7 @@ export const SidebarToggleButton: React.FC<SidebarToggleButtonProps> = ({
     <button
       type="button"
       onClick={onClick}
-      className={`p-1.5 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors border-0 border-transparent outline-none ring-0 hover:border-transparent hover:outline-none hover:ring-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${className}`}
+      className={`min-w-[44px] min-h-[44px] lg:min-w-0 lg:min-h-0 inline-flex items-center justify-center p-1.5 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors border-0 border-transparent outline-none ring-0 hover:border-transparent hover:outline-none hover:ring-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${className}`}
       aria-label={isSidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
       aria-expanded={isSidebarOpen}
       title={isSidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}

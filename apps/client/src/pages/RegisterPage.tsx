@@ -112,7 +112,7 @@ export const RegisterPage: React.FC = () => {
                   placeholder="Marie Curie"
                 />
                 {fieldErrors.name && (
-                  <p id="name-error" className="mt-1 text-xs text-red-600 font-medium">
+                  <p id="name-error" role="alert" className="mt-1 text-xs text-red-600 font-medium">
                     {fieldErrors.name}
                   </p>
                 )}
@@ -140,7 +140,7 @@ export const RegisterPage: React.FC = () => {
                   placeholder="learner@university.edu"
                 />
                 {fieldErrors.email && (
-                  <p id="email-error" className="mt-1 text-xs text-red-600 font-medium">
+                  <p id="email-error" role="alert" className="mt-1 text-xs text-red-600 font-medium">
                     {fieldErrors.email}
                   </p>
                 )}
@@ -168,7 +168,7 @@ export const RegisterPage: React.FC = () => {
                   placeholder="At least 8 characters"
                 />
                 {fieldErrors.password && (
-                  <p id="password-error" className="mt-1 text-xs text-red-600 font-medium">
+                  <p id="password-error" role="alert" className="mt-1 text-xs text-red-600 font-medium">
                     {fieldErrors.password}
                   </p>
                 )}
