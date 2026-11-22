@@ -357,23 +357,30 @@ Each task can be done and verified independently. Order = user impact × likelih
   - **Confirmed:** `CF-Connecting-IP` reaches the app on Render, and the service is not Blueprint-managed. Env vars must be set in the dashboard; `render.yaml` documents the intended value.
 - **Remaining housekeeping:** after reading the `Client IP diagnostics` log lines, set `LOG_CLIENT_IP_DIAGNOSTICS=false` (or remove it) in Render, since it logs client IPs. Old guest windows keyed on proxy addresses expire on their own within 24 h (TTL).
 
-### LIVE-FIX-004 — Backend stability + honest "server unavailable" UX (BUG-H4, BUG-M4)
-- **Target files:**
-  - `render.yaml` (5, 9)
-  - `apps/server/src/index.ts` (50-62)
-  - `apps/client/src/services/apiClient.ts` (225-236, health probe ~319)
-  - `apps/client/src/components/practice/PracticeStage.tsx`
-  - `apps/client/src/store/sessionSlice.ts` (mode switch)
-- **Exact fix:**
-  - **(a)** Pull Render logs for 2026-11-22 10:42 and 10:50 UTC to identify the cause (OOM, crash or platform hibernation).
-  - **(b)** Add `process.on('unhandledRejection' | 'uncaughtException')` handlers that log with pino before exiting.
-  - **(c)** Start with `node apps/server/dist/index.js` instead of the pnpm wrapper, and set `NODE_OPTIONS=--max-old-space-size=384`.
-  - **(d)** Consider a paid instance or an external keep-alive for demos.
-  - **(e)** Client: on a status-0 error, call `GET /health`. If that also fails, show "Mentora's server is waking up — retrying…" and retry with exponential back-off (e.g. 2 s, 4 s, 8 s, up to ~90 s) before surfacing an error.
-  - **(f)** Make "Retry" in Practice re-issue the pending `PATCH /mode` as well.
+### LIVE-FIX-004 — Backend stability + honest "server unavailable" UX (BUG-H4, BUG-M4) — ✅ code implemented (not yet deployed); root cause still open
+- **Status of the original plan:**
+  - **(a) Find the outage cause — open, yours.** It needs Render's logs for 2026-11-22 ~10:42 and ~10:50 UTC, which only the account owner can see. The new logging below makes the next occurrence self-explaining.
+  - **(b) Crash logging — done.** `apps/server/src/config/processGuards.ts` installs `unhandledRejection` / `uncaughtException` handlers from `index.ts`. They write a pino `fatal` log with the error and memory (RSS/heap MB), then exit with code 1, as Node would. Startup and SIGTERM logs now include memory, and SIGTERM also logs uptime, so a platform restart can be told apart from a crash.
+  - **(c) Heap cap — done, differently.** The service isn't Blueprint-managed, so changing the Render start command means a dashboard edit. Instead the server's own `start` script, which Render already runs through `pnpm … start`, is now `node --max-old-space-size=384 dist/index.js`. A leak then ends in a logged "JavaScript heap out of memory" instead of a silent kill at the 512 MB instance limit.
+  - **(d) Paid instance / keep-alive — open, yours.**
+  - **(e) Honest client UX — done.** See below.
+  - **(f) Practice retry of `PATCH /mode` — done through (e).** The failed mode switch and the auto-started generate both wait for the server and retry once, so no separate Practice change was needed.
+- **Client behaviour (`apps/client/src/services/apiClient.ts`):**
+  - **On a network error, probe `/health`.** If it answers, the error stands and the user still sees "Network error. Please check your internet connection." That's accurate: the problem is their connection.
+  - **If `/health` is also down, wait.** The client treats the API as restarting and polls `/health` with back-off (2 s, 4 s, 8 s, then 15 s steps, about 90 s in total; `SERVER_WAKE_RETRY_DELAYS_MS`). A global banner ("Mentora's server is waking up. Retrying automatically…", `role="status"`) shows meanwhile. When the API answers, the original request is retried **once**.
+  - **Shared wait:** requests that fail together share one wait and one banner.
+  - **If the API never comes back:** the error becomes `SERVICE_UNAVAILABLE` (503), "Mentora's server is temporarily unavailable. Please try again in a minute." Practice titles it "Server Temporarily Unavailable".
+  - **Interact streams aren't resent automatically,** since the server may have seen the turn. When the API is down they say "Mentora's server is restarting…", start the shared wait, and keep the Retry button.
+  - **Test default:** the behaviour is on in the app and off by default under tests (`configureServerWake`); its own tests switch it on.
 - **Verification:**
-  - With the API URL pointed at a host that returns 503 (or Render suspended), the UI shows the waking-up state and recovers by itself when the API comes back.
-  - Render logs show no restarts over a 30-minute scripted session.
+  - New `serverWake.test.tsx` (9 tests): wait-then-retry, no wait when `/health` answers, give up → `SERVICE_UNAVAILABLE`, one shared wait for concurrent failures, at most one retry, a mode switch recovering mid-restart, both Interact stream messages, and the banner.
+  - New `processGuards.test.ts` (3 tests).
+  - Full suites: client 159/159, server 258/258. Both `tsc --noEmit` runs and `eslint` are clean.
+  - Not yet checked: the banner hasn't been looked at in a browser, and there's no live outage to test against.
+- **Still to do:**
+  1. Deploy.
+  2. If an outage recurs, read the Render logs for a `fatal` line or the SIGTERM line with memory and uptime.
+  3. Decide on (d).
 
 ### LIVE-FIX-005 — Enforce strike ordering server-side (BUG-M1)
 - **Target files:**

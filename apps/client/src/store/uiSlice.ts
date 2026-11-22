@@ -12,6 +12,8 @@ export interface UiState {
   isMobileDrawerOpen: boolean;
   isProfileModalOpen: boolean;
   notifications: UiNotification[];
+  /** True while the API is unreachable and the client is waiting for it to wake up. */
+  isServerWaking: boolean;
 }
 
 export const initialUiState: UiState = {
@@ -19,6 +21,7 @@ export const initialUiState: UiState = {
   isMobileDrawerOpen: false,
   isProfileModalOpen: false,
   notifications: [],
+  isServerWaking: false,
 };
 
 export const uiSlice = createSlice({
@@ -64,6 +67,9 @@ export const uiSlice = createSlice({
     clearNotifications: (state) => {
       state.notifications = [];
     },
+    setServerWaking: (state, action: PayloadAction<boolean>) => {
+      state.isServerWaking = action.payload;
+    },
   },
   extraReducers: (builder) => {
     builder.addCase(logout, () => {
@@ -87,6 +93,7 @@ export const {
   addNotification,
   removeNotification,
   clearNotifications,
+  setServerWaking,
 } = uiSlice.actions;
 
 export default uiSlice.reducer;

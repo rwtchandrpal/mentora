@@ -209,6 +209,8 @@ export const PracticeStage: React.FC = () => {
                   ? 'Educational Scope Notice'
                   : practiceError.code === ErrorCode.TIER_LOCKED
                   ? 'Tier Prerequisite Locked'
+                  : practiceError.code === 'SERVICE_UNAVAILABLE'
+                  ? 'Server Temporarily Unavailable'
                   : 'Practice Request Failed'}
               </p>
               <p className="text-xs sm:text-sm text-rose-800 mt-0.5">

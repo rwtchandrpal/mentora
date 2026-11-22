@@ -14,6 +14,15 @@ import { LearningMode } from '@mentora/shared';
 export const AI_FAST_TIMEOUT_MS = 45_000;
 export const AI_REASONING_TIMEOUT_MS = 90_000;
 
+/**
+ * Back-off between `/health` probes while the API is unreachable (LIVE-BUG-H4): Render
+ * restarts and cold starts were observed to take 45–110 s, so the schedule spans ~90 s
+ * before the client gives up and reports the server as unavailable.
+ */
+export const SERVER_WAKE_RETRY_DELAYS_MS: readonly number[] = [
+  2_000, 4_000, 8_000, 15_000, 15_000, 15_000, 15_000, 15_000,
+];
+
 /** Timeout for session creation, which auto-initializes the initial mode. */
 export const getCreateSessionTimeoutMs = (initialMode: LearningMode | undefined): number =>
   initialMode === LearningMode.PRACTICE ? AI_REASONING_TIMEOUT_MS : AI_FAST_TIMEOUT_MS;

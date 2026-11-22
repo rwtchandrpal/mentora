@@ -3,7 +3,8 @@ import authReducer from './authSlice.js';
 import sessionReducer from './sessionSlice.js';
 import uiReducer from './uiSlice.js';
 import { logout } from './authSlice.js';
-import { setUnauthorizedHandler } from '../services/apiClient.js';
+import { setServerWaking } from './uiSlice.js';
+import { setServerWakeListener, setUnauthorizedHandler } from '../services/apiClient.js';
 
 export const rootReducer = combineReducers({
   auth: authReducer,
@@ -42,6 +43,11 @@ export const createAppStore = (preloadedState?: PreloadedRootState) => {
     if (appStore.getState().auth.token) {
       appStore.dispatch(logout());
     }
+  });
+
+  // Drives the "server is waking up" banner while the API client waits (LIVE-BUG-H4).
+  setServerWakeListener((isWaking) => {
+    appStore.dispatch(setServerWaking(isWaking));
   });
 
   return appStore;
