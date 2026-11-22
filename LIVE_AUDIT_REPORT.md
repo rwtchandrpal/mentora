@@ -487,14 +487,13 @@ Each task can be done and verified independently. Order = user impact × likelih
 - **Verification:** New test "signing out from a session lands on an empty /workspace with no stray fetch" checks the URL is `/workspace`, the empty topic form shows, there is no `GET /sessions/:id`, no "Session not found", and the user and active session are cleared. It fails on the old code (the URL stayed `/workspace/:id`). The test file's render helper now also shows the current path. Full client suite 187/187; `tsc --noEmit` and `eslint src` clean.
 - **Still to do after deploy:** sign out from `/workspace/:id` on the live site and confirm there is no 401 in the console.
 
-### LIVE-FIX-012 — Keyboard & focus accessibility (BUG-L5)
-- **Target files:**
-  - `apps/client/src/components/practice/McqQuestionCard.tsx:86-110`
-  - `apps/client/src/components/layout/ProfileSettingsModal.tsx:62-82`
-- **Exact fix:**
-  - **(a)** Roving `tabIndex` (selected option, or the first one, gets `0`; the others `-1`). ArrowUp/Down/Left/Right move focus and selection within the group.
-  - **(b)** On open, focus the first `<select>`. Trap Tab inside the dialog, and restore focus to the trigger on close.
-- **Verification:** Keyboard-only run through a 10-question batch (about 10 Tab stops instead of 40), plus an axe-core scan with no `aria-dialog`/focus violations.
+### LIVE-FIX-012 — Keyboard & focus accessibility (BUG-L5) — ✅ implemented (not yet deployed)
+- **Target files:** `McqQuestionCard.tsx`, `ProfileSettingsModal.tsx`, `apps/client/src/__tests__/KeyboardFocusA11y.test.tsx` (new)
+- **Fix as implemented:**
+  - **(a) MCQ radiogroup:** roving `tabIndex`. The selected option (or the first, when none is selected) is the only Tab stop; all options are `-1` when disabled. ArrowDown/Right and ArrowUp/Left move focus and selection, wrapping at the ends. Space/Enter still select. That's about 10 Tab stops per batch instead of 40.
+  - **(b) Profile modal:** on open, focus moves to the first `<select>`. Tab and Shift+Tab wrap inside the dialog, and focus that has escaped is pulled back in. On close, focus returns to the element that opened it.
+- **Verification:** 6 new tests (single Tab stop, stop follows selection, arrow keys with wrap, Space/Enter, disabled, and the modal's focus-in, trap and restore). Full client suite 193/193; `tsc --noEmit` and `eslint src` clean.
+- **Not done:** the axe-core scan and a keyboard-only run in a real browser. A CI axe check is suggestion #12.
 
 ### LIVE-FIX-013 — Explain auto-scroll, Mermaid theme, onboarding copy (BUG-L3, L7, L8)
 - **Target files:**

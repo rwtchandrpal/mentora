@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import type { McqQuestionMaskedDTO, McqQuestionFullDTO } from '@mentora/shared';
 import { RichMarkdownRenderer } from '../common/RichMarkdownRenderer.js';
 
@@ -18,6 +18,22 @@ export const McqQuestionCard: React.FC<McqQuestionCardProps> = ({
   disabled = false,
 }) => {
   const [showHint, setShowHint] = useState(false);
+  const groupRef = useRef<HTMLDivElement>(null);
+
+  // WAI-ARIA radiogroup: the selected option (or the first, when none) is the only Tab stop.
+  const tabStopIndex =
+    selectedOptionIndex !== null && selectedOptionIndex < question.options.length
+      ? selectedOptionIndex
+      : 0;
+
+  const moveSelection = (from: number, delta: number) => {
+    const count = question.options.length;
+    const next = (from + delta + count) % count;
+    onSelectOption(next);
+    groupRef.current
+      ?.querySelector<HTMLElement>(`[data-option-index="${next}"]`)
+      ?.focus();
+  };
 
   return (
     <article
@@ -83,6 +99,7 @@ export const McqQuestionCard: React.FC<McqQuestionCardProps> = ({
 
       {/* 4 Accessible Radio Options (A, B, C, D) */}
       <div
+        ref={groupRef}
         role="radiogroup"
         aria-label={`Options for question ${question.questionNumber}`}
         className="space-y-2.5 sm:space-y-3"
@@ -96,7 +113,8 @@ export const McqQuestionCard: React.FC<McqQuestionCardProps> = ({
               key={optIdx}
               role="radio"
               aria-checked={isSelected}
-              tabIndex={disabled ? -1 : 0}
+              tabIndex={!disabled && optIdx === tabStopIndex ? 0 : -1}
+              data-option-index={optIdx}
               data-testid={`mcq-option-${question.questionNumber}-${optIdx}`}
               onClick={() => {
                 if (!disabled) {
@@ -104,9 +122,16 @@ export const McqQuestionCard: React.FC<McqQuestionCardProps> = ({
                 }
               }}
               onKeyDown={(e) => {
-                if (!disabled && (e.key === ' ' || e.key === 'Enter')) {
+                if (disabled) return;
+                if (e.key === ' ' || e.key === 'Enter') {
                   e.preventDefault();
                   onSelectOption(optIdx);
+                } else if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+                  e.preventDefault();
+                  moveSelection(optIdx, 1);
+                } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+                  e.preventDefault();
+                  moveSelection(optIdx, -1);
                 }
               }}
               className={`flex items-start gap-3 min-h-[44px] p-3.5 sm:p-4 rounded-xl border transition-all cursor-pointer select-none focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 ${
