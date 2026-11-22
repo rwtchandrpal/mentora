@@ -362,6 +362,28 @@ export const pingHealthCheck = async (): Promise<boolean> => {
 };
 
 /**
+ * Readiness probe for the cold-start gate: `true` only on HTTP 200. A 503 (database not
+ * connected yet, or Render waking), a network error, a timeout or an abort all resolve
+ * `false`; it never throws.
+ */
+export const checkServerHealth = async (
+  signal?: AbortSignal,
+  timeoutMs: number = 10_000
+): Promise<boolean> => {
+  try {
+    const response = await apiClient.get('/health', {
+      timeout: timeoutMs,
+      signal,
+      skipServerWake: true,
+      validateStatus: () => true,
+    });
+    return response.status === 200;
+  } catch {
+    return false;
+  }
+};
+
+/**
  * Resolves `true` once `/health` answers, or `false` after the back-off schedule runs
  * out. Callers that fail at the same time share one wait and one banner.
  */

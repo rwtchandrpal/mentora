@@ -28,13 +28,13 @@ export const getCreateSessionTimeoutMs = (initialMode: LearningMode | undefined)
   initialMode === LearningMode.PRACTICE ? AI_REASONING_TIMEOUT_MS : AI_FAST_TIMEOUT_MS;
 
 /**
- * Startup "server waking up" splash. If the first `/health` probe hasn't answered after
- * SHOW_AFTER_MS, a friendly banner explains the wait; probing continues every
- * POLL_INTERVAL_MS until the API answers or GIVE_UP_AFTER_MS passes. A cold Render
- * instance was observed to need 45–110 s.
+ * Cold-start wake-up gate (ServerWakeupGate). A warm API answers within the grace window and
+ * the gate never shows; otherwise the wake-up card appears and `/health` is polled until it
+ * answers 200 or the cold-start window runs out.
  */
-export const WAKE_SPLASH_SHOW_AFTER_MS = 1_500;
-export const WAKE_SPLASH_POLL_INTERVAL_MS = 2_000;
-export const WAKE_SPLASH_GIVE_UP_AFTER_MS = 180_000;
-/** Rough cold-start duration the progress bar is paced against. */
-export const WAKE_SPLASH_EXPECTED_MS = 60_000;
+export const WAKE_GATE_GRACE_MS = 350;
+export const WAKE_GATE_POLL_INTERVAL_MS = 2_500;
+export const WAKE_GATE_REQUEST_TIMEOUT_MS = 10_000;
+export const WAKE_GATE_MAX_WAIT_MS = 90_000;
+/** After this long, the card shows a "warming up" hint. */
+export const WAKE_GATE_SLOW_HINT_MS = 6_000;

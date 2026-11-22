@@ -14,6 +14,7 @@ import {
   NormalizedApiError,
   normalizeAxiosError,
   pingHealthCheck,
+  checkServerHealth,
   setUnauthorizedHandler,
 } from '../services/apiClient.js';
 import { ErrorBoundary } from '../components/common/ErrorBoundary.js';
@@ -438,6 +439,44 @@ describe('IMP-009: Client Foundation, API Client, and Error Boundary', () => {
 
       const isHealthy = await pingHealthCheck();
       expect(isHealthy).toBe(false);
+    });
+  });
+
+  describe('4b. Readiness probe (checkServerHealth)', () => {
+    const respondWith =
+      (status: number): AxiosAdapter =>
+      async (config: InternalAxiosRequestConfig) => ({
+        data: {},
+        status,
+        statusText: '',
+        headers: {},
+        config,
+      });
+
+    it('is true only for HTTP 200', async () => {
+      apiClient.defaults.adapter = respondWith(200);
+      expect(await checkServerHealth()).toBe(true);
+    });
+
+    it('is false for a 503 (database not connected yet)', async () => {
+      apiClient.defaults.adapter = respondWith(503);
+      expect(await checkServerHealth()).toBe(false);
+    });
+
+    it('is false, without throwing, on a network error', async () => {
+      apiClient.defaults.adapter = async () => {
+        throw new AxiosError('Network Error', 'ERR_NETWORK');
+      };
+      expect(await checkServerHealth()).toBe(false);
+    });
+
+    it('is false, without throwing, when aborted', async () => {
+      apiClient.defaults.adapter = async () => {
+        throw new AxiosError('canceled', 'ERR_CANCELED');
+      };
+      const controller = new AbortController();
+      controller.abort();
+      expect(await checkServerHealth(controller.signal)).toBe(false);
     });
   });
 
