@@ -443,10 +443,26 @@ Each task can be done and verified independently. Order = user impact × likelih
   - **Full client suite:** 170/170. `tsc --noEmit` and `eslint src` are clean.
   - **Still to do after deploy:** at 390×844, open the guest Dijkstra session `6b02c5d961c7468ff04d15e1`. The strike-2 table message should fit its bubble and scroll horizontally.
 
-### LIVE-FIX-008 — Display math normalisation (BUG-L1)
-- **Target file:** `apps/client/src/components/common/RichMarkdownRenderer.tsx`
-- **Exact fix:** Before passing `content` to `ReactMarkdown`, run `content.replace(/^[ \t]*\$\$([^\n]+?)\$\$[ \t]*$/gm, '$$$$\n$1\n$$$$')`. This turns standalone single-line `$$…$$` into block math, outside fenced code blocks (split on ``` fences first).
-- **Verification:** A unit test renders `"a\n\n$$x=1$$\n\nb"` and expects `.katex-display`. Live: Dijkstra Card 2's relaxation formula is centred.
+### LIVE-FIX-008 — Display math normalisation (BUG-L1) — ✅ implemented (not yet deployed)
+- **Target files:**
+  - `apps/client/src/components/common/RichMarkdownRenderer.tsx`
+  - `apps/client/src/__tests__/RichMarkdownRenderer.test.tsx`
+- **Fix as implemented:**
+  - **Rewrite before parsing.** A new exported `normalizeDisplayMath(content)` runs (memoised) before `ReactMarkdown`. It changes a line holding nothing but `$$…$$` into `$$` / body / `$$` on three lines, which remark-math renders as display math.
+  - **Indentation is kept** on all three lines, so a formula inside a list item stays inside it.
+  - **Fenced code is skipped.** The scan goes line by line and tracks ```` ``` ```` and `~~~` fences by CommonMark rules: up to 3 spaces of indent, and a closing fence must use the same character and be at least as long. Fenced content is never rewritten.
+  - **Stricter than the planned regex.** The body may not contain an unescaped `$`, so a line like `$$a$$ and $$b$$` is left alone. The planned lazy `[^\n]+?` would have merged it into one bogus formula. Escaped `\$` is allowed. `$$…$$` inside a sentence stays inline, as remark-math intends.
+  - **No blank lines needed.** Probing remark-math showed the three-line form renders as display math even when it interrupts a paragraph with no blank lines around it, which is how the model often writes it.
+  - **Known limit:** a 4-space-indented (non-fenced) code block whose line is only `$$…$$` would be split into three lines. The formatting contract requires fenced code, so this is unlikely.
+- **Verification:**
+  - **New tests:** 5 render tests and 4 `normalizeDisplayMath` unit tests.
+    - The render tests cover the audit case `a\n\n$$x=1$$\n\nb` and the live Dijkstra/Interact formulas with and without surrounding blank lines and with trailing spaces.
+    - They also check list items, inline `$$` in a sentence, and `$$` inside ```` ``` ```` / `~~~` fences.
+    - The unit tests cover indentation, the unchanged inputs (including `$$a$$ and $$b$$` and nested fences), escaped dollars, and resuming after a fence closes.
+  - **Old code fails them:** with the normaliser bypassed, the three display-math render tests fail.
+  - **Browser check:** a temporary Vite harness, since removed, rendered "The relaxation step:\n$$d[v] = d[u] + w(u, v)$$\n…". The output had one `.katex-display` with `text-align: center`, the formula visibly centred on its own line, and no `.katex-error`. The inline `$x = 1$` and in-sentence `$$y = 2$$` stayed inline.
+  - **Full client suite:** 179/179. `tsc --noEmit` and `eslint src` are clean.
+  - **Still to do after deploy:** Dijkstra Explain Card 2's relaxation formula should be centred.
 
 ### LIVE-FIX-009 — Copy button fallback & feedback (BUG-L2)
 - **Target file:** `apps/client/src/components/common/CodeBlock.tsx:25-35`

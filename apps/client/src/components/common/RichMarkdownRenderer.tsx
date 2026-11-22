@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React, { memo, useMemo } from 'react';
 import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
@@ -7,6 +7,48 @@ import 'katex/dist/katex.min.css';
 
 import { CodeBlock } from './CodeBlock.js';
 import { MermaidDiagram } from './MermaidDiagram.js';
+
+/** `$$…$$` alone on a line; the body may not contain an unescaped `$`. */
+const SINGLE_LINE_DISPLAY_MATH = /^([ \t]*)\$\$((?:[^$\\\n]|\\.)+)\$\$[ \t]*$/;
+/** Opening/closing code fence (CommonMark: up to 3 spaces, 3+ ` or ~). */
+const CODE_FENCE = /^ {0,3}(`{3,}|~{3,})/;
+
+/**
+ * remark-math only treats `$$` as display math when the delimiters sit on
+ * their own lines; `$$x$$` on one line becomes inline math (small,
+ * left-aligned). The model often writes the one-line form, so a line that
+ * holds nothing but `$$…$$` is rewritten to the three-line form, keeping its
+ * indentation so it stays inside list items. Fenced code blocks are left
+ * untouched, and `$$…$$` inside a sentence stays inline.
+ */
+export function normalizeDisplayMath(content: string): string {
+  if (!content.includes('$$')) return content;
+
+  const lines = content.split('\n');
+  let fence: string | null = null;
+
+  return lines
+    .map((line) => {
+      const fenceMatch = CODE_FENCE.exec(line);
+      if (fenceMatch) {
+        const marker = fenceMatch[1]!;
+        if (fence === null) {
+          fence = marker;
+        } else if (marker[0] === fence[0] && marker.length >= fence.length) {
+          fence = null;
+        }
+        return line;
+      }
+      if (fence !== null) return line;
+
+      const math = SINGLE_LINE_DISPLAY_MATH.exec(line);
+      if (!math) return line;
+      const [, indent, body] = math;
+      if (body!.trim() === '') return line;
+      return `${indent}$$\n${indent}${body!.trim()}\n${indent}$$`;
+    })
+    .join('\n');
+}
 
 export interface RichMarkdownRendererProps {
   content: string;
@@ -152,6 +194,7 @@ const markdownComponents: Components = {
 
 export const RichMarkdownRenderer: React.FC<RichMarkdownRendererProps> = memo(
   ({ content, className = '' }) => {
+    const normalizedContent = useMemo(() => normalizeDisplayMath(content), [content]);
     return (
       <div
         className={`rich-markdown-renderer text-sm leading-relaxed ${className}`}
@@ -162,7 +205,7 @@ export const RichMarkdownRenderer: React.FC<RichMarkdownRendererProps> = memo(
           rehypePlugins={[rehypeKatex]}
           components={markdownComponents}
         >
-          {content}
+          {normalizedContent}
         </ReactMarkdown>
       </div>
     );

@@ -4,7 +4,10 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor, act, cleanup } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import mermaid from 'mermaid';
-import { RichMarkdownRenderer } from '../components/common/RichMarkdownRenderer.js';
+import {
+  RichMarkdownRenderer,
+  normalizeDisplayMath,
+} from '../components/common/RichMarkdownRenderer.js';
 import { CodeBlock } from '../components/common/CodeBlock.js';
 import { MermaidDiagram } from '../components/common/MermaidDiagram.js';
 
@@ -132,6 +135,81 @@ $$
       const displayElement = container.querySelector('.katex-display');
       expect(displayElement).toBeInTheDocument();
       expect(container.querySelector('.katex')).toBeInTheDocument();
+    });
+
+    describe('LIVE-FIX-008: single-line $$…$$ renders as display math', () => {
+      it('centres a standalone one-line $$…$$ (the audit case)', () => {
+        const { container } = render(<RichMarkdownRenderer content={'a\n\n$$x=1$$\n\nb'} />);
+        expect(container.querySelectorAll('.katex-display')).toHaveLength(1);
+        expect(container.querySelector('.katex-error')).toBeNull();
+      });
+
+      it('handles the live Dijkstra and Interact formulas, with or without blank lines around them', () => {
+        const content = [
+          'The relaxation step:',
+          '$$d[v] = d[u] + w(u, v)$$',
+          'and overall:',
+          '',
+          '  $$\\text{Total Time} = \\mathcal{O}((|V| + |E|) \\log |V|)$$  ',
+        ].join('\n');
+        const { container } = render(<RichMarkdownRenderer content={content} />);
+        expect(container.querySelectorAll('.katex-display')).toHaveLength(2);
+        expect(container.querySelector('.katex-error')).toBeNull();
+        expect(container.textContent).toContain('The relaxation step:');
+        expect(container.textContent).toContain('and overall:');
+      });
+
+      it('keeps display math inside a list item', () => {
+        const { container } = render(
+          <RichMarkdownRenderer content={'- step one\n\n  $$a^2 + b^2 = c^2$$\n'} />
+        );
+        expect(container.querySelector('li .katex-display')).toBeInTheDocument();
+      });
+
+      it('leaves $$…$$ inside a sentence inline', () => {
+        const { container } = render(<RichMarkdownRenderer content={'see $$x=1$$ here'} />);
+        expect(container.querySelector('.katex-display')).toBeNull();
+        expect(container.querySelector('.katex')).toBeInTheDocument();
+      });
+
+      it('does not touch $$ lines inside fenced code blocks', () => {
+        const { container } = render(
+          <RichMarkdownRenderer content={'```bash\n$$x=1$$\n```\n\n~~~\n$$y$$\n~~~'} />
+        );
+        expect(container.querySelector('.katex')).toBeNull();
+        expect(container.textContent).toContain('$$x=1$$');
+        expect(container.textContent).toContain('$$y$$');
+      });
+    });
+  });
+
+  describe('normalizeDisplayMath()', () => {
+    it('rewrites standalone lines and keeps their indentation', () => {
+      expect(normalizeDisplayMath('$$x$$')).toBe('$$\nx\n$$');
+      expect(normalizeDisplayMath('  $$ x + 1 $$ ')).toBe('  $$\n  x + 1\n  $$');
+    });
+
+    it('leaves everything else unchanged', () => {
+      for (const input of [
+        'no math here',
+        'inline $$x$$ in a sentence',
+        '$$\nx\n$$',
+        '$$a$$ and $$b$$',
+        '$$ $$',
+        '```\n$$x$$\n```',
+        '````\n```\n$$x$$\n````',
+        '`$$x$$`',
+      ]) {
+        expect(normalizeDisplayMath(input)).toBe(input);
+      }
+    });
+
+    it('allows escaped dollars inside the formula', () => {
+      expect(normalizeDisplayMath('$$\\$5 + \\$3$$')).toBe('$$\n\\$5 + \\$3\n$$');
+    });
+
+    it('resumes after a fence closes', () => {
+      expect(normalizeDisplayMath('```\n$$a$$\n```\n$$b$$')).toBe('```\n$$a$$\n```\n$$\nb\n$$');
     });
   });
 
