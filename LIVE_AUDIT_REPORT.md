@@ -420,12 +420,28 @@ Each task can be done and verified independently. Order = user impact × likelih
   - Full suites: client 168/168, server 262/262; `tsc --noEmit` and `eslint` clean on both.
   - **Not yet checked:** a browser look at the tracker, and whether the model now follows the plain-text rule. After deploy, start Interact on "Dijkstra's Algorithm" and "Binary Search Trees". For new sessions, `document.querySelector('[data-testid=milestone-tracker]').innerText` should contain no `$` or `\`. For the old audit session `6b02c5d961c7468ff04d15e1`, the tracker should show typeset math.
 
-### LIVE-FIX-007 — Let chat bubbles shrink (BUG-M3)
+### LIVE-FIX-007 — Let chat bubbles shrink (BUG-M3) — ✅ implemented (not yet deployed)
 - **Target files:**
-  - `apps/client/src/components/interact/ChatTranscript.tsx:97`
-  - `apps/client/src/components/interact/StreamingBubble.tsx:31`
-- **Exact fix:** Add `min-w-0` to both `flex-1` bubble containers.
-- **Verification:** At 390px, a message containing a 4-column table has a bubble width ≤ its row width, and the table scrolls horizontally inside `.rich-table-container`.
+  - `apps/client/src/components/interact/ChatTranscript.tsx`
+  - `apps/client/src/components/interact/StreamingBubble.tsx`
+  - `apps/client/src/index.css`
+  - `apps/client/src/__tests__/ChatBubbleOverflow.test.tsx` (new)
+- **Fix as implemented:**
+  - **All four bubbles, not two.** Saved assistant messages, saved user messages, the in-flight user message and the streaming bubble all get `min-w-0`. User bubbles render Markdown too, so a pasted table broke them the same way. Each bubble also gets `data-testid="chat-bubble"`.
+  - **`break-words`** on each bubble. Once a bubble can shrink, a long unbroken token such as a URL would otherwise spill past its edge.
+  - **Display math scrolls.** `.rich-markdown-renderer .katex-display` now has `overflow-x: auto`. Without it, a wide `$$…$$` formula would stick out of a narrowed bubble the same way the table used to widen it.
+- **Verification:**
+  - **New tests** in `ChatBubbleOverflow.test.tsx` (2): every bubble type carries `flex-1 min-w-0 break-words`, and tables stay inside their `overflow-x-auto` container. Both fail on the old code. jsdom has no layout engine, so these tests only pin the classes; the layout itself was checked in a browser.
+  - **Browser check:** a temporary Vite harness (since removed) rendered `ChatTranscript` inside the workspace's real flex/overflow wrappers. Content was a 5-column table, a wide display formula and a long URL.
+
+    | Width | Old classes: bubble width / right edge | Fixed: bubble width / right edge | Table | Display math | Page horizontal overflow |
+    |---|---|---|---|---|---|
+    | 390px | 725px / x=802 (row ends at 358) | 281px / x=358 | scrolls in a 246px box | scrolls in a 247px box (654px content). Without the CSS rule it reached x=748 | none |
+    | 1440px | — | 724px (fills its 768px row) | fits, no scroll | fits | none |
+
+    The old-code column was measured by removing `min-w-0`/`break-words` from the live DOM. The URL wraps inside the bubble.
+  - **Full client suite:** 170/170. `tsc --noEmit` and `eslint src` are clean.
+  - **Still to do after deploy:** at 390×844, open the guest Dijkstra session `6b02c5d961c7468ff04d15e1`. The strike-2 table message should fit its bubble and scroll horizontally.
 
 ### LIVE-FIX-008 — Display math normalisation (BUG-L1)
 - **Target file:** `apps/client/src/components/common/RichMarkdownRenderer.tsx`

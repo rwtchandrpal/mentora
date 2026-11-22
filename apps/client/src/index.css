@@ -155,6 +155,13 @@
 .rich-markdown-renderer .katex {
   color: inherit;
 }
+/* Wide display formulas scroll inside their container instead of widening
+   it (chat bubbles are allowed to shrink below their content width). */
+.rich-markdown-renderer .katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 2px;
+}
 .katex-wrapper {
   color: inherit;
 }

@@ -28,7 +28,10 @@ export const StreamingBubble: React.FC<StreamingBubbleProps> = ({
         M
       </div>
 
-      <div className="flex-1 bg-white border border-purple-200/80 rounded-2xl rounded-tl-xs p-4 sm:p-5 shadow-xs text-left">
+      <div
+        data-testid="chat-bubble"
+        className="flex-1 min-w-0 break-words bg-white border border-purple-200/80 rounded-2xl rounded-tl-xs p-4 sm:p-5 shadow-xs text-left"
+      >
         <div className="flex items-center gap-2 mb-2">
           <span className="text-xs font-semibold text-purple-950">
             Mentora Tutor

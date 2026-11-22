@@ -62,7 +62,10 @@ export const ChatTranscript: React.FC<ChatTranscriptProps> = ({
               data-testid={`chat-message-user-${msg.id}`}
               className="flex items-start gap-3 max-w-2xl ml-auto justify-end text-right"
             >
-              <div className="flex-1 bg-indigo-600 text-white rounded-2xl rounded-tr-xs p-4 shadow-xs text-left">
+              <div
+                data-testid="chat-bubble"
+                className="flex-1 min-w-0 break-words bg-indigo-600 text-white rounded-2xl rounded-tr-xs p-4 shadow-xs text-left"
+              >
                 <div className="flex items-center justify-between gap-2 mb-1.5">
                   <span className="text-xs font-semibold text-white">You</span>
                   <span className="text-[10px] font-medium text-indigo-100">
@@ -94,7 +97,10 @@ export const ChatTranscript: React.FC<ChatTranscriptProps> = ({
               M
             </div>
 
-            <div className="flex-1 bg-white border border-gray-200 rounded-2xl rounded-tl-xs p-4 sm:p-5 shadow-xs space-y-2">
+            <div
+              data-testid="chat-bubble"
+              className="flex-1 min-w-0 break-words bg-white border border-gray-200 rounded-2xl rounded-tl-xs p-4 sm:p-5 shadow-xs space-y-2"
+            >
               <div className="flex items-center justify-between gap-2">
                 <span className="text-xs font-semibold text-gray-900">
                   Mentora Tutor
@@ -130,7 +136,10 @@ export const ChatTranscript: React.FC<ChatTranscriptProps> = ({
           data-testid="chat-message-user-inflight"
           className="flex items-start gap-3 max-w-2xl ml-auto justify-end text-right animate-fade-in"
         >
-          <div className="flex-1 bg-indigo-600 text-white rounded-2xl rounded-tr-xs p-4 shadow-xs text-left">
+          <div
+                data-testid="chat-bubble"
+                className="flex-1 min-w-0 break-words bg-indigo-600 text-white rounded-2xl rounded-tr-xs p-4 shadow-xs text-left"
+              >
             <div className="flex items-center justify-between gap-2 mb-1.5">
               <span className="text-xs font-semibold text-white">You</span>
               {isStreaming && (
