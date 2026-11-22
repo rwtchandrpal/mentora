@@ -29,6 +29,10 @@ services:
         value: gemini-3.5-flash-lite
       - key: DAILY_AI_QUOTA_LIMIT
         value: "50"
+      # *.onrender.com is fronted by Cloudflare; key guest quotas and rate limits on the
+      # address Cloudflare saw, not on the rotating proxy hop req.ip resolves to.
+      - key: CLIENT_IP_HEADER
+        value: cf-connecting-ip
       - key: MONGOMS_DISABLE_POSTINSTALL
         value: "1"
 

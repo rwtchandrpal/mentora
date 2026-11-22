@@ -73,8 +73,8 @@ export const LeftHistorySidebar: React.FC = () => {
   );
 
   const handleNewTopic = () => {
-    // Leave the /workspace/:id route first so the deep-link effect cannot re-fetch the
-    // session that is being cleared.
+    // navigate() lands in a transition, so the clear below renders first while the URL still
+    // holds the old id; WorkspacePage's deep-link effect skips ids it already fetched.
     navigate('/workspace');
     dispatch(clearActiveSession());
     dispatch(setMobileDrawerOpen(false));

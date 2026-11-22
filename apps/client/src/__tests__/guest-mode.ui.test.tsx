@@ -281,6 +281,28 @@ describe('Guest Mode Frontend UI Integration Tests', () => {
       const getStartedBtn = screen.getByRole('button', { name: /get started/i });
       expect(getStartedBtn).toBeInTheDocument();
 
+      // LIVE-BUG-H1: on phones the header must wrap so the tabs get their own row instead of
+      // overflowing over the menu button, clipping this CTA and hiding the title.
+      const header = screen.getByTestId('sticky-topic-header');
+      expect(header.className).toContain('flex-wrap');
+      const menuBtn = screen.getByRole('button', { name: 'Open sidebar menu' });
+      const tablist = screen.getByRole('tablist', { name: 'Learning Mode Switcher' });
+      const tabsRow = tablist.parentElement!;
+      expect(tabsRow.className).toContain('order-last');
+      expect(tabsRow.className).toContain('w-full');
+      expect(tablist.className).toContain('w-full');
+      // Menu, title and CTA come before the tabs row, so the tabs never cover them.
+      const following = Node.DOCUMENT_POSITION_FOLLOWING;
+      expect(menuBtn.compareDocumentPosition(tabsRow) & following).toBeTruthy();
+      expect(getStartedBtn.compareDocumentPosition(tabsRow) & following).toBeTruthy();
+      expect(screen.getByRole('heading', { name: 'Photosynthesis Mechanism' }).className).toContain(
+        'truncate'
+      );
+      // Short visible labels on phones keep the full accessible names.
+      expect(screen.getByRole('tab', { name: 'Explain Mode' })).toHaveAttribute('aria-selected', 'true');
+      expect(screen.getByRole('tab', { name: 'Interact Mode' })).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: 'Practice Mode' })).toBeInTheDocument();
+
       fireEvent.click(getStartedBtn);
       expect(screen.getByText('LoginPage Mock')).toBeInTheDocument();
     });

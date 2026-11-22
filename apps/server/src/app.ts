@@ -14,6 +14,7 @@ import {
   DEFAULT_AUTH_RATE_LIMIT,
   RateLimitOptions,
 } from './middlewares/rateLimit.middleware.js';
+import { createClientIpDiagnostics, getClientIp } from './utils/clientIp.js';
 
 export interface CreateAppOptions {
   /**
@@ -30,7 +31,12 @@ export const createApp = (
   const app = express();
 
   // Hop count must match the hosting platform (M-04); see TRUST_PROXY in .env.example.
+  // CLIENT_IP_HEADER, when set, takes precedence for quota and rate-limit keys.
   app.set('trust proxy', env.TRUST_PROXY);
+
+  if (env.LOG_CLIENT_IP_DIAGNOSTICS) {
+    app.use(createClientIpDiagnostics(getClientIp));
+  }
 
   app.use(helmet());
   app.use(

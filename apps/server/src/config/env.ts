@@ -19,6 +19,23 @@ export const EnvSchema = z.object({
    * matches the platform; too low and every client looks like the proxy.
    */
   TRUST_PROXY: z.coerce.number().int().min(0).max(10).default(1),
+  /**
+   * Optional request header carrying the real client IP, set by the edge in front of
+   * the app (e.g. `cf-connecting-ip` behind Cloudflare/Render). When present and a valid
+   * IP, it keys guest quotas and rate limits instead of `req.ip`. Empty = use `req.ip`.
+   */
+  CLIENT_IP_HEADER: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .regex(/^([a-z0-9-]+)?$/, 'CLIENT_IP_HEADER must be an HTTP header name')
+    .optional()
+    .transform((value) => value || undefined),
+  /** Logs the proxy headers of the first requests after start, to confirm the above. */
+  LOG_CLIENT_IP_DIAGNOSTICS: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((value) => value === 'true'),
 });
 
 export type Env = z.infer<typeof EnvSchema>;

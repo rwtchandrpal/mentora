@@ -7,20 +7,25 @@ import { getModeTabClasses } from '../../utils/modeTheme.js';
 interface ModeTabDefinition {
   mode: LearningMode;
   label: string;
+  /** Visible label on narrow phones, where three full labels do not fit one row. */
+  shortLabel: string;
 }
 
 const MODE_TABS: ModeTabDefinition[] = [
   {
     mode: LearningMode.EXPLAIN,
     label: 'Explain Mode',
+    shortLabel: 'Explain',
   },
   {
     mode: LearningMode.INTERACT,
     label: 'Interact Mode',
+    shortLabel: 'Interact',
   },
   {
     mode: LearningMode.PRACTICE,
     label: 'Practice Mode',
+    shortLabel: 'Practice',
   },
 ];
 
@@ -58,7 +63,7 @@ export const ModeSwitcherTabs: React.FC = () => {
     <nav
       role="tablist"
       aria-label="Learning Mode Switcher"
-      className="flex items-center space-x-1 sm:space-x-2 bg-gray-100 p-1 sm:p-1.5 rounded-xl border border-gray-200/80 shadow-inner"
+      className="flex w-full md:w-auto items-center gap-1 sm:gap-2 bg-gray-100 p-1 sm:p-1.5 rounded-xl border border-gray-200/80 shadow-inner"
     >
       {MODE_TABS.map((tab, idx) => {
         const isActive = activeMode === tab.mode;
@@ -69,15 +74,21 @@ export const ModeSwitcherTabs: React.FC = () => {
             aria-selected={isActive}
             aria-controls={`${tab.mode}-stage-panel`}
             id={`tab-${tab.mode}`}
+            aria-label={tab.label}
             tabIndex={isActive ? 0 : -1}
             onClick={() => handleSelectMode(tab.mode)}
             onKeyDown={(e) => handleKeyDown(e, idx)}
-            className={`flex items-center min-h-[44px] sm:min-h-0 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500 ${getModeTabClasses(
+            className={`flex flex-1 md:flex-none items-center justify-center whitespace-nowrap min-h-[44px] sm:min-h-0 px-2 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500 ${getModeTabClasses(
               tab.mode,
               isActive
             )}`}
           >
-            <span>{tab.label}</span>
+            <span className="sm:hidden" aria-hidden="true">
+              {tab.shortLabel}
+            </span>
+            <span className="hidden sm:inline" aria-hidden="true">
+              {tab.label}
+            </span>
           </button>
         );
       })}

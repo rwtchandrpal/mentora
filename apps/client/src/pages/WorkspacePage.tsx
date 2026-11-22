@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   LearningMode,
@@ -67,13 +67,27 @@ export const WorkspacePage: React.FC = () => {
   }, [dispatch, user]);
 
   // 2. Direct session deep-link hydration (/workspace/:sessionId)
+  // Fetch each routed session id at most once per visit. The active session can be cleared
+  // while the URL still holds its id: React Router v7 applies navigate() in a transition, so
+  // New Topic's clearActiveSession() renders before the route changes, and deleting the open
+  // session clears it before navigating away. Re-fetching then would restore (or 404) the
+  // session the user just left (LIVE-BUG-H3).
+  const requestedSessionIdRef = useRef<string | null>(null);
   useEffect(() => {
-    if (
-      sessionId &&
-      (!activeSession || (activeSession.id !== sessionId && activeSession._id !== sessionId))
-    ) {
-      void dispatch(fetchSessionByIdThunk(sessionId));
+    if (!sessionId) {
+      requestedSessionIdRef.current = null;
+      return;
     }
+    const alreadyHandled = requestedSessionIdRef.current === sessionId;
+    // Loaded or fetched, this id now counts as handled for the rest of the visit.
+    requestedSessionIdRef.current = sessionId;
+    const isLoaded =
+      activeSession !== null &&
+      (activeSession.id === sessionId || activeSession._id === sessionId);
+    if (isLoaded || alreadyHandled) {
+      return;
+    }
+    void dispatch(fetchSessionByIdThunk(sessionId));
   }, [sessionId, activeSession, dispatch]);
 
   const handleInputChange = (value: string) => {
