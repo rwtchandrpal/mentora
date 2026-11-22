@@ -322,22 +322,35 @@ Each task can be done and verified independently. Order = user impact × likelih
   - Full client suite 150/150 passes; `tsc --noEmit` and `eslint src` are clean.
   - Still to do after deploy: re-run the 390×844 check on the live site inside a guest session.
 
-### LIVE-FIX-003 — Correct guest identity for quota & rate limiting (BUG-H2)
+### LIVE-FIX-003 — Correct guest identity for quota & rate limiting (BUG-H2) — ✅ implemented (needs deploy + env check)
+- **Extra live evidence (pre-fix):**
+  - Twelve back-to-back `GET /api/v1/health` calls from one machine returned `RateLimit: … r=99, 99, 98, 98, 97, 97, 96, 96, 95, 94, 93` (one response wasn't captured).
+  - The API rate limiter uses the same `req.ip` key, so one client was alternating between at least two rate-limit keys.
+  - Render's proxy hop count is undocumented, so no `TRUST_PROXY` value can be shown to be correct.
 - **Target files:**
-  - `apps/server/src/config/env.ts` (17-21)
-  - `apps/server/src/app.ts` (32-33, rate limiter ~47)
-  - `apps/server/src/middlewares/quota.middleware.ts` (43-50)
-  - `.env.example` / Render env
-- **Exact fix:**
-  1. Temporarily log `req.ips`, `req.ip` and `req.headers['x-forwarded-for']` for one request in production to count the real proxy chain (Cloudflare → Render router → app).
-  2. Set `TRUST_PROXY` to that hop count in the Render dashboard, or switch to a trusted-header strategy that reads the client IP from the header Render sets for the original client, only when the request came through Render.
-  3. Document the chosen value in `.env.example`.
-  4. Optionally add the guest-token `sid` as a secondary key so one browser can't spread usage across IPs.
-- **Verification:**
-  - Five consecutive guest actions from one browser return the same `quota.resetAt`, and `used` increments by exactly 1 each time.
-  - A second network (e.g. phone hotspot) gets its own window.
-  - The 16th action returns `429 DAILY_QUOTA_EXCEEDED`.
-  - Add a unit test for `getGuestIdentifier` with a multi-hop `X-Forwarded-For`.
+  - `apps/server/src/utils/clientIp.ts` (new)
+  - `apps/server/src/middlewares/quota.middleware.ts`
+  - `apps/server/src/middlewares/rateLimit.middleware.ts`
+  - `apps/server/src/app.ts`
+  - `apps/server/src/config/env.ts`
+  - `render.yaml`
+  - `apps/server/.env.example`
+  - `README.md`
+  - `docs/architecture.md`
+  - `apps/server/src/__tests__/clientIp.test.ts` (new)
+- **Fix as implemented:**
+  - **Shared resolver:** `createClientIpResolver` / `getClientIp` is now the single client key for guest quotas, the API rate limiter and the sign-in rate limiter.
+  - **`CLIENT_IP_HEADER`:** a new optional env var naming a header to read the client IP from. It is used when it holds a valid IPv4/IPv6 address (first entry if comma-separated); otherwise the key falls back to `req.ip`, so `TRUST_PROXY` still applies.
+  - **Production value:** `render.yaml` sets `CLIENT_IP_HEADER=cf-connecting-ip`, since `*.onrender.com` is served through Cloudflare (`CF-RAY` on every response). Cloudflare documents `CF-Connecting-IP` as the client IP that connected to its edge. A Cloudflare Worker can set this header, so it is not a security boundary, but it is adequate for a quota or rate-limit key.
+  - **`LOG_CLIENT_IP_DIAGNOSTICS=true`** (default off) logs `req.ip`, `req.ips`, the socket address and the `X-Forwarded-For` / `CF-Connecting-IP` / `True-Client-IP` / `X-Real-IP` headers for the first 20 requests, so the real chain can be confirmed in Render logs.
+- **Verification so far:**
+  - The new tests show that with the header, one client arriving via three rotating proxy hops shares one rate-limit key (3rd request → 429) while another client keeps its own budget. Without the header the same traffic splits into three keys, which is the production symptom.
+  - Fallback, IPv6, list and env-parsing cases are also covered.
+  - Full server suite 255/255 passes (including the existing spoofed-X-Forwarded-For guest quota tests); `tsc --noEmit` and `eslint` are clean.
+- **Still to do after deploy:**
+  1. Make sure `CLIENT_IP_HEADER=cf-connecting-ip` reaches the Render service. A `render.yaml` change only applies if the service is managed as a Blueprint; otherwise add it in the dashboard.
+  2. Optionally set `LOG_CLIENT_IP_DIAGNOSTICS=true` for one restart, check that `cf-connecting-ip` is present and matches your public IP, then turn it off.
+  3. Re-run the health probe: `r=` should drop by exactly 1 per request. Five guest actions should share one `quota.resetAt`, with `used` +1 each.
 
 ### LIVE-FIX-004 — Backend stability + honest "server unavailable" UX (BUG-H4, BUG-M4)
 - **Target files:**

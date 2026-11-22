@@ -1,6 +1,7 @@
 import { Request, Response, RequestHandler } from 'express';
 import { rateLimit, ipKeyGenerator } from 'express-rate-limit';
 import { ErrorCode, type ApiErrorEnvelope } from '@mentora/shared';
+import { getClientIp, type ClientIpResolver } from '../utils/clientIp.js';
 
 export interface RateLimitOptions {
   limit: number;
@@ -27,16 +28,20 @@ const sendRateLimitExceeded =
   };
 
 export const createApiRateLimiter = (
-  options: RateLimitOptions & { skip: () => boolean }
-): RequestHandler =>
-  rateLimit({
+  options: RateLimitOptions & { skip: () => boolean; clientIp?: ClientIpResolver }
+): RequestHandler => {
+  const clientIp = options.clientIp ?? getClientIp;
+  return rateLimit({
     windowMs: options.windowMs,
     limit: options.limit,
     standardHeaders: 'draft-8',
     legacyHeaders: false,
     skip: options.skip,
+    // Same client key as guest quotas (LIVE-BUG-H2): CLIENT_IP_HEADER, else req.ip.
+    keyGenerator: (req) => ipKeyGenerator(clientIp(req)),
     handler: sendRateLimitExceeded('Too many requests from this IP, please try again later.'),
   });
+};
 
 const normalizedEmailOf = (req: Request): string => {
   const email: unknown = (req.body as { email?: unknown } | undefined)?.email;
@@ -48,13 +53,16 @@ const normalizedEmailOf = (req: Request): string => {
  * normalised email, so one attacker cannot hammer one account. Must run after
  * `express.json()` so the email is available.
  */
-export const createAuthRateLimiter = (options: RateLimitOptions): RequestHandler =>
-  rateLimit({
+export const createAuthRateLimiter = (
+  options: RateLimitOptions & { clientIp?: ClientIpResolver }
+): RequestHandler => {
+  const clientIp = options.clientIp ?? getClientIp;
+  return rateLimit({
     windowMs: options.windowMs,
     limit: options.limit,
     standardHeaders: 'draft-8',
     legacyHeaders: false,
-    keyGenerator: (req) =>
-      `${ipKeyGenerator(req.ip ?? req.socket.remoteAddress ?? 'unknown')}|${normalizedEmailOf(req)}`,
+    keyGenerator: (req) => `${ipKeyGenerator(clientIp(req))}|${normalizedEmailOf(req)}`,
     handler: sendRateLimitExceeded('Too many sign-in attempts, please try again later.'),
   });
+};

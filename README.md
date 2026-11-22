@@ -229,7 +229,10 @@ Visitors can try Mentora without an account. Guest sessions are deliberately lim
 - **Creating a session:** `POST /api/v1/sessions` without an `Authorization` header creates a guest session. The response carries a signed guest token in `meta.guestToken`.
 - **Using the session:** every later request for that session (`GET`, `PATCH /mode`, `DELETE`, and the `explain`, `interact` and `practice` endpoints) must send the token in the `X-Guest-Token` header. A token only unlocks the one session it was issued for. A request without a token returns `401`; a token for another session returns `404`.
 - **Token storage:** the client keeps a `sessionId → guestToken` map in `localStorage` (key `mentora_guest_tokens`) and drops expired tokens when it reads the map. Any tab in the same browser can reopen the session until it expires (2 hours). Another browser or device has no token, so it is denied.
-- **Quota:** guest usage is counted per client IP (as resolved by Express with `trust proxy`, set by the `TRUST_PROXY` hop count, default `1`) in the `guestquotas` MongoDB collection, so it survives restarts. A guest is charged only when AI work actually runs.
+- **Quota:** guest usage is counted per client IP in the `guestquotas` MongoDB collection, so it survives restarts. A guest is charged only when AI work actually runs.
+  - **How the IP is chosen:** the header named by `CLIENT_IP_HEADER` (set to `cf-connecting-ip` on Render, which sits behind Cloudflare) when it holds a valid IP. Otherwise Express's `req.ip`, which comes from `trust proxy` and the `TRUST_PROXY` hop count (default `1`).
+  - **Shared key:** the API and sign-in rate limiters use the same key.
+  - **Checking it in production:** set `LOG_CLIENT_IP_DIAGNOSTICS=true` temporarily to log the proxy headers of the first 20 requests.
 
 ---
 

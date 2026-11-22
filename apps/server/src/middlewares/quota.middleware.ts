@@ -10,6 +10,7 @@ import { AppError } from '../utils/AppError.js';
 import { userRepository } from '../repositories/user.repository.js';
 import { GuestQuota } from '../models/GuestQuota.model.js';
 import { logger } from '../config/logger.js';
+import { getClientIp } from '../utils/clientIp.js';
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
@@ -41,13 +42,12 @@ export interface GuestQuotaRecord {
 const GUEST_QUOTA_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 /**
- * Identifies a guest by client IP. `req.ip` is resolved by Express using the
- * `trust proxy` setting in app.ts (one hop on Render), so the client cannot choose it.
- * Never read X-Forwarded-For directly: its left-most entries are client-controlled.
+ * Identifies a guest by client IP, via the shared resolver also used by the rate
+ * limiters: CLIENT_IP_HEADER when configured and valid, else `req.ip` (Express
+ * `trust proxy`). Never read X-Forwarded-For directly: its left-most entries are
+ * client-controlled.
  */
-export const getGuestIdentifier = (req: Request): string => {
-  return req.ip || req.socket.remoteAddress || 'unknown-guest';
-};
+export const getGuestIdentifier = (req: Request): string => getClientIp(req);
 
 const isDuplicateKeyError = (err: unknown): boolean =>
   typeof err === 'object' &&
