@@ -510,7 +510,7 @@ Each task can be done and verified independently. Order = user impact × likelih
 
 | # | Suggestion | Area | Impact | Effort |
 |---|---|---|---|---|
-| 1 | **"Server waking up" splash.** On first load, if `/health` takes more than 1.5 s, show a friendly banner with a progress indicator. Recruiters on a cold Render instance currently stare at a spinner, or at an error. | UI/UX | High | Quick Win |
+| 1 | **"Server waking up" splash.** On first load, if `/health` takes more than 1.5 s, show a friendly banner with a progress indicator. Recruiters on a cold Render instance currently stare at a spinner, or at an error. | UI/UX | High | ✅ Done (not yet deployed): `ServerWakeSplash.tsx` probes `/health` on load, shows a banner with an easing progress bar and elapsed seconds if there is no answer within 1.5 s, hides it when the API responds, and stops probing after 3 min. 5 tests. |
 | 2 | **Migrate guest sessions on sign-up/login.** Send `mentora_guest_tokens` to a `POST /sessions/claim` endpoint after auth, so the work done as a guest appears in the new history. | Feature | High | Moderate |
 | 3 | **Show guest sessions in the sidebar** from `mentora_guest_tokens` (titles cached locally). Guests currently have no way back to an earlier session except the browser Back button. | UI/UX | High | Quick Win |
 | 4 | **Stream Explain and Practice generation**, or show staged progress ("Drafting card 1/4…"). 6–13 s of an opaque spinner feels slow, while Interact already shows streaming works well. | Performance | High | Moderate |

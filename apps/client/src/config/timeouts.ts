@@ -26,3 +26,15 @@ export const SERVER_WAKE_RETRY_DELAYS_MS: readonly number[] = [
 /** Timeout for session creation, which auto-initializes the initial mode. */
 export const getCreateSessionTimeoutMs = (initialMode: LearningMode | undefined): number =>
   initialMode === LearningMode.PRACTICE ? AI_REASONING_TIMEOUT_MS : AI_FAST_TIMEOUT_MS;
+
+/**
+ * Startup "server waking up" splash. If the first `/health` probe hasn't answered after
+ * SHOW_AFTER_MS, a friendly banner explains the wait; probing continues every
+ * POLL_INTERVAL_MS until the API answers or GIVE_UP_AFTER_MS passes. A cold Render
+ * instance was observed to need 45–110 s.
+ */
+export const WAKE_SPLASH_SHOW_AFTER_MS = 1_500;
+export const WAKE_SPLASH_POLL_INTERVAL_MS = 2_000;
+export const WAKE_SPLASH_GIVE_UP_AFTER_MS = 180_000;
+/** Rough cold-start duration the progress bar is paced against. */
+export const WAKE_SPLASH_EXPECTED_MS = 60_000;
