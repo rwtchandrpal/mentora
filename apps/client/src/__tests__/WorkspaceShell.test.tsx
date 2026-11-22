@@ -868,6 +868,117 @@ describe('IMP-012: Unified Workspace Shell, Left History Sidebar, & Mode Switche
         screen.getByRole('heading', { name: /what topic would you like to master\?/i })
       ).toBeInTheDocument();
     });
+
+    it('does not re-fetch the open session when New Topic is clicked (LIVE-BUG-H3)', async () => {
+      let getSessionCalls = 0;
+      const mockAdapter: AxiosAdapter = async (config: InternalAxiosRequestConfig) => {
+        if (config.url === `/sessions/${mockActiveSession.id}` && config.method === 'get') {
+          getSessionCalls += 1;
+          return {
+            data: { success: true, data: { ...mockActiveSession } },
+            status: 200,
+            statusText: 'OK',
+            headers: {},
+            config,
+          };
+        }
+        return {
+          data: { success: true, data: [mockSummary1] },
+          status: 200,
+          statusText: 'OK',
+          headers: {},
+          config,
+        };
+      };
+      apiClient.defaults.adapter = mockAdapter;
+
+      const { store } = renderWorkspace([`/workspace/${mockActiveSession.id}`], {
+        auth: {
+          token: 'mock-token',
+          user: mockUser,
+          quota: null,
+          authStatus: 'authenticated',
+          error: null,
+        },
+        session: {
+          sessionList: [mockSummary1],
+          activeSession: { ...mockActiveSession },
+        },
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: /new topic/i }));
+
+      // Let any re-fetch triggered by the stale :sessionId settle before asserting.
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      expect(getSessionCalls).toBe(0);
+      expect(store.getState().session.activeSession).toBeNull();
+      expect(
+        screen.getByRole('heading', { name: /what topic would you like to master\?/i })
+      ).toBeInTheDocument();
+    });
+
+    it('does not re-fetch the open session after deleting it (LIVE-BUG-H3)', async () => {
+      let getSessionCalls = 0;
+      const mockAdapter: AxiosAdapter = async (config: InternalAxiosRequestConfig) => {
+        if (config.url === `/sessions/${mockActiveSession.id}` && config.method === 'get') {
+          getSessionCalls += 1;
+          throw new AxiosError('Not found', 'ERR_BAD_REQUEST', config, null, {
+            data: {
+              success: false,
+              error: { code: 'RESOURCE_NOT_FOUND', message: 'Topic session not found' },
+            },
+            status: 404,
+            statusText: 'Not Found',
+            headers: {},
+            config,
+          });
+        }
+        if (config.url === `/sessions/${mockActiveSession.id}` && config.method === 'delete') {
+          return {
+            data: { success: true, data: { deletedId: mockActiveSession.id } },
+            status: 200,
+            statusText: 'OK',
+            headers: {},
+            config,
+          };
+        }
+        return {
+          data: { success: true, data: [mockSummary1] },
+          status: 200,
+          statusText: 'OK',
+          headers: {},
+          config,
+        };
+      };
+      apiClient.defaults.adapter = mockAdapter;
+
+      const { store } = renderWorkspace([`/workspace/${mockActiveSession.id}`], {
+        auth: {
+          token: 'mock-token',
+          user: mockUser,
+          quota: null,
+          authStatus: 'authenticated',
+          error: null,
+        },
+        session: {
+          sessionList: [mockSummary1],
+          activeSession: { ...mockActiveSession },
+        },
+      });
+
+      fireEvent.click(screen.getByLabelText(`Delete session ${mockSummary1.normalizedTitle}`));
+      fireEvent.click(screen.getByLabelText(`Confirm delete ${mockSummary1.normalizedTitle}`));
+
+      await waitFor(() => {
+        expect(store.getState().session.sessionList).toHaveLength(0);
+      });
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      expect(getSessionCalls).toBe(0);
+      expect(store.getState().session.error).toBeNull();
+      expect(
+        screen.getByRole('heading', { name: /what topic would you like to master\?/i })
+      ).toBeInTheDocument();
+    });
   });
 
   // =========================================================================
