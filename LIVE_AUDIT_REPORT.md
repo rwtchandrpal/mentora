@@ -322,7 +322,7 @@ Each task can be done and verified independently. Order = user impact × likelih
   - Full client suite 150/150 passes; `tsc --noEmit` and `eslint src` are clean.
   - Still to do after deploy: re-run the 390×844 check on the live site inside a guest session.
 
-### LIVE-FIX-003 — Correct guest identity for quota & rate limiting (BUG-H2) — ✅ implemented (needs deploy + env check)
+### LIVE-FIX-003 — Correct guest identity for quota & rate limiting (BUG-H2) — ✅ fixed and verified live (2026-11-22 11:38 UTC)
 - **Extra live evidence (pre-fix):**
   - Twelve back-to-back `GET /api/v1/health` calls from one machine returned `RateLimit: … r=99, 99, 98, 98, 97, 97, 96, 96, 95, 94, 93` (one response wasn't captured).
   - The API rate limiter uses the same `req.ip` key, so one client was alternating between at least two rate-limit keys.
@@ -347,10 +347,15 @@ Each task can be done and verified independently. Order = user impact × likelih
   - The new tests show that with the header, one client arriving via three rotating proxy hops shares one rate-limit key (3rd request → 429) while another client keeps its own budget. Without the header the same traffic splits into three keys, which is the production symptom.
   - Fallback, IPv6, list and env-parsing cases are also covered.
   - Full server suite 255/255 passes (including the existing spoofed-X-Forwarded-For guest quota tests); `tsc --noEmit` and `eslint` are clean.
-- **Still to do after deploy:**
-  1. Make sure `CLIENT_IP_HEADER=cf-connecting-ip` reaches the Render service. A `render.yaml` change only applies if the service is managed as a Blueprint; otherwise add it in the dashboard.
-  2. Optionally set `LOG_CLIENT_IP_DIAGNOSTICS=true` for one restart, check that `cf-connecting-ip` is present and matches your public IP, then turn it off.
-  3. Re-run the health probe: `r=` should drop by exactly 1 per request. Five guest actions should share one `quota.resetAt`, with `used` +1 each.
+- **Post-deploy check (2026-11-22, deploy of `5222581` finished 11:32:18 UTC) — ❌ not yet effective:**
+  - **Guest quota:** five no-AI guest session creates (`autoInitialize:false`, so quota is reserved then released and nothing is charged) alternated between the same two pre-existing windows, `resetAt` 10:18:35.441Z and 10:17:47.219Z, with `used: 3` in both. These are the same shared buckets the audit saw, so guests are still keyed on `req.ip`. The probe sessions were deleted (200).
+  - **Rate limiter:** twelve health calls showed three independent countdowns (`r` = 99→94, 99→97, 99→97). The limiter's store is in-process memory, so this is also consistent with more than one instance running after the deploy. The quota result above is the reliable signal.
+  - **Likely cause:** `CLIENT_IP_HEADER` didn't reach the service (it isn't Blueprint-managed, so `render.yaml` env changes aren't applied). Less likely: the variable is set but `CF-Connecting-IP` doesn't reach the app.
+- **Re-check after `CLIENT_IP_HEADER=cf-connecting-ip` was added in the Render dashboard (redeploy finished 11:37:44 UTC) — ✅ verified:**
+  - **Guest quota:** five no-AI guest session creates all reported one new window, `resetAt` 2026-11-23T11:38:43.053Z, with `used: 0` each time (reserve then release works). Before the change they alternated between the shared 10:17/10:18 windows. Probe sessions were deleted (200).
+  - **Rate limiter:** `r` fell by exactly 2 per round (one create + one delete): 96 → 94 → 92 → 90 → 88. A plain health probe beforehand gave 99 → 98 → 97. One client is now one key.
+  - **Confirmed:** `CF-Connecting-IP` reaches the app on Render, and the service is not Blueprint-managed. Env vars must be set in the dashboard; `render.yaml` documents the intended value.
+- **Remaining housekeeping:** after reading the `Client IP diagnostics` log lines, set `LOG_CLIENT_IP_DIAGNOSTICS=false` (or remove it) in Render, since it logs client IPs. Old guest windows keyed on proxy addresses expire on their own within 24 h (TTL).
 
 ### LIVE-FIX-004 — Backend stability + honest "server unavailable" UX (BUG-H4, BUG-M4)
 - **Target files:**
