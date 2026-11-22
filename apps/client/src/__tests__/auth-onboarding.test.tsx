@@ -409,6 +409,8 @@ describe('IMP-011: Route Guards, Auth Pages, Mandatory Onboarding & Profile Sett
         })
       ).toBeInTheDocument();
       expect(screen.getByText(/step 2 of 2/i)).toBeInTheDocument();
+      // No completion claim before the profile is submitted (LIVE-FIX-013)
+      expect(screen.queryByText(/% completed/i)).not.toBeInTheDocument();
 
       // Select Visual & Structured card
       const visualCard = screen.getByText('Visual & Structured').closest('[role="radio"]');

@@ -40,20 +40,31 @@ export const ExplainStage: React.FC = () => {
     }
   }, [sessionId, explainState?.status, isInitializingExplain, explainError, dispatch]);
 
+  const handleSelectStep = useCallback((stepIndex: number) => {
+    const cardEl = document.getElementById(`explain-card-${stepIndex + 1}`);
+    if (cardEl && typeof cardEl.scrollIntoView === 'function') {
+      cardEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, []);
+
   const handleNext = useCallback(
-    (currentStepNumber: number) => {
+    async (currentStepNumber: number) => {
       if (!sessionId || !explainState) return;
       const nextStepIndex = currentStepNumber; // stepNumber is 1-based, so nextStepIndex is equal to stepNumber
       if (nextStepIndex <= 3) {
-        void dispatch(
+        const result = await dispatch(
           advanceExplainStepThunk({
             sessionId,
             stepIndex: nextStepIndex,
           })
         );
+        if (advanceExplainStepThunk.fulfilled.match(result)) {
+          // Wait for the new card to commit, then bring it under the sticky progress bar.
+          requestAnimationFrame(() => handleSelectStep(nextStepIndex));
+        }
       }
     },
-    [sessionId, explainState, dispatch]
+    [sessionId, explainState, dispatch, handleSelectStep]
   );
 
   const handleSwitchMode = useCallback(
@@ -63,13 +74,6 @@ export const ExplainStage: React.FC = () => {
     },
     [sessionId, dispatch]
   );
-
-  const handleSelectStep = useCallback((stepIndex: number) => {
-    const cardEl = document.getElementById(`explain-card-${stepIndex + 1}`);
-    if (cardEl) {
-      cardEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  }, []);
 
   if (!activeSession || !explainState) {
     return null;

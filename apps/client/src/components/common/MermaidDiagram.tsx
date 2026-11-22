@@ -14,7 +14,8 @@ const loadMermaid = (): Promise<Mermaid> => {
           mermaid.initialize({
             startOnLoad: false,
             securityLevel: 'strict',
-            theme: 'default',
+            // Diagrams always sit on a dark slate panel (see the render container below).
+            theme: 'dark',
             fontFamily: 'ui-sans-serif, system-ui, sans-serif',
           });
         } catch {

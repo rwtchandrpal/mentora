@@ -495,19 +495,14 @@ Each task can be done and verified independently. Order = user impact × likelih
 - **Verification:** 6 new tests (single Tab stop, stop follows selection, arrow keys with wrap, Space/Enter, disabled, and the modal's focus-in, trap and restore). Full client suite 193/193; `tsc --noEmit` and `eslint src` clean.
 - **Not done:** the axe-core scan and a keyboard-only run in a real browser. A CI axe check is suggestion #12.
 
-### LIVE-FIX-013 — Explain auto-scroll, Mermaid theme, onboarding copy (BUG-L3, L7, L8)
-- **Target files:**
-  - `ExplainStage.tsx:43-57`
-  - `MermaidDiagram.tsx:14-17`
-  - `OnboardingPage.tsx`
-- **Exact fix:**
-  - After `advanceExplainStepThunk` resolves, call `handleSelectStep(nextStepIndex)`.
-  - Use `theme: 'dark'` (or `base` with `themeVariables` matching slate-900) when rendered inside a dark container.
-  - Change the step-2 progress text.
-- **Verification:**
-  - Clicking Next scrolls the new card under the sticky bar.
-  - Mermaid edges have a contrast ratio of 3:1 or more against `#0f172a`.
-  - Onboarding step 2 doesn't claim 100% before submit.
+### LIVE-FIX-013 — Explain auto-scroll, Mermaid theme, onboarding copy (BUG-L3, L7, L8) — ✅ implemented (not yet deployed)
+- **Target files:** `ExplainStage.tsx`, `MermaidDiagram.tsx`, `OnboardingPage.tsx`, tests in `ExplainStage.test.tsx`, `auth-onboarding.test.tsx` and `MermaidTheme.test.tsx` (new)
+- **Fix as implemented:**
+  - **L3:** `handleNext` awaits `advanceExplainStepThunk`. When it succeeds, it scrolls the new card into view on the next animation frame, after the card has rendered. A failed advance doesn't scroll. `handleSelectStep` also tolerates environments without `scrollIntoView`.
+  - **L7:** Mermaid uses `theme: 'dark'`. The diagram container is a dark slate panel everywhere it renders, so one fixed theme is enough.
+  - **L8:** The "50% / 100% Completed" label is gone. The header shows "Step N of 2" and the bar, so step 2 no longer claims completion before submit.
+- **Verification:** 3 new tests (Next scrolls `explain-card-2` smoothly to the top, Mermaid initialises with the dark theme, step 2 shows no "% completed" text). Full client suite 195/195; `tsc --noEmit` and `eslint src` clean.
+- **Not checked:** the 3:1 edge contrast in a real browser, and the scroll position under the sticky bar. Both need a look on the deployed site.
 
 ---
 

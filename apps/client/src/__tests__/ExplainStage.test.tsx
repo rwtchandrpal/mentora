@@ -221,6 +221,48 @@ describe('IMP-017: Frontend Explain Mode Stage & Stepper UI', () => {
     expect(step1).toBeInTheDocument();
   });
 
+  it('scrolls the newly revealed card into view after Next (LIVE-FIX-013)', async () => {
+    const scrollSpy = vi.fn();
+    const originalScroll = window.HTMLElement.prototype.scrollIntoView;
+    window.HTMLElement.prototype.scrollIntoView = scrollSpy;
+    try {
+      const session = createBaseSession(0);
+      apiClient.defaults.adapter = async (config: InternalAxiosRequestConfig) => {
+        const isAdvance =
+          config.url?.includes('/explain/step') && config.method?.toLowerCase() === 'patch';
+        const body = isAdvance && typeof config.data === 'string' ? JSON.parse(config.data) : null;
+        const data = body
+          ? { ...session, explainState: { ...session.explainState, currentStepIndex: body.stepIndex } }
+          : session;
+        return { data: { success: true, data }, status: 200, statusText: 'OK', headers: {}, config };
+      };
+
+      renderComponent({
+        auth: { token: 'token', user: mockUser, quota: null, authStatus: 'authenticated', error: null },
+        session: {
+          sessionList: [],
+          activeSession: session,
+          activeMode: LearningMode.EXPLAIN,
+          isLoadingList: false,
+          isLoadingSession: false,
+          isCreatingSession: false,
+          error: null,
+          streamingState: { isStreaming: false, streamBuffer: '', streamError: null, activeTurnId: null },
+          isInitializingExplain: false,
+          explainError: null,
+        },
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: /advance to step 2/i }));
+      await waitFor(() => expect(scrollSpy).toHaveBeenCalledTimes(1));
+      const scrolledEl = scrollSpy.mock.instances[0] as HTMLElement;
+      expect(scrolledEl.id).toBe('explain-card-2');
+      expect(scrollSpy).toHaveBeenCalledWith({ behavior: 'smooth', block: 'start' });
+    } finally {
+      window.HTMLElement.prototype.scrollIntoView = originalScroll;
+    }
+  });
+
   // 2. Sequential Stepping via Next (AC-EXP-02)
   it('AC-EXP-02: advances sequentially through Next button from Card 1 to 2, 2 to 3, and 3 to 4', async () => {
     let currentStep = 0;
