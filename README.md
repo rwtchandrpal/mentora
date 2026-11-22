@@ -1,244 +1,215 @@
+<div align="center">
+
 # Mentora
 
-**An AI tutoring web app that helps you learn any topic step by step, talk through concepts, and test your knowledge with practice quizzes.**
+**An AI tutor that teaches any topic in three structured modes: progressive explanation, guided Socratic dialogue, and tiered self-testing, all calibrated to the learner's level.**
 
-Standard AI chat tools often dump long walls of text on you, get stuck asking the same questions when you are confused, or give unreliable quiz answers. Mentora solves this by organizing every study session into three focused modes—**Explain**, **Interact**, and **Practice**—all tailored to your background and learning style.
+[![Live Demo](https://img.shields.io/badge/Live_Demo-mentoraclient.vercel.app-4F46E5?style=for-the-badge&logo=vercel&logoColor=white)](https://mentoraclient.vercel.app/)
 
-[![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![React 18](https://img.shields.io/badge/React_18-20232A?style=flat-square&logo=react&logoColor=61DAFB)](https://react.dev/)
-[![Node.js](https://img.shields.io/badge/Node.js_20_LTS-339933?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org/)
-[![Express](https://img.shields.io/badge/Express-000000?style=flat-square&logo=express&logoColor=white)](https://expressjs.com/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![React](https://img.shields.io/badge/React_19-20232A?style=flat-square&logo=react&logoColor=61DAFB)](https://react.dev/)
+[![Node.js](https://img.shields.io/badge/Node.js_20+-339933?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org/)
+[![Express](https://img.shields.io/badge/Express_5-000000?style=flat-square&logo=express&logoColor=white)](https://expressjs.com/)
 [![MongoDB](https://img.shields.io/badge/MongoDB_Atlas-47A248?style=flat-square&logo=mongodb&logoColor=white)](https://www.mongodb.com/atlas)
-[![Google Gemini API](https://img.shields.io/badge/Google_Gemini_API-8E75C2?style=flat-square&logo=google&logoColor=white)](https://ai.google.dev/)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=flat-square&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+[![Google Gemini API](https://img.shields.io/badge/Google_Gemini_API-8E75B2?style=flat-square&logo=googlegemini&logoColor=white)](https://ai.google.dev/)
+
+</div>
+
+<!-- Add screenshots of Explain, Interact, and Practice modes here -->
 
 ---
 
 ## Overview
 
-Mentora is built for independent learners, including high school students, university students, and working professionals who want to pick up new skills.
-
-Instead of re-explaining your background every time you start a new chat, you set up a learning profile once. After that, you can enter any topic and switch smoothly between reading structured explanations, having a guided conversation, and taking practice tests inside a single workspace.
-
----
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-Visit%20Now-blue?style=for-the-badge)](https://mentoraclient.vercel.app/)
-
+General-purpose AI chat is a weak study tool: it answers with walls of text, its "Socratic" tutoring loops on questions the learner can't answer, and the quizzes it writes for you often carry wrong answer keys. Mentora puts every topic into one workspace with three modes (**Explain**, **Interact**, **Practice**), each backed by structured Gemini output and server-side state rather than free-form chat. Every response is calibrated to a learner profile (education level × explanation style). Visitors can start in **Guest Mode** with no signup, or register to keep a profile and session history.
 
 ---
 
-## Features
+## Key Features
 
-- **Personalized Learning Profile:** Choose your education level (*High School*, *Undergraduate*, or *Professional*) and preferred style (*Visual*, *Analogy-Heavy*, or *Concise & Technical*) once, and Mentora adapts every explanation and quiz to match.
-- **Explain Mode (Step-by-Step Cards):** Breaks down complex topics into 4 bite-sized cards (*Intuition $\rightarrow$ Core Mechanism $\rightarrow$ Example $\rightarrow$ Check-for-Understanding*). Click **Next** to move at your own pace; the 4-step progress bar stays pinned at the top as you scroll.
-- **Interact Mode (Guided Chat without Frustration):** Guides you through 3 to 5 key milestones for your topic using live streaming chat. If you get stuck 3 times in a row (the **3-Strike Circuit Breaker**)—or if you click *"Explain this milestone directly"*—the tutor stops quizzing you and gives a clear, direct explanation.
-- **Practice Mode (3-Level Quiz Progression):** Tests your knowledge with 10-question multiple-choice quizzes across three difficulty levels (*Easy $\rightarrow$ Medium $\rightarrow$ Hard*). Your selected answers save automatically in your browser if you refresh the page, and submitting a quiz unlocks the next difficulty tier with full step-by-step explanations.
-- **Rich Math, Code, and Diagrams:** Renders math equations ($\LaTeX$), syntax-highlighted code blocks with a copy button, and visual flowcharts (`Mermaid.js`). If an AI-generated diagram has a syntax error, it safely falls back to a clean text block instead of crashing the page.
-- **Session History & Fair Daily Limits:** Saves all your past study sessions in a left sidebar so you can pick up right where you left off. Each user gets 50 AI tutor actions per day, while reviewing saved sessions and submitting active quizzes always remains free and unlimited.
+- **Explain Mode.** A topic is broken into 4 progressive cards (*Intuition → Core Mechanism → Example → Check-for-Understanding*), revealed one at a time under a sticky step tracker. Content renders as GFM Markdown with tables, KaTeX math, syntax-highlighted code blocks with copy buttons, and Mermaid diagrams. Diagram source is sanitized on the server, and the client falls back to a plain code block if a diagram fails to render.
+- **Interact Mode.** Goal-oriented Socratic tutoring across 3–5 conceptual milestones, with replies streamed token by token over **Server-Sent Events**. A deterministic **3-Strike Socratic Circuit Breaker** escalates from a *Nudge* to a *Concrete Hint* to a *Direct Explanation*, and an **"Explain directly"** button skips straight to the explanation at any point.
+- **Practice Mode.** 10-question MCQ batches in three tiers (**Easy → Medium → Hard**), where submitting a tier unlocks the next. Hints are available per question, selected answers are saved to `localStorage` so a refresh mid-quiz loses nothing, and grading happens on the server against the stored key with no LLM call. A Batch Review then shows each answer next to the correct one with a step-by-step rationale.
+- **Guest Mode and Accounts.**
+  - *Guest Mode* is one click: each guest session lives for 2 hours (MongoDB TTL index), is unlocked by its own signed `X-Guest-Token`, and draws on a daily quota of 15 AI actions per client IP.
+  - *Accounts* use JWT auth, a 2-step **Static Learner Profile** (`Education Level` × `Explanation Style`), and a history sidebar for resuming saved sessions.
+- **Production hardening.**
+  - *Scope guardrails:* every AI call returns an `isEducationalValid` flag, and off-topic requests get a polite refusal.
+  - *Usage limits:* each user gets 50 AI actions per 24-hour window (configurable). Quota is reserved atomically before an AI call and released if the call fails.
+  - *Cold-start gate:* the client checks `/health` before it renders. A warm server answers within a 350 ms grace window, so the wake-up screen never flashes.
+
+---
+
+## Engineering Highlights
+
+- **Reasoning-First MCQ schema.** The Gemini `responseSchema` sets `propertyOrdering` so that `solutionExplanation` is generated *before* `correctOptionIndex`. The model works out the answer before it commits to an option, instead of picking a letter and justifying it afterwards.
+- **Deterministic state machines around a probabilistic model.** Each Interact reply opens with an inline `<<MENTORA_STATE:{"outcome":...}>>` control header. The server parses it, strips it from the SSE stream, and passes it to a pure transition function that owns the strike count. The model can't skip the nudge or the hint: an early `CIRCUIT_BREAKER_ACK` is counted as an ordinary strike, and off-topic replies don't count as strikes. Practice grading is a fixed 10-element comparison against the stored key: O(1) per batch, with no model in the loop.
+- **Answer-key masking.** Until a batch is `completed`, `sanitizePracticeBatch` removes `correctOptionIndex` and `solutionExplanation` from every API response, so the key never reaches the browser while the quiz is in progress.
+- **Monorepo contract safety (`@mentora/shared`).** Zod schemas, enums, constants, and inferred DTO types live in one package and are imported by both the server (request validation, AI-output validation) and the client. Every workspace extends a strict `tsconfig.base.json` (`strict`, `noImplicitAny`, `noUncheckedIndexedAccess`).
+- **Split-origin cloud resilience.** The client (Vercel) and API (Render) are on different sites. Auth uses stateless `Authorization: Bearer` JWTs instead of cookies, which avoids third-party-cookie blocking (Safari ITP). The SSE writer sends `X-Accel-Buffering: no` and `Cache-Control: no-transform`, plus a `: keepalive` comment every 15 s, so proxies neither buffer nor drop the stream. If the client disconnects, an `AbortSignal` cancels the upstream Gemini call.
+- **Abuse-resistant guest identity.** Guest quotas and rate limits are keyed by a single client-IP resolver. It reads `cf-connecting-ip` on Render, falls back to the `TRUST_PROXY` hop count, and never reads the left-most `X-Forwarded-For` entries, which the client controls. Quota counters are kept in MongoDB, so they survive restarts.
+
+---
+
+## System Architecture
+
+```mermaid
+flowchart LR
+    subgraph VercelHost["Vercel"]
+        Client["React 19 SPA<br/>Vite · Redux Toolkit · Tailwind"]
+    end
+
+    subgraph RenderHost["Render"]
+        API["Express 5 API<br/>/api/v1"]
+        Router["Gemini Model Router"]
+    end
+
+    Mongo[("MongoDB Atlas<br/>users · topicsessions · guestquotas")]
+    Fast["Gemini fast model<br/>GEMINI_FAST_MODEL"]
+    Reason["Gemini reasoning model<br/>GEMINI_REASONING_MODEL"]
+
+    Client -->|"REST: Bearer JWT or X-Guest-Token"| API
+    Client -->|"GET /health (wake-up gate)"| API
+    API -.->|"SSE token stream"| Client
+    API -->|"Mongoose"| Mongo
+    API --> Router
+    Router -->|"Explain + Interact"| Fast
+    Router -->|"Practice MCQ batches"| Reason
+```
+
+**Dual-model routing.** `model.router.ts` sends Explain and Interact operations to `GEMINI_FAST_MODEL` and Practice batch generation to `GEMINI_REASONING_MODEL`. Both default to `gemini-3.5-flash-lite`, and either can be pointed at a larger model through environment variables without code changes.
+
+### Monorepo Structure
+
+```text
+mentora/
+├── packages/
+│   └── shared/          # @mentora/shared: Zod schemas, enums, constants, inferred DTO types
+├── apps/
+│   ├── server/          # @mentora/server: Express API
+│   │   └── src/
+│   │       ├── ai/            # Gemini client, model router, prompt builder, response schemas
+│   │       ├── controllers/   # HTTP + SSE handlers
+│   │       ├── middlewares/   # auth, session access, quota reservation, rate limits, validation
+│   │       ├── models/        # Mongoose: User, TopicSession, GuestQuota
+│   │       ├── repositories/  # data access
+│   │       ├── services/      # Explain / Interact / Practice engines
+│   │       └── scripts/       # offline AI eval suite
+│   └── client/          # @mentora/client: React SPA
+│       └── src/
+│           ├── components/    # explain/, interact/, practice/, layout/, common/
+│           ├── hooks/         # SSE stream, quiz drafts, server readiness, quota
+│           ├── pages/ routes/ # pages + auth / onboarding guards
+│           └── store/         # Redux slices: auth, session, ui
+├── docs/                # architecture, requirements, implementation plan
+└── render.yaml          # Render blueprint (backend)
+```
 
 ---
 
 ## Tech Stack
 
-### Frontend (`@mentora/client`)
-- **React 18, Vite & TypeScript:** Builds a fast, type-safe single-page web interface.
-- **Redux Toolkit & React Router v6:** Manages user login state, active study sessions, and page navigation.
-- **Tailwind CSS:** Styles the responsive desktop and mobile workspace layout.
-- **Axios & Native `fetch` Streams:** Handles standard API requests and streams live tutor chat replies using Server-Sent Events (SSE).
-- **Markdown, KaTeX & Mermaid.js:** Renders formatted text, tables, math formulas, code blocks, and visual diagrams.
-
-### Backend (`@mentora/server`)
-- **Node.js 20 LTS, Express.js & TypeScript:** Runs the REST and streaming API server.
-- **Google Gen AI SDK (`@google/genai`):** Connects to Google Gemini models—with two configurable model slots: `GEMINI_FAST_MODEL` for fast chat and initial cards, and `GEMINI_REASONING_MODEL` for 10-question quizzes. Both default to `gemini-3.5-flash-lite` for stability; point `GEMINI_REASONING_MODEL` at a larger model (e.g. `gemini-3.6-pro`) if you need deeper reasoning.
-- **JSON Web Tokens (`jsonwebtoken`) & `bcryptjs`:** Secures user accounts with hashed passwords and stateless login tokens.
-- **Zod:** Validates user inputs, environment variables, and AI JSON responses before saving them.
-- **Pino, Helmet, CORS & `express-rate-limit`:** Provides structured server logs, security headers, and protection against spam requests.
-
-### Shared Package (`@mentora/shared`)
-- **TypeScript & Zod Contracts:** Shares data types, validation rules, and constants between the frontend and backend so both sides always stay in sync.
-
-### Database & Hosting
-- **MongoDB Atlas & Mongoose:** Stores user profiles, daily usage counters, and saved study sessions.
-- **pnpm Workspaces:** Manages the frontend, backend, and shared packages inside a single repository (monorepo).
-- **Vitest, Supertest & React Testing Library:** Runs automated unit, API, and UI tests.
-- **Vercel & Render:** Hosts the React frontend (Vercel) and Express backend API (Render).
-
----
-
-## Project Structure
-
-Mentora is organized as a monorepo with three main workspaces:
-
-```text
-mentora/
-├── packages/
-│   └── shared/               # @mentora/shared: Shared Zod schemas, TypeScript types, and constants
-├── apps/
-│   ├── server/               # @mentora/server: Express backend API, Gemini AI logic, and MongoDB models
-│   │   ├── src/
-│   │   │   ├── ai/           # Google Gemini client, prompt builders, and model router
-│   │   │   ├── controllers/  # HTTP and SSE request handlers
-│   │   │   ├── middlewares/  # Auth, profile check, daily quota, and validation guards
-│   │   │   ├── models/       # Mongoose schemas (User and TopicSession)
-│   │   │   ├── routes/       # API route definitions (/api/v1/*)
-│   │   │   └── services/     # Core logic for Explain, Interact, and Practice modes
-│   │   └── .env.example      # Example backend environment variables
-│   └── client/               # @mentora/client: React frontend application
-│       ├── src/
-│       │   ├── components/   # UI components for Explain, Interact, Practice, and Layout
-│       │   ├── hooks/        # Custom hooks for SSE streaming and quiz draft saving
-│       │   ├── pages/        # Login, Register, Onboarding, and Workspace pages
-│       │   ├── services/     # API client setup
-│       │   └── store/        # Redux state slices (auth, session, ui)
-│       └── .env.example      # Example frontend environment variables
-├── docs/                     # Project documentation and screenshot assets
-├── package.json              # Root scripts to build, test, lint, and typecheck all workspaces
-└── pnpm-workspace.yaml       # Workspace configuration
-```
-
----
-
-## Getting Started
-
-Follow these steps to run Mentora on your computer.
-
-### 1. Prerequisites
-Make sure you have the following installed:
-- **Node.js** (v20 LTS or higher)
-- **pnpm** (Package manager)
-- A **MongoDB Atlas** connection URI (or a local MongoDB instance)
-- A **Google Gemini API Key** from Google AI Studio
-
-### 2. Install Dependencies
-Clone the repository and install dependencies for all workspaces from the root folder:
-
-```bash
-git clone https://github.com/<your-username>/mentora.git
-cd mentora
-pnpm install
-```
-
-### 3. Configure Environment Variables
-Create `.env` files for both the backend and frontend using the provided `.env.example` templates.
-
-#### Backend (`apps/server/.env`)
-```bash
-cp apps/server/.env.example apps/server/.env
-```
-Open `apps/server/.env` and fill in your values:
-```dotenv
-NODE_ENV=development
-PORT=4000
-MONGODB_URI=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/mentora
-JWT_SECRET=your-minimum-32-character-jwt-secret-key-here
-JWT_EXPIRES_IN=7d
-CLIENT_ORIGIN=http://localhost:5173
-GEMINI_API_KEY=your-google-ai-studio-api-key
-GEMINI_FAST_MODEL=gemini-3.5-flash-lite
-GEMINI_REASONING_MODEL=gemini-3.5-flash-lite
-DAILY_AI_QUOTA_LIMIT=50
-```
-
-#### Frontend (`apps/client/.env`)
-```bash
-cp apps/client/.env.example apps/client/.env
-```
-Open `apps/client/.env` and make sure it points to your local backend server:
-```dotenv
-VITE_API_BASE_URL=http://localhost:4000/api/v1
-```
-
-### 4. Build and Run the Project
-First, build the shared package so both the backend and frontend can use its types. Then start both development servers:
-
-```bash
-# 1. Build the shared contracts package
-pnpm --filter @mentora/shared build
-
-# 2. Start the backend server (runs on http://localhost:4000)
-pnpm --filter @mentora/server dev
-
-# 3. Open a second terminal and start the frontend app (runs on http://localhost:5173)
-pnpm --filter @mentora/client dev
-```
-
-### 5. Useful Scripts
-You can run these commands from the root directory to check code quality and run tests:
-
-```bash
-# Check TypeScript types across all packages
-pnpm typecheck
-
-# Run ESLint across all packages
-pnpm lint
-
-# Run automated unit and integration tests
-pnpm test
-
-# Run the standalone AI output evaluation script (dry run)
-pnpm eval:ai -- --dry-run
-```
-
-### 6. Deploying (Render + Vercel)
-Both deployment configs are committed, and both build `@mentora/shared` first:
-
-- **Backend (Render):** create a Blueprint from `render.yaml`. Set `MONGODB_URI`, `JWT_SECRET`, `GEMINI_API_KEY` and `CLIENT_ORIGIN` (your Vercel URL) in the Render dashboard.
-- **Frontend (Vercel):** import the repo with **Root Directory** `apps/client`. `apps/client/vercel.json` installs from the monorepo root and builds the shared package before the client. Set `VITE_API_BASE_URL` to `https://<your-render-service>.onrender.com/api/v1`.
-- **CSP:** `apps/client/vercel.json` lists the API origin in the `Content-Security-Policy` `connect-src`. Replace it with your own Render URL, or the browser will block API calls.
+| Layer | Technologies |
+| :--- | :--- |
+| **Frontend** | React 19, Vite 8, TypeScript, Redux Toolkit, React Router 7, Tailwind CSS 3, Axios |
+| **Backend** | Node.js ≥ 20, Express 5, `jsonwebtoken`, `bcryptjs`, Helmet, CORS, `express-rate-limit`, Pino |
+| **Database** | MongoDB Atlas, Mongoose 9 (TTL indexes for guest sessions and guest quotas) |
+| **AI & Streaming** | Google Gemini via `@google/genai` (structured JSON schemas, dual-model routing), Server-Sent Events |
+| **Rendering** | `react-markdown` + `remark-gfm`, KaTeX (`remark-math` / `rehype-katex`), `react-syntax-highlighter`, Mermaid |
+| **Validation & Shared** | Zod 4, `@mentora/shared` workspace package, pnpm workspaces |
+| **Testing** | Vitest, Supertest, `mongodb-memory-server`, React Testing Library, offline AI eval script |
+| **Deployment** | Vercel (client), Render (API, `render.yaml`), MongoDB Atlas |
 
 ---
 
 ## How to Use
 
-1. **Sign Up & Set Your Profile:** Create an account and complete the quick 2-question setup by picking your education level and preferred explanation style. You can change these anytime in your Profile Settings.
-2. **Start a Topic:** Type any subject into the prompt bar (for example, *"Deadlocks in Operating Systems"* or *"Photosynthesis"*) and choose a starting mode.
-3. **Read in Explain Mode:** Read through the 4 progressive cards. Click **Next** to reveal the next card.
-4. **Chat in Interact Mode:** Switch to the **Interact** tab at the top of the page. Answer the tutor's questions to complete each milestone in the progress bar, or click *"Explain this milestone directly"* whenever you want a straightforward answer.
-5. **Test Yourself in Practice Mode:** Switch to the **Practice** tab to take a 10-question Easy quiz. Click **Show Hint** if you need a clue. Once you answer all 10 questions and submit, review the step-by-step solutions and unlock the Medium and Hard quizzes.
+### Quick Try (Guest Mode)
+
+1. Open the [live demo](https://mentoraclient.vercel.app/). If the Render instance is asleep, a short wake-up screen shows while it starts.
+2. Type any topic (e.g. *"Deadlocks in operating systems"*) and pick a starting mode. No signup is needed.
+3. Switch between **Explain**, **Interact**, and **Practice** with the tabs; all three work on the same topic session.
+
+### Full Experience (Account Mode)
+
+1. **Register**, then complete the 2-step **Static Learner Profile** (education level, then explanation style). You can change it later from Profile Settings.
+2. Start topics as above. Every session is saved to the **history sidebar** with its Explain progress, Interact transcript, and Practice results, so you can pick up where you left off.
+
+### Run Locally
+
+**Prerequisites:** Node.js ≥ 20, pnpm, a MongoDB connection string, and a [Google AI Studio](https://aistudio.google.com/) API key.
+
+```bash
+pnpm install
+
+cp apps/server/.env.example apps/server/.env   # fill in MONGODB_URI, JWT_SECRET (≥ 32 chars), GEMINI_API_KEY
+cp apps/client/.env.example apps/client/.env   # VITE_API_BASE_URL=http://localhost:4000/api/v1
+
+pnpm --filter @mentora/shared build            # build shared contracts first
+pnpm --filter @mentora/server dev              # API on http://localhost:4000
+pnpm --filter @mentora/client dev              # client on http://localhost:5173 (second terminal)
+```
+
+| Server variable | Purpose |
+| :--- | :--- |
+| `MONGODB_URI`, `JWT_SECRET`, `GEMINI_API_KEY` | Required. Validated with Zod at startup. |
+| `CLIENT_ORIGIN` | CORS origin (default in example: `http://localhost:5173`) |
+| `GEMINI_FAST_MODEL`, `GEMINI_REASONING_MODEL` | Model routing (both default to `gemini-3.5-flash-lite`) |
+| `DAILY_AI_QUOTA_LIMIT` | AI actions per account per 24-hour window (default `50`) |
+| `PORT`, `NODE_ENV`, `JWT_EXPIRES_IN` | Defaults: `4000`, `development`, `7d` |
+| `TRUST_PROXY`, `CLIENT_IP_HEADER`, `LOG_CLIENT_IP_DIAGNOSTICS` | Client-IP resolution for guest quotas and rate limits |
+
+Quality checks, run from the repo root:
+
+```bash
+pnpm typecheck            # builds @mentora/shared, then tsc --noEmit in every workspace
+pnpm lint                 # ESLint across the monorepo
+pnpm test                 # Vitest: shared, server (Supertest + in-memory MongoDB), client (RTL)
+pnpm eval:ai --dry-run    # offline AI output evaluation with a simulated generator
+```
+
+**Deployment:** the backend deploys as a Render Blueprint from [`render.yaml`](render.yaml). The client deploys on Vercel with Root Directory `apps/client`; [`apps/client/vercel.json`](apps/client/vercel.json) builds `@mentora/shared` first and lists the API origin in the CSP `connect-src`, so replace that origin with your own Render URL.
 
 ---
 
 ## API Overview
 
-All backend endpoints are prefixed with `/api/v1`:
+<details>
+<summary>View API Endpoints (<code>/api/v1</code>)</summary>
 
-| Endpoint | Method | Description |
-| :--- | :--- | :--- |
-| `/api/v1/health` | `GET` | Returns `200` with `{ status: 'ok', db: true, uptime }`, or `503` when the database is disconnected. |
-| `/api/v1/auth/register` | `POST` | Creates a new user account. |
-| `/api/v1/auth/login` | `POST` | Logs in a user and returns a JWT token. |
-| `/api/v1/auth/me` | `GET` | Fetches the logged-in user's profile and remaining daily quota. |
-| `/api/v1/profile` | `PUT` | Saves or updates the user's Static Learner Profile. |
-| `/api/v1/sessions` | `GET` / `POST` | Lists saved topic sessions or creates a new study session. |
-| `/api/v1/sessions/:id` | `GET` / `DELETE` | Loads a specific study session (with unsubmitted quiz answers hidden) or deletes it. |
-| `/api/v1/sessions/:id/mode` | `PATCH` | Updates the active tab (`explain`, `interact`, or `practice`). |
-| `/api/v1/sessions/:id/explain/*` | `POST` / `PATCH` | Generates the 4 Explain cards or advances steps. |
-| `/api/v1/sessions/:id/interact/*` | `POST` | Generates learning milestones and streams Socratic chat replies over SSE. |
-| `/api/v1/sessions/:id/practice/*` | `POST` | Generates 10-question MCQ batches and grades submitted answers. |
+<br/>
 
-### Guest Mode
+Responses use a `{ success, data, meta }` / `{ success, error }` envelope. "Owner" means the account's Bearer JWT or the session's `X-Guest-Token`. ⚡ marks endpoints that use one AI quota unit.
 
-Visitors can try Mentora without an account. Guest sessions are deliberately limited:
+| Method | Endpoint | Access | Description |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/health` | Public | Liveness + DB readiness (`200`, or `503` if Mongo is down) |
+| `POST` | `/auth/register` | Public | Create account, returns JWT (rate-limited per IP + email) |
+| `POST` | `/auth/login` | Public | Log in, returns JWT (rate-limited per IP + email) |
+| `GET` | `/auth/me` | JWT | Current user, profile, and quota |
+| `PUT` | `/profile` | JWT | Save the Static Learner Profile |
+| `GET` | `/quota` | JWT or guest | Remaining AI actions in the current window |
+| `GET` | `/sessions` | JWT | Session history |
+| `POST` | `/sessions` ⚡ | JWT or none | Create a session. Without a JWT it creates a guest session and returns `meta.guestToken`. |
+| `GET` | `/sessions/:id` | Owner | Load a session (answer keys masked until batch completion) |
+| `PATCH` | `/sessions/:id/mode` | Owner | Switch active mode (`explain` / `interact` / `practice`) |
+| `DELETE` | `/sessions/:id` | Owner | Delete a session |
+| `POST` | `/sessions/:id/explain/init` ⚡ | Owner | Generate the 4 Explain cards |
+| `PATCH` | `/sessions/:id/explain/step` | Owner | Advance the revealed step |
+| `POST` | `/sessions/:id/interact/init` ⚡ | Owner | Generate 3–5 milestones + opening question |
+| `POST` | `/sessions/:id/interact/stream` ⚡ | Owner | **SSE.** Send `{ message, forceDirectExplanation? }`, receive `start` / `token` / `metadata` / `done` / `error` events |
+| `POST` | `/sessions/:id/practice/generate` ⚡ | Owner | Generate a 10-MCQ batch for `{ tier }` |
+| `POST` | `/sessions/:id/practice/submit` | Owner | Grade `{ tier, answers[10] }` on the server and unlock the next tier |
 
-| | Guest | Signed-in user |
-| :--- | :--- | :--- |
-| Learner profile | Fixed default profile | Your saved profile |
-| Daily AI actions | 15 per IP address | 50 per account (`DAILY_AI_QUOTA_LIMIT`) |
-| Session lifetime | Deleted 2 hours after creation | Kept until you delete it |
-| Session history (`GET /sessions`) | Not available (`401`) | Available |
-
-- **Creating a session:** `POST /api/v1/sessions` without an `Authorization` header creates a guest session. The response carries a signed guest token in `meta.guestToken`.
-- **Using the session:** every later request for that session (`GET`, `PATCH /mode`, `DELETE`, and the `explain`, `interact` and `practice` endpoints) must send the token in the `X-Guest-Token` header. A token only unlocks the one session it was issued for. A request without a token returns `401`; a token for another session returns `404`.
-- **Token storage:** the client keeps a `sessionId → guestToken` map in `localStorage` (key `mentora_guest_tokens`) and drops expired tokens when it reads the map. Any tab in the same browser can reopen the session until it expires (2 hours). Another browser or device has no token, so it is denied.
-- **Quota:** guest usage is counted per client IP in the `guestquotas` MongoDB collection, so it survives restarts. A guest is charged only when AI work actually runs.
-  - **How the IP is chosen:** the header named by `CLIENT_IP_HEADER` (set to `cf-connecting-ip` on Render, which sits behind Cloudflare) when it holds a valid IP. Otherwise Express's `req.ip`, which comes from `trust proxy` and the `TRUST_PROXY` hop count (default `1`).
-  - **Shared key:** the API and sign-in rate limiters use the same key.
-  - **Checking it in production:** set `LOG_CLIENT_IP_DIAGNOSTICS=true` temporarily to log the proxy headers of the first 20 requests.
+</details>
 
 ---
 
-## Key Engineering Takeaways
+## What I Learned
 
-- **Shared TypeScript & Zod Contracts:** Keeping all validation schemas and TypeScript types in `@mentora/shared` prevents mismatches between frontend forms, backend API routes, and Gemini AI outputs.
-- **Predictable Tutoring with Server-Side State Machines:** Rather than relying on the AI alone to remember how many times a student has struggled, the backend tracks strikes and milestones directly and strips internal state tags (`<<MENTORA_STATE:...>>`) from the live chat stream before text reaches the browser.
-- **Reasoning-First Quiz Generation:** When generating multiple-choice questions, the JSON schema forces the AI to write out the full `solutionExplanation` *before* picking the `correctOptionIndex`. This prevents the model from guessing an answer letter first and making up a flawed explanation afterward.
-- **Safe Rendering & User Isolation:** Wrapping `Mermaid.js` diagram rendering in error boundaries prevents bad diagram syntax from crashing the app, while scoping every database query by `{ _id, userId }` ensures users can only access their own sessions.
+- **Put the model inside a state machine, not the other way round.** Asking an LLM to count a learner's failed attempts was unreliable: it would jump straight to the full explanation or forget the hint step. Having the model emit a small structured outcome header, with a pure server-side transition function owning the strike count, made the tutoring behavior testable and repeatable.
+- **Property order in a JSON schema affects answer accuracy.** Ordering `solutionExplanation` before `correctOptionIndex` costs nothing and makes the model derive an answer before selecting one. Combined with server-side key masking and deterministic grading, the quiz's correctness no longer depends on anything the client sends or sees.
+- **SSE needs explicit handling at every proxy layer.** A stream that works on localhost can still be buffered or cut off by a reverse proxy in production. Turning off buffering and transformation, sending heartbeat comments, and treating a client disconnect as a reason to abort the upstream Gemini call each fix a different failure that only appears once deployed.
+- **A shared contracts package is only useful if every layer imports it.** Defining each request, response, and AI-output shape once in `@mentora/shared`, and validating against it on both sides of the wire, turns API drift into a compile-time or validation error instead of a runtime surprise. `noUncheckedIndexedAccess` forces every indexed read (questions, options, milestones) to deal with `undefined`.
+- **Free-tier hosting shapes the UX.** Splitting origins between Vercel and Render ruled out cookie auth, and a sleeping Render instance can take tens of seconds to answer its first request. A health-check gate with a short grace window covers the cold case without adding a loading screen to the warm one.
