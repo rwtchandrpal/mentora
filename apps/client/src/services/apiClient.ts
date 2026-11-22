@@ -1,14 +1,29 @@
 import axios, { type InternalAxiosRequestConfig } from 'axios';
 import { GUEST_TOKEN_HEADER, type ErrorCode } from '@mentora/shared';
 import { env } from '../config/env.js';
+import { SERVER_WAKE_RETRY_DELAYS_MS } from '../config/timeouts.js';
 
 export const TOKEN_STORAGE_KEY = 'mentora_auth_token';
 
 export type ClientApiErrorCode =
   | ErrorCode
   | 'NETWORK_ERROR'
+  | 'SERVICE_UNAVAILABLE'
   | 'TIMEOUT_ERROR'
   | 'UNKNOWN_ERROR';
+
+export const NETWORK_ERROR_MESSAGE = 'Network error. Please check your internet connection.';
+export const SERVICE_UNAVAILABLE_MESSAGE =
+  "Mentora's server is temporarily unavailable. Please try again in a minute.";
+
+declare module 'axios' {
+  interface AxiosRequestConfig {
+    /** Never wait for the server to wake up and retry (used by the health probe itself). */
+    skipServerWake?: boolean;
+    /** Set on the single automatic retry after the server came back. */
+    serverWakeRetried?: boolean;
+  }
+}
 
 export interface NormalizedApiErrorData {
   statusCode: number;
@@ -232,7 +247,7 @@ export const normalizeAxiosError = (error: unknown): NormalizedApiError => {
     return new NormalizedApiError({
       statusCode: 0,
       code: 'NETWORK_ERROR',
-      message: 'Network error. Please check your internet connection.',
+      message: NETWORK_ERROR_MESSAGE,
     });
   }
 
@@ -301,10 +316,97 @@ const sentBearerToken = (error: unknown): boolean => {
   return typeof value === 'string' && value.startsWith('Bearer ');
 };
 
+/**
+ * Server wake-up handling (LIVE-BUG-H4).
+ *
+ * When Render restarts or wakes the API, its edge answers 503 without CORS headers, so
+ * the browser reports a bare network error and the user used to see "check your
+ * internet connection". Now a network error is followed by a `/health` probe: if the
+ * API is reachable, the network error stands (it really was the connection); if not,
+ * the client waits for the API with back-off, shows a "waking up" banner meanwhile, and
+ * retries the original request once. Concurrent failures share one wait.
+ */
+type ServerWakeListener = (isWaking: boolean) => void;
+let serverWakeListener: ServerWakeListener | null = null;
+let serverWakeEnabled = true;
+let serverWakeDelaysMs: readonly number[] = SERVER_WAKE_RETRY_DELAYS_MS;
+let serverWakePromise: Promise<boolean> | null = null;
+
+export const setServerWakeListener = (listener: ServerWakeListener | null): void => {
+  serverWakeListener = listener;
+};
+
+/** Turns the wait-and-retry behaviour on or off and overrides its back-off (tests). */
+export const configureServerWake = (options: {
+  enabled?: boolean;
+  delaysMs?: readonly number[];
+}): void => {
+  if (options.enabled !== undefined) serverWakeEnabled = options.enabled;
+  if (options.delaysMs !== undefined) serverWakeDelaysMs = options.delaysMs;
+};
+
+export const isServerWakeEnabled = (): boolean => serverWakeEnabled;
+
+const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
+
+export const pingHealthCheck = async (): Promise<boolean> => {
+  try {
+    const response = await apiClient.get<{ status: string }>('/health', {
+      timeout: 5000,
+      skipServerWake: true,
+    });
+    return response.status === 200;
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * Resolves `true` once `/health` answers, or `false` after the back-off schedule runs
+ * out. Callers that fail at the same time share one wait and one banner.
+ */
+export const waitForServer = (): Promise<boolean> => {
+  if (!serverWakePromise) {
+    serverWakeListener?.(true);
+    serverWakePromise = (async () => {
+      for (const delayMs of serverWakeDelaysMs) {
+        await sleep(delayMs);
+        if (await pingHealthCheck()) return true;
+      }
+      return false;
+    })().finally(() => {
+      serverWakePromise = null;
+      serverWakeListener?.(false);
+    });
+  }
+  return serverWakePromise;
+};
+
 apiClient.interceptors.response.use(
   (response) => response,
-  (error: unknown) => {
-    const normalized = normalizeAxiosError(error);
+  async (error: unknown) => {
+    let normalized = normalizeAxiosError(error);
+
+    const config = axios.isAxiosError(error) ? error.config : undefined;
+    if (
+      serverWakeEnabled &&
+      normalized.code === 'NETWORK_ERROR' &&
+      config &&
+      !config.skipServerWake &&
+      !config.serverWakeRetried &&
+      !(await pingHealthCheck())
+    ) {
+      // The API itself is unreachable, so the request most likely never reached it.
+      if (await waitForServer()) {
+        return apiClient.request({ ...config, serverWakeRetried: true });
+      }
+      normalized = new NormalizedApiError({
+        statusCode: 503,
+        code: 'SERVICE_UNAVAILABLE',
+        message: SERVICE_UNAVAILABLE_MESSAGE,
+      });
+    }
+
     // Only a rejected bearer token means the session expired. A 401 without one
     // (wrong password, missing guest token) must not log anyone out.
     if (normalized.statusCode === 401 && sentBearerToken(error)) {
@@ -313,16 +415,5 @@ apiClient.interceptors.response.use(
     return Promise.reject(normalized);
   }
 );
-
-export const pingHealthCheck = async (): Promise<boolean> => {
-  try {
-    const response = await apiClient.get<{ status: string }>('/health', {
-      timeout: 5000,
-    });
-    return response.status === 200;
-  } catch {
-    return false;
-  }
-};
 
 export default apiClient;

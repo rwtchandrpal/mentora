@@ -9,7 +9,13 @@ import {
   applyInteractMetadata,
 } from '../store/sessionSlice.js';
 import { setQuota } from '../store/authSlice.js';
-import { buildAuthHeaders, notifyUnauthorized } from '../services/apiClient.js';
+import {
+  buildAuthHeaders,
+  isServerWakeEnabled,
+  notifyUnauthorized,
+  pingHealthCheck,
+  waitForServer,
+} from '../services/apiClient.js';
 import { env } from '../config/env.js';
 import type {
   SseStartEventDTO,
@@ -20,6 +26,10 @@ import type {
 
 export const CONNECTION_INTERRUPTED_MESSAGE =
   'Connection interrupted. Your progress on this milestone was preserved.';
+
+/** Shown instead when the API itself is down (restart or cold start), LIVE-BUG-H4. */
+export const SERVER_RESTARTING_MESSAGE =
+  "Mentora's server is restarting. Your progress on this milestone was preserved; retry once it is back.";
 
 export interface UseSseStreamReturn {
   sendMessage: (message: string, forceDirectExplanation?: boolean) => Promise<void>;
@@ -229,8 +239,15 @@ export const useSseStream = (sessionId: string | undefined): UseSseStreamReturn 
           return;
         }
         // Transport failures surface as raw browser text ("Failed to fetch", "network
-        // error"); show one friendly, retryable message instead (L-11).
-        dispatch(setStreamError(CONNECTION_INTERRUPTED_MESSAGE));
+        // error"); show one friendly, retryable message instead (L-11). If the API itself
+        // is down, say so and wait for it (the banner shows meanwhile). The turn is not
+        // resent automatically: the user retries, as the server may have seen it.
+        if (isServerWakeEnabled() && !(await pingHealthCheck())) {
+          dispatch(setStreamError(SERVER_RESTARTING_MESSAGE));
+          void waitForServer();
+        } else {
+          dispatch(setStreamError(CONNECTION_INTERRUPTED_MESSAGE));
+        }
       } finally {
         abortControllerRef.current = null;
       }

@@ -3,6 +3,7 @@ import { app } from './app.js';
 import { env } from './config/env.js';
 import { logger } from './config/logger.js';
 import { connectDatabase, disconnectDatabase } from './config/db.js';
+import { installProcessGuards, memorySnapshotMb } from './config/processGuards.js';
 
 let server: http.Server | null = null;
 
@@ -15,6 +16,7 @@ export const startServer = async (): Promise<http.Server> => {
         port: env.PORT,
         nodeEnv: env.NODE_ENV,
         clientOrigin: env.CLIENT_ORIGIN,
+        memory: memorySnapshotMb(),
       },
       `Mentora server listening on port ${env.PORT}`
     );
@@ -24,7 +26,11 @@ export const startServer = async (): Promise<http.Server> => {
 };
 
 export const handleShutdown = async (signal: string): Promise<void> => {
-  logger.info({ signal }, 'Received shutdown signal, closing server gracefully...');
+  // Memory at shutdown tells a platform restart for memory pressure from a normal redeploy.
+  logger.info(
+    { signal, memory: memorySnapshotMb(), uptimeSec: Math.round(process.uptime()) },
+    'Received shutdown signal, closing server gracefully...'
+  );
   if (server) {
     server.close(async () => {
       logger.info('HTTP server closed');
@@ -56,6 +62,7 @@ process.on('SIGINT', () => {
 });
 
 if (process.env.NODE_ENV !== 'test') {
+  installProcessGuards();
   void startServer().catch((err) => {
     logger.error({ err }, 'Failed to start Mentora server');
     process.exit(1);
