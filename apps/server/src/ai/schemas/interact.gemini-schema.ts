@@ -19,7 +19,7 @@ export const interactInitGeminiSchema: Schema = {
     },
     normalizedTitle: {
       type: Type.STRING,
-      description: 'Clean, professional display title for the educational topic.',
+      description: 'Clean, professional display title for the educational topic. Plain text only: no LaTeX, $ math delimiters or Markdown.',
     },
     milestones: {
       type: Type.ARRAY,
@@ -33,11 +33,11 @@ export const interactInitGeminiSchema: Schema = {
           },
           title: {
             type: Type.STRING,
-            description: 'Short, descriptive title for the milestone.',
+            description: 'Short, descriptive title for the milestone. Plain text only: no LaTeX, $ math delimiters or Markdown.',
           },
           description: {
             type: Type.STRING,
-            description: 'Clear statement of the conceptual understanding required to master this milestone.',
+            description: 'Clear statement of the conceptual understanding required to master this milestone. Plain text only: no LaTeX, $ math delimiters or Markdown; describe notation in words.',
           },
         },
         required: ['milestoneNumber', 'title', 'description'],

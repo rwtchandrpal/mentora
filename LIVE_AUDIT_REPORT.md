@@ -399,14 +399,26 @@ Each task can be done and verified independently. Order = user impact × likelih
   - **Old code fails them:** the three bug-case tests fail on the previous code and pass now.
   - **Full suite:** server 262/262; `tsc --noEmit` and `eslint` are clean. The existing strike 0→1→2→circuit-breaker and escape-hatch tests are unchanged and pass.
 
-### LIVE-FIX-006 — Render or forbid math in milestone text (BUG-M2)
+### LIVE-FIX-006 — Render or forbid math in milestone text (BUG-M2) — ✅ implemented (not yet deployed)
 - **Target files:**
-  - `apps/client/src/components/interact/MilestoneTrackerBar.tsx` (150-172)
+  - `apps/client/src/components/common/InlineMathText.tsx` (new)
+  - `apps/client/src/components/interact/MilestoneTrackerBar.tsx`
   - `apps/server/src/ai/prompts/prompt.builder.ts` (interact init prompt)
-- **Exact fix:**
-  - Render title and description with `RichMarkdownRenderer` (KaTeX only; keep `line-clamp`).
-  - Also instruct the init prompt: "Milestone titles and descriptions must be plain text — no LaTeX or Markdown."
-- **Verification:** Start Interact on "Dijkstra's Algorithm" and "Binary Search Trees". The tracker contains no `$` or `\` characters (`document.querySelector('[data-testid=milestone-tracker]').innerText`).
+  - `apps/server/src/ai/schemas/interact.gemini-schema.ts` (field descriptions)
+  - `apps/client/src/__tests__/InlineMathText.test.tsx` (new), `apps/server/src/__tests__/ai.prompt-router.test.ts`
+- **Fix as implemented:**
+  - **Client — render the math already stored.** Sessions created before the prompt change keep their LaTeX milestones, so the tracker has to handle them. A new `InlineMathText` component typesets only `$…$` / `$$…$$` spans with KaTeX and leaves everything else as plain text.
+    - It replaces the plan's `RichMarkdownRenderer`. That component wraps output in `<div>`/`<p>`, which isn't valid inside the tracker's `<h3>`/`<p>` and would break `line-clamp`. It would also render Markdown in model text. `InlineMathText` emits only inline elements and never interprets Markdown or HTML.
+    - Math detection follows Pandoc's rules (no space just inside the delimiters, no digit right after the closing `$`; `\$` is literal), so "costs $5 and $10" stays text.
+    - TeX that doesn't parse is shown as its source rather than a red KaTeX error. KaTeX runs with `trust: false`.
+    - The `title` tooltips (shown when `line-clamp` truncates) use `mathTextToPlain`, which swaps each math span for the text of KaTeX's MathML, e.g. `$\mathcal{O}(h)$` → "O(h)".
+    - The tracker section now has `data-testid="milestone-tracker"`, as the verification step below assumes.
+  - **Server — stop new LaTeX.** The interact init prompt now says milestone titles, descriptions and `normalizedTitle` are plain text: no LaTeX, `$` delimiters, Markdown or code, with notation named in words. It states that the opening question still follows the Technical Formatting Contract. The Gemini schema descriptions for those three fields say the same. `normalizedTitle` is included because it feeds the plain-text session header.
+- **Verification:**
+  - New `InlineMathText.test.tsx` (9 tests): segment splitting incl. currency and escapes, KaTeX output with no visible `$` or `\`, no block elements inside an `<h3>`, unparseable-TeX fallback, Markdown/HTML not interpreted, plain-text tooltips, and the tracker rendering the live Dijkstra/BST strings from this audit.
+  - The tracker test fails on the old component and passes now. The prompt test asserts the new rule and its opening-question exception.
+  - Full suites: client 168/168, server 262/262; `tsc --noEmit` and `eslint` clean on both.
+  - **Not yet checked:** a browser look at the tracker, and whether the model now follows the plain-text rule. After deploy, start Interact on "Dijkstra's Algorithm" and "Binary Search Trees". For new sessions, `document.querySelector('[data-testid=milestone-tracker]').innerText` should contain no `$` or `\`. For the old audit session `6b02c5d961c7468ff04d15e1`, the tracker should show typeset math.
 
 ### LIVE-FIX-007 — Let chat bubbles shrink (BUG-M3)
 - **Target files:**

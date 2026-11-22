@@ -3,6 +3,10 @@ import {
   MilestoneStatus,
   type InteractMilestoneDTO,
 } from '@mentora/shared';
+import {
+  InlineMathText,
+  mathTextToPlain,
+} from '../common/InlineMathText.js';
 
 export interface MilestoneTrackerBarProps {
   milestones: InteractMilestoneDTO[];
@@ -24,6 +28,7 @@ export const MilestoneTrackerBar: React.FC<MilestoneTrackerBarProps> = ({
   return (
     <section
       aria-label="Milestone Progress"
+      data-testid="milestone-tracker"
       className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-5 shadow-xs"
     >
       {/* Header Row: Title, Counter, and Socratic Strike Hint */}
@@ -152,9 +157,9 @@ export const MilestoneTrackerBar: React.FC<MilestoneTrackerBarProps> = ({
                       ? 'text-purple-950 font-bold'
                       : 'text-gray-900'
                 }`}
-                title={milestone.title}
+                title={mathTextToPlain(milestone.title)}
               >
-                {milestone.title}
+                <InlineMathText text={milestone.title} />
               </h3>
 
               <p
@@ -165,9 +170,9 @@ export const MilestoneTrackerBar: React.FC<MilestoneTrackerBarProps> = ({
                       ? 'text-purple-900 font-medium'
                       : 'text-gray-600 font-medium'
                 }`}
-                title={milestone.description}
+                title={mathTextToPlain(milestone.description)}
               >
-                {milestone.description}
+                <InlineMathText text={milestone.description} />
               </p>
             </li>
           );

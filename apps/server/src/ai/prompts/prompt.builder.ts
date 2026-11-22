@@ -219,6 +219,7 @@ export class PromptBuilder {
       'Decompose the topic into 3 to 5 sequential conceptual milestones.',
       'Craft an engaging diagnostic opening question anchored to Milestone 1 to assess the learner\'s current understanding.',
       'Ensure milestones build progressively toward comprehensive topic mastery.',
+      'Milestone titles and descriptions, and the normalizedTitle, are shown in a compact plain-text progress tracker: write them as plain text only — no LaTeX, no $ math delimiters, no Markdown, no code. Name notation in words (e.g. "O(h) time on a tree of height h", "non-negative edge weights") instead of writing formulas. This exception applies only to those fields; the openingQuestion still follows the Technical Formatting Contract.',
     ].join('\n');
   }
 

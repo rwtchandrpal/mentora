@@ -207,6 +207,9 @@ describe('IMP-013: Backend AI Integration Layer', () => {
       const interactInitPrompt = buildInteractInitPrompt('Binary Search Trees');
       expect(interactInitPrompt).toContain('Binary Search Trees');
       expect(interactInitPrompt).toContain('3 to 5 sequential conceptual milestones');
+      // LIVE-FIX-006: milestone fields feed a plain-text tracker.
+      expect(interactInitPrompt).toContain('plain text only — no LaTeX, no $ math delimiters');
+      expect(interactInitPrompt).toContain('openingQuestion still follows the Technical Formatting Contract');
 
       const interactTurnPrompt = buildInteractTurnPrompt({
         activeMilestone: 'Tree Invariant',
