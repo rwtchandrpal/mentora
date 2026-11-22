@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 // PrismAsyncLight loads each language grammar on demand instead of bundling every
 // Prism language into the entry chunk (A-16). Code shows unhighlighted until it loads.
 import { PrismAsyncLight as SyntaxHighlighter } from 'react-syntax-highlighter';
@@ -10,12 +10,46 @@ export interface CodeBlockProps {
   className?: string;
 }
 
+/** Fallback for when the async Clipboard API is unavailable or rejects. */
+function legacyCopy(text: string): boolean {
+  if (typeof document === 'undefined' || typeof document.execCommand !== 'function') {
+    return false;
+  }
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.setAttribute('readonly', '');
+  textarea.setAttribute('aria-hidden', 'true');
+  textarea.style.position = 'fixed';
+  textarea.style.top = '0';
+  textarea.style.left = '-9999px';
+  textarea.style.opacity = '0';
+  const previouslyFocused = document.activeElement as HTMLElement | null;
+  document.body.appendChild(textarea);
+  try {
+    textarea.select();
+    return document.execCommand('copy');
+  } catch {
+    return false;
+  } finally {
+    document.body.removeChild(textarea);
+    previouslyFocused?.focus?.();
+  }
+}
+
 export const CodeBlock: React.FC<CodeBlockProps> = ({
   language,
   code,
   className = '',
 }) => {
-  const [copied, setCopied] = useState(false);
+  const [status, setStatus] = useState<'idle' | 'copied' | 'failed'>('idle');
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    },
+    [],
+  );
 
   const normalizedLanguage = (language || 'text')
     .toLowerCase()
@@ -23,15 +57,19 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({
     .trim();
 
   const handleCopy = useCallback(async () => {
+    let ok = false;
     try {
-      if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(code);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
+        ok = true;
       }
     } catch {
-      // Fallback or ignore clipboard denial without throwing
+      // Clipboard API denied (permissions, insecure context, iframe): try the legacy path.
     }
+    if (!ok) ok = legacyCopy(code);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    setStatus(ok ? 'copied' : 'failed');
+    timerRef.current = setTimeout(() => setStatus('idle'), 2000);
   }, [code]);
 
   return (
@@ -49,12 +87,17 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({
           onClick={handleCopy}
           className="flex items-center gap-1 px-2 py-1 rounded bg-slate-700 hover:bg-slate-600 text-slate-100 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 focus:ring-offset-slate-900"
         >
-          {copied ? (
+          {status === 'copied' ? (
             <span className="text-emerald-400 font-medium">Copied!</span>
+          ) : status === 'failed' ? (
+            <span className="text-amber-400 font-medium">Copy failed</span>
           ) : (
             <span>Copy</span>
           )}
         </button>
+        <span className="sr-only" role="status" aria-live="polite">
+          {status === 'copied' ? 'Code copied to clipboard' : status === 'failed' ? 'Copy failed' : ''}
+        </span>
       </div>
 
       <div className="overflow-x-auto">

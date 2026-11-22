@@ -464,10 +464,11 @@ Each task can be done and verified independently. Order = user impact × likelih
   - **Full client suite:** 179/179. `tsc --noEmit` and `eslint src` are clean.
   - **Still to do after deploy:** Dijkstra Explain Card 2's relaxation formula should be centred.
 
-### LIVE-FIX-009 — Copy button fallback & feedback (BUG-L2)
-- **Target file:** `apps/client/src/components/common/CodeBlock.tsx:25-35`
-- **Exact fix:** On a rejected or missing Clipboard API, fall back to a hidden `<textarea>` + `document.execCommand('copy')`. If that fails too, set state to "Copy failed" for 2 s. Add `aria-live="polite"` to the status text.
-- **Verification:** RTL test with `navigator.clipboard.writeText` mocked to reject shows "Copy failed" or the fallback success.
+### LIVE-FIX-009 — Copy button fallback & feedback (BUG-L2) — ✅ implemented (not yet deployed)
+- **Target files:** `apps/client/src/components/common/CodeBlock.tsx`, `apps/client/src/__tests__/CodeBlockCopy.test.tsx` (new)
+- **Fix as implemented:** If the Clipboard API is missing or rejects, `legacyCopy` copies through an off-screen `<textarea>` + `document.execCommand('copy')` and restores focus. If that fails too, the button shows "Copy failed" (amber) for 2 s. A visually hidden `role="status" aria-live="polite"` region announces both outcomes. The reset timer is cleared on re-click and on unmount.
+- **Verification:** 4 new tests (API success, fallback on reject, fallback with no API, both fail → "Copy failed" → resets). Full client suite 183/183; `tsc --noEmit` and `eslint src` clean.
+- **Still to do after deploy:** confirm in a browser where `writeText` is denied.
 
 ### LIVE-FIX-010 — Guest quota badge hydration (BUG-L4)
 - **Target files:**
