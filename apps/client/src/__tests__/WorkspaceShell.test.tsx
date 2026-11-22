@@ -2,7 +2,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
 import { Provider } from 'react-redux';
-import { MemoryRouter, Routes, Route } from 'react-router-dom';
+import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { AxiosError, type AxiosAdapter, type InternalAxiosRequestConfig } from 'axios';
 import '@testing-library/jest-dom/vitest';
 import {
@@ -23,6 +23,8 @@ import {
 import { apiClient, clearStoredToken } from '../services/apiClient.js';
 import { createAppStore, type PreloadedRootState } from '../store/index.js';
 import { WorkspacePage } from '../pages/WorkspacePage.js';
+
+const LocationProbe = () => <div data-testid="location">{useLocation().pathname}</div>;
 
 describe('IMP-012: Unified Workspace Shell, Left History Sidebar, & Mode Switcher Tabs', () => {
   const originalAdapter = apiClient.defaults.adapter;
@@ -146,6 +148,7 @@ describe('IMP-012: Unified Workspace Shell, Left History Sidebar, & Mode Switche
     const view = render(
       <Provider store={store}>
         <MemoryRouter initialEntries={initialEntries}>
+          <LocationProbe />
           <Routes>
             <Route path="/workspace" element={<WorkspacePage />} />
             <Route path="/workspace/:sessionId" element={<WorkspacePage />} />
@@ -915,6 +918,49 @@ describe('IMP-012: Unified Workspace Shell, Left History Sidebar, & Mode Switche
       expect(
         screen.getByRole('heading', { name: /what topic would you like to master\?/i })
       ).toBeInTheDocument();
+    });
+
+    it('signing out from a session lands on an empty /workspace with no stray fetch (LIVE-FIX-011)', async () => {
+      let getSessionCalls = 0;
+      apiClient.defaults.adapter = async (config: InternalAxiosRequestConfig) => {
+        if (config.url === `/sessions/${mockActiveSession.id}` && config.method === 'get') {
+          getSessionCalls += 1;
+        }
+        return {
+          data: { success: true, data: [mockSummary1] },
+          status: 200,
+          statusText: 'OK',
+          headers: {},
+          config,
+        };
+      };
+
+      const { store } = renderWorkspace([`/workspace/${mockActiveSession.id}`], {
+        auth: {
+          token: 'mock-token',
+          user: mockUser,
+          quota: null,
+          authStatus: 'authenticated',
+          error: null,
+        },
+        session: {
+          sessionList: [mockSummary1],
+          activeSession: { ...mockActiveSession },
+        },
+      });
+
+      fireEvent.click(screen.getAllByRole('button', { name: /sign out/i })[0]!);
+
+      await waitFor(() =>
+        expect(
+          screen.getByRole('heading', { name: /what topic would you like to master\?/i })
+        ).toBeInTheDocument()
+      );
+      expect(screen.getByTestId('location')).toHaveTextContent(/^\/workspace$/);
+      expect(getSessionCalls).toBe(0);
+      expect(store.getState().auth.user).toBeNull();
+      expect(store.getState().session.activeSession).toBeNull();
+      expect(screen.queryByText(/session not found/i)).toBeNull();
     });
 
     it('does not re-fetch the open session after deleting it (LIVE-BUG-H3)', async () => {

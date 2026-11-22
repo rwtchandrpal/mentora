@@ -80,6 +80,15 @@ export const LeftHistorySidebar: React.FC = () => {
     dispatch(setMobileDrawerOpen(false));
   };
 
+  const handleLogout = () => {
+    // Leave /workspace/:id before the credentials go: the session belongs to the signed-out
+    // user, and the transition-safe order matches New Topic (LIVE-FIX-011).
+    navigate('/workspace');
+    dispatch(clearActiveSession());
+    dispatch(logout());
+    dispatch(setMobileDrawerOpen(false));
+  };
+
   const handleSelectSession = (sessionId: string) => {
     if (activeSession?.id === sessionId || activeSession?._id === sessionId) {
       dispatch(setMobileDrawerOpen(false));
@@ -331,7 +340,7 @@ export const LeftHistorySidebar: React.FC = () => {
 
             <button
               type="button"
-              onClick={() => dispatch(logout())}
+              onClick={handleLogout}
               className="p-1.5 text-gray-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
               title="Sign out"
               aria-label="Sign out"

@@ -481,10 +481,11 @@ Each task can be done and verified independently. Order = user impact × likelih
 - **Verification:** 4 new server tests (fresh guest creates no record, real usage with no reservation across 3 reads, expired window, signed-in user) and 3 new client tests (badge appears with 11/15 left, no call when quota is known, silent on failure). Server 266/266, client 186/186; `tsc --noEmit` and `eslint src` clean on both.
 - **Still to do after deploy:** reload a guest session and confirm the badge shows without any AI action.
 
-### LIVE-FIX-011 — Logout navigation (BUG-L6)
-- **Target file:** `apps/client/src/components/layout/LeftHistorySidebar.tsx:334`
-- **Exact fix:** `onClick={() => { navigate('/workspace'); dispatch(clearActiveSession()); dispatch(logout()); }}`, using the same transition-safe pattern as LIVE-FIX-001.
-- **Verification:** Logging out from `/workspace/:id` lands on an empty `/workspace` with no 401 in the console.
+### LIVE-FIX-011 — Logout navigation (BUG-L6) — ✅ implemented (not yet deployed)
+- **Target files:** `apps/client/src/components/layout/LeftHistorySidebar.tsx`, `apps/client/src/__tests__/WorkspaceShell.test.tsx`
+- **Fix as implemented:** A new `handleLogout` runs `navigate('/workspace')`, `clearActiveSession()`, `logout()` and closes the mobile drawer, in the same transition-safe order as New Topic. The Sign out button uses it. LIVE-FIX-001's once-per-id fetch guard means the cleared session isn't re-fetched while the URL still holds its id.
+- **Verification:** New test "signing out from a session lands on an empty /workspace with no stray fetch" checks the URL is `/workspace`, the empty topic form shows, there is no `GET /sessions/:id`, no "Session not found", and the user and active session are cleared. It fails on the old code (the URL stayed `/workspace/:id`). The test file's render helper now also shows the current path. Full client suite 187/187; `tsc --noEmit` and `eslint src` clean.
+- **Still to do after deploy:** sign out from `/workspace/:id` on the live site and confirm there is no 401 in the console.
 
 ### LIVE-FIX-012 — Keyboard & focus accessibility (BUG-L5)
 - **Target files:**
