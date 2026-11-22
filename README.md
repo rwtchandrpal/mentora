@@ -16,7 +16,28 @@
 
 </div>
 
-<!-- Add screenshots of Explain, Interact, and Practice modes here -->
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/images/explain-mode.png" alt="Explain Mode: 4-step tracker completed on the Check-for-Understanding card, with handoff buttons to Interact and Practice" />
+      <p align="center"><b>Explain:</b> 4 progressive cards with a sticky step tracker</p>
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/images/interact-mode.png" alt="Interact Mode: streamed Socratic reply with a GFM table and KaTeX formulas, active milestone goal and Explain directly button" />
+      <p align="center"><b>Interact:</b> streamed Socratic tutoring with tables and KaTeX</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/images/practice-mode.png" alt="Practice Mode: Easy tier in progress with Medium and Hard tiers locked, and a 10-question MCQ batch" />
+      <p align="center"><b>Practice:</b> tiered 10-MCQ batches, with later tiers locked</p>
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/images/practice-review.png" alt="Practice Batch Review: batch score banner, Start Medium button, and per-question correctness with a step-by-step explanation" />
+      <p align="center"><b>Batch Review:</b> server-graded score and step-by-step rationales</p>
+    </td>
+  </tr>
+</table>
 
 ---
 
