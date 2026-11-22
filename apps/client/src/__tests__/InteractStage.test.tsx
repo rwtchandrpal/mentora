@@ -283,6 +283,7 @@ describe('IMP-020: Frontend SSE Client Hook (useSseStream) & Interact Mode UI St
     const { store } = renderStage(uninitializedSession);
 
     // Verify skeleton or loading indicator is rendered during initialization
+    expect(screen.getAllByText('Setting up chat...').length).toBeGreaterThanOrEqual(1);
     await waitFor(() => {
       expect(initCallCount).toBe(1);
     });
@@ -437,7 +438,7 @@ describe('IMP-020: Frontend SSE Client Hook (useSseStream) & Interact Mode UI St
   });
 
   // 5. Direct Explanation Escape Hatch (FR-013, AC-INT-02)
-  it('FR-013: clicking "Explain this milestone directly" sends forceDirectExplanation: true and renders Circuit Breaker banner', async () => {
+  it('FR-013: clicking "Explain directly" sends forceDirectExplanation: true and renders Circuit Breaker banner', async () => {
     let capturedBody: string | undefined;
 
     const sseChunks = [
@@ -462,6 +463,7 @@ describe('IMP-020: Frontend SSE Client Hook (useSseStream) & Interact Mode UI St
     renderStage();
 
     const directButton = screen.getByTestId('explain-directly-button');
+    expect(directButton).toHaveTextContent(/^\S*\s*Explain directly$/);
     fireEvent.click(directButton);
 
     await waitFor(() => {
@@ -519,7 +521,7 @@ describe('IMP-020: Frontend SSE Client Hook (useSseStream) & Interact Mode UI St
     await waitFor(() => {
       expect(screen.getByTestId('stream-error-banner')).toBeInTheDocument();
       expect(
-        screen.getByRole('button', { name: /Connection interrupted — Retry/i })
+        screen.getByRole('button', { name: /^Retry$/i })
       ).toBeInTheDocument();
     });
 
@@ -535,7 +537,7 @@ describe('IMP-020: Frontend SSE Client Hook (useSseStream) & Interact Mode UI St
 
     // Click Retry
     const retryButton = screen.getByRole('button', {
-      name: /Connection interrupted — Retry/i,
+      name: /^Retry$/i,
     });
     fireEvent.click(retryButton);
 
@@ -676,10 +678,10 @@ describe('IMP-020: Frontend SSE Client Hook (useSseStream) & Interact Mode UI St
 
     // CTAs should be present
     expect(
-      screen.getByRole('button', { name: /Review Explain Cards/i })
+      screen.getByRole('button', { name: /Review Cards/i })
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: /Start Practice MCQs/i })
+      screen.getByRole('button', { name: /^Practice$/i })
     ).toBeInTheDocument();
   });
 });

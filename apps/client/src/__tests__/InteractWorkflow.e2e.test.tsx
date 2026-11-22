@@ -675,7 +675,7 @@ describe('IMP-021: Frontend End-to-End Interact Mode Workflow & 3-Strike Verific
 
       // Click Retry
       const retryBtn = screen.getByRole('button', {
-        name: /Connection interrupted — Retry/i,
+        name: /^Retry$/i,
       });
       fireEvent.click(retryBtn);
 

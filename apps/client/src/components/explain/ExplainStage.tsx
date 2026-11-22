@@ -133,15 +133,8 @@ export const ExplainStage: React.FC = () => {
           </div>
           <div className="space-y-1">
             <h3 className="text-base sm:text-lg font-bold text-gray-900">
-              Breaking down topic into 4 progressive learning cards...
+              Loading explanation...
             </h3>
-            <p className="text-xs sm:text-sm text-gray-700 max-w-md mx-auto">
-              Tailoring{' '}
-              <span className="font-semibold text-gray-900">
-                "{activeSession.normalizedTitle || activeSession.topicQuery}"
-              </span>{' '}
-              to your level.
-            </p>
           </div>
         </div>
 
@@ -239,7 +232,7 @@ export const ExplainStage: React.FC = () => {
                 }}
                 className="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-white border border-gray-300 hover:bg-gray-50 text-gray-800 shadow-xs transition-all focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-indigo-500"
               >
-                Retry Initialization
+                Retry
               </button>
             )}
             <button

@@ -433,10 +433,10 @@ describe('IMP-018: Frontend End-to-End Explain Mode Workflow & Acceptance Criter
 
       // Step H: Completion Action CTAs
       expect(
-        screen.getByRole('button', { name: /Discuss in Interact Mode/i })
+        screen.getByRole('button', { name: /^Interact$/i })
       ).toBeInTheDocument();
       const practiceBtn = screen.getByRole('button', {
-        name: /Test Yourself in Practice Mode/i,
+        name: /^Practice$/i,
       });
       expect(practiceBtn).toBeInTheDocument();
 
@@ -678,7 +678,7 @@ describe('IMP-018: Frontend End-to-End Explain Mode Workflow & Acceptance Criter
       ).toBeInTheDocument();
 
       const retryBtn = screen.getByRole('button', {
-        name: /Retry Initialization/i,
+        name: /^Retry$/i,
       });
       expect(retryBtn).toBeInTheDocument();
 

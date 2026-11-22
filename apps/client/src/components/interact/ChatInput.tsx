@@ -75,7 +75,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           title="Skip Socratic questioning and request a direct explanation of this milestone"
         >
           <span className="text-purple-700">💡</span>
-          Explain this milestone directly
+          Explain directly
         </button>
       </div>
 

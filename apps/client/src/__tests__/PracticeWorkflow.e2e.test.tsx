@@ -448,9 +448,9 @@ describe('IMP-024: Frontend End-to-End Practice Mode Progression & Draft Preserv
 
       const startMediumBtn = screen.getByTestId('start-next-tier-btn-medium');
       expect(startMediumBtn).toBeInTheDocument();
-      expect(startMediumBtn).toHaveTextContent(/Start Medium Batch \(10 Questions\)/i);
+      expect(startMediumBtn).toHaveTextContent(/^Start Medium$/i);
 
-      // Step E: Click "Start Medium Batch (10 Questions)"
+      // Step E: Click "Start Medium"
       fireEvent.click(startMediumBtn);
 
       await waitFor(() => {
@@ -474,9 +474,9 @@ describe('IMP-024: Frontend End-to-End Practice Mode Progression & Draft Preserv
 
       const startHardBtn = screen.getByTestId('start-next-tier-btn-hard');
       expect(startHardBtn).toBeInTheDocument();
-      expect(startHardBtn).toHaveTextContent(/Start Hard Batch \(10 Questions\)/i);
+      expect(startHardBtn).toHaveTextContent(/^Start Hard$/i);
 
-      // Step G: Click "Start Hard Batch (10 Questions)"
+      // Step G: Click "Start Hard"
       fireEvent.click(startHardBtn);
 
       await waitFor(() => {

@@ -46,6 +46,9 @@ export const PracticeStage: React.FC = () => {
   }, [practiceState?.activeTier]);
 
   const hasAttemptedInitRef = useRef<string | null>(null);
+  // Tier that was just submitted in this view (drives one-shot scroll to score banner)
+  const [freshSubmitTier, setFreshSubmitTier] = useState<PracticeTier | null>(null);
+  const handleScoreScrolled = useCallback(() => setFreshSubmitTier(null), []);
 
   // Auto-Initialization (AC-PRC-01): If easy tier is 'not_started', automatically generate it
   useEffect(() => {
@@ -126,6 +129,7 @@ export const PracticeStage: React.FC = () => {
 
       if (submitPracticeBatchThunk.fulfilled.match(resultAction)) {
         clearDraft();
+        setFreshSubmitTier(activeTier);
       }
     } catch {
       // Local error handled in reducer
@@ -225,7 +229,7 @@ export const PracticeStage: React.FC = () => {
             onClick={() => handleStartTier(activeTier)}
             className="shrink-0 px-4 py-2 rounded-lg text-xs font-semibold bg-rose-600 text-white hover:bg-rose-700 transition-colors self-start sm:self-auto"
           >
-            Retry Generation
+            Retry
           </button>
         </div>
       )}
@@ -262,11 +266,8 @@ export const PracticeStage: React.FC = () => {
 
           <div className="space-y-1.5 max-w-md">
             <h3 className="text-lg sm:text-xl font-bold text-gray-900">
-              Generating 10 Verified {activeTier.toUpperCase()} Questions...
+              Building quiz...
             </h3>
-            <p className="text-xs sm:text-sm text-gray-600 font-medium">
-              This may take a few moments.
-            </p>
           </div>
 
           {/* Animated Skeleton Lines */}
@@ -283,6 +284,8 @@ export const PracticeStage: React.FC = () => {
           batches={practiceState.batches}
           onStartNextTier={handleStartTier}
           onSelectTier={handleSelectTier}
+          shouldScrollToScore={freshSubmitTier === activeTier}
+          onScrolledToScore={handleScoreScrolled}
         />
       ) : currentBatch?.status === BatchStatus.IN_PROGRESS ? (
         /* In-Progress Assessment View with 10 MCQ Cards */
@@ -383,7 +386,7 @@ export const PracticeStage: React.FC = () => {
             disabled={isGeneratingPractice}
             className="px-6 py-3 rounded-xl font-bold text-sm text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
-            Start {activeTier.toUpperCase()} Batch (10 Questions)
+            Start {activeTier.charAt(0).toUpperCase() + activeTier.slice(1)}
           </button>
         </div>
       ) : (

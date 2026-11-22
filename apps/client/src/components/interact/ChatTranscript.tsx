@@ -42,12 +42,7 @@ export const ChatTranscript: React.FC<ChatTranscriptProps> = ({
           <div className="w-12 h-12 rounded-2xl bg-purple-100 text-purple-700 flex items-center justify-center font-bold text-xl mb-3">
             I
           </div>
-          <p className="text-sm font-semibold text-gray-800">
-            Initializing Socratic Dialogue...
-          </p>
-          <p className="text-xs text-gray-600 font-medium mt-1 max-w-sm">
-            Preparing your guided milestones.
-          </p>
+          <p className="text-sm font-semibold text-gray-800">Setting up chat...</p>
         </div>
       )}
 

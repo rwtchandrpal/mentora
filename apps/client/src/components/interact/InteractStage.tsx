@@ -102,12 +102,7 @@ export const InteractStage: React.FC = () => {
           <div className="w-12 h-12 rounded-2xl bg-purple-100 text-purple-600 flex items-center justify-center font-bold text-xl animate-spin">
             I
           </div>
-          <p className="text-sm font-semibold text-gray-700">
-            Decomposing topic into conceptual milestones...
-          </p>
-          <p className="text-xs text-gray-600 font-medium max-w-md text-center">
-            Preparing your first question.
-          </p>
+          <p className="text-sm font-semibold text-gray-700">Setting up chat...</p>
         </div>
 
         {/* Chat Input Skeleton */}
@@ -148,7 +143,7 @@ export const InteractStage: React.FC = () => {
           onClick={handleRetryInit}
           className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold text-white bg-purple-600 hover:bg-purple-700 transition shadow-xs"
         >
-          Retry Initialization
+          Retry
         </button>
       </div>
     );
@@ -205,14 +200,14 @@ export const InteractStage: React.FC = () => {
               onClick={handleSwitchToExplain}
               className="px-3 py-1.5 rounded-xl text-xs font-semibold text-emerald-800 bg-white border border-emerald-200 hover:bg-emerald-100 transition shadow-2xs"
             >
-              Review Explain Cards
+              Review Cards
             </button>
             <button
               type="button"
               onClick={handleSwitchToPractice}
               className="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 transition shadow-xs"
             >
-              Start Practice MCQs →
+              Practice
             </button>
           </div>
         </div>

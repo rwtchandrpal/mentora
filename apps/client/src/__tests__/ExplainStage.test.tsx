@@ -467,7 +467,7 @@ describe('IMP-017: Frontend Explain Mode Stage & Stepper UI', () => {
 
     // Mode Switch CTA 1: Discuss in Interact Mode
     const interactCta = screen.getByRole('button', {
-      name: /discuss in interact mode/i,
+      name: /^interact$/i,
     });
     fireEvent.click(interactCta);
 
@@ -478,7 +478,7 @@ describe('IMP-017: Frontend Explain Mode Stage & Stepper UI', () => {
 
     // Mode Switch CTA 2: Test Yourself in Practice Mode
     const practiceCta = screen.getByRole('button', {
-      name: /test yourself in practice mode/i,
+      name: /^practice$/i,
     });
     fireEvent.click(practiceCta);
 
@@ -625,7 +625,7 @@ describe('IMP-017: Frontend Explain Mode Stage & Stepper UI', () => {
     // Skeleton loader with informative text
     expect(screen.getByTestId('explain-stage-loading')).toBeInTheDocument();
     expect(
-      screen.getByText(/Breaking down topic into 4 progressive learning cards/i)
+      screen.getByText(/Loading explanation/i)
     ).toBeInTheDocument();
 
     // Verified init was automatically dispatched
@@ -674,9 +674,9 @@ describe('IMP-017: Frontend Explain Mode Stage & Stepper UI', () => {
 
     expect(screen.getByTestId('explain-card-4')).toBeInTheDocument();
     expect(screen.getByTestId('cfu-section')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /discuss in interact mode/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^interact$/i })).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: /test yourself in practice mode/i })
+      screen.getByRole('button', { name: /^practice$/i })
     ).toBeInTheDocument();
 
     expect(screen.queryByRole('button', { name: /go deeper/i })).not.toBeInTheDocument();

@@ -322,7 +322,7 @@ describe('IMP-023: Frontend Practice Mode UI Stage & useQuizDraftPersistence', (
     });
 
     expect(screen.getByTestId('practice-loading-skeleton')).toBeInTheDocument();
-    expect(screen.getByText(/Generating 10 Verified EASY Questions/i)).toBeInTheDocument();
+    expect(screen.getByText(/Building quiz.../i)).toBeInTheDocument();
   });
 
   it('FR-015: renders 10 questions with 4 accessible options each and on-demand hints', async () => {
@@ -495,6 +495,9 @@ describe('IMP-023: Frontend Practice Mode UI Stage & useQuizDraftPersistence', (
     expect(screen.getByText(/Answered: 10 \/ 10 Questions/i)).toBeInTheDocument();
     expect(submitBtn).not.toBeDisabled();
 
+    const scrollSpy = vi.fn();
+    Element.prototype.scrollIntoView = scrollSpy;
+
     // Click submit
     fireEvent.click(submitBtn);
 
@@ -505,6 +508,13 @@ describe('IMP-023: Frontend Practice Mode UI Stage & useQuizDraftPersistence', (
 
     // Verify localStorage draft is cleared upon successful submission
     expect(window.localStorage.getItem(storageKey)).toBeNull();
+
+    // Fresh submission scrolls the score banner into view exactly once
+    await waitFor(() => {
+      expect(scrollSpy).toHaveBeenCalledTimes(1);
+    });
+    expect(scrollSpy).toHaveBeenCalledWith({ behavior: 'smooth', block: 'start' });
+    expect(scrollSpy.mock.contexts[0]).toBe(screen.getByTestId('batch-score-banner'));
   });
 
   it('AC-PRC-02 & AC-PRC-03: displays Batch Review screen with score banner, choice vs. correct comparisons, explanations, and unlocked Medium CTA', () => {
@@ -519,7 +529,13 @@ describe('IMP-023: Frontend Practice Mode UI Stage & useQuizDraftPersistence', (
       userAnswers
     );
 
+    const scrollSpy = vi.fn();
+    Element.prototype.scrollIntoView = scrollSpy;
+
     renderWithStore(completedSession);
+
+    // Already-completed batch on initial load must not auto-scroll
+    expect(scrollSpy).not.toHaveBeenCalled();
 
     // Verify Batch Score Banner
     expect(screen.getByTestId('batch-score-banner')).toBeInTheDocument();
@@ -541,7 +557,7 @@ describe('IMP-023: Frontend Practice Mode UI Stage & useQuizDraftPersistence', (
     // Verify unlocked Medium CTA button (AC-PRC-03)
     const startMediumBtn = screen.getByTestId('start-next-tier-btn-medium');
     expect(startMediumBtn).toBeInTheDocument();
-    expect(startMediumBtn).toHaveTextContent(/Start Medium Batch \(10 Questions\)/i);
+    expect(startMediumBtn).toHaveTextContent(/^Start Medium$/i);
   });
 
   it('renders 30-Question Topic Practice Summary when all three tiers are completed', () => {

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   PracticeTier,
   BatchStatus,
@@ -17,6 +17,9 @@ export interface BatchReviewViewProps {
   };
   onStartNextTier: (nextTier: PracticeTier) => void;
   onSelectTier: (tier: PracticeTier) => void;
+  /** True only right after a fresh submission; scrolls the score banner into view once. */
+  shouldScrollToScore?: boolean;
+  onScrolledToScore?: () => void;
 }
 
 const OPTION_LABELS = ['A', 'B', 'C', 'D'] as const;
@@ -27,7 +30,17 @@ export const BatchReviewView: React.FC<BatchReviewViewProps> = ({
   batches,
   onStartNextTier,
   onSelectTier,
+  shouldScrollToScore = false,
+  onScrolledToScore,
 }) => {
+  const scoreRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!shouldScrollToScore) return;
+    scoreRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+    onScrolledToScore?.();
+  }, [shouldScrollToScore, onScrolledToScore]);
+
   const isCompleted = batch.status === BatchStatus.COMPLETED;
   const score = batch.score ?? 0;
   const percentage = Math.round((score / 10) * 100);
@@ -43,14 +56,14 @@ export const BatchReviewView: React.FC<BatchReviewViewProps> = ({
     const mediumStatus = batches.medium.status;
     nextTierConfig = {
       tier: PracticeTier.MEDIUM,
-      label: 'Medium Batch (10 Questions)',
+      label: 'Medium',
       isStarted: mediumStatus !== BatchStatus.NOT_STARTED && mediumStatus !== BatchStatus.LOCKED,
     };
   } else if (tier === PracticeTier.MEDIUM) {
     const hardStatus = batches.hard.status;
     nextTierConfig = {
       tier: PracticeTier.HARD,
-      label: 'Hard Batch (10 Questions)',
+      label: 'Hard',
       isStarted: hardStatus !== BatchStatus.NOT_STARTED && hardStatus !== BatchStatus.LOCKED,
     };
   }
@@ -64,8 +77,9 @@ export const BatchReviewView: React.FC<BatchReviewViewProps> = ({
     <div data-testid="batch-review-view" className="space-y-6">
       {/* Batch Score Banner */}
       <div
+        ref={scoreRef}
         data-testid="batch-score-banner"
-        className="bg-white rounded-2xl p-6 sm:p-8 border border-gray-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+        className="scroll-mt-24 bg-white rounded-2xl p-6 sm:p-8 border border-gray-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4"
       >
         <div className="space-y-1">
           <div className="flex items-center gap-2">
