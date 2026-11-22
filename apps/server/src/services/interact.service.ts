@@ -71,8 +71,9 @@ export interface NextInteractStateResult {
  * 3. outcome === OFF_TOPIC (L-06): learner message was off-topic, nonsensical, or a refusal-worthy
  *    request. Milestone, status, and strikeCount are left unchanged — this is neither progress
  *    nor a strike.
- * 4. outcome === CIRCUIT_BREAKER_ACK or strikeCount >= 2 (Strike 3 reached): Circuit Breaker triggered, resets strikeCount = 0.
- * 5. outcome === STRIKE:
+ * 4. strikeCount >= 2 (Strike 3 reached): Circuit Breaker triggered, resets strikeCount = 0.
+ * 5. outcome === STRIKE, or CIRCUIT_BREAKER_ACK before Strike 3 (the model may not shorten
+ *    the ladder; LIVE-BUG-M1):
  *    - strikeCount 0 -> 1 (Strike 1 Nudge).
  *    - strikeCount 1 -> 2 (Strike 2 Hint).
  */
@@ -153,8 +154,11 @@ export const computeNextInteractState = (
     };
   }
 
-  // Case C: Circuit Breaker Ack from model or Strike 3 reached
-  if (outcome === SocraticOutcome.CIRCUIT_BREAKER_ACK || strikeCount >= 2) {
+  // Case C: Strike 3 reached. The server's strike count decides, not the model: a model
+  // that answers CIRCUIT_BREAKER_ACK at strike 0 or 1 has skipped the nudge or the hint,
+  // so that turn counts as an ordinary strike (LIVE-BUG-M1). Only the manual escape
+  // hatch (Case A) may break the circuit early.
+  if (strikeCount >= 2) {
     return {
       updatedMilestones,
       nextMilestoneIndex: activeMilestoneIndex,

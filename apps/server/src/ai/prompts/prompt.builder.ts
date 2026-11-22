@@ -317,6 +317,9 @@ export class PromptBuilder {
       '   If Manual "Explain Directly" is YES OR (Current Strike Count is 2 and the learner is incorrect/stuck):'
     );
     lines.push('   - Set outcome="CIRCUIT_BREAKER_ACK".');
+    lines.push(
+      '   - Never use this outcome while Current Strike Count is 0 or 1 unless Manual "Explain Directly" is YES; the server ignores it there and counts the turn as a strike.'
+    );
     lines.push('   - Stop withholding the concept.');
     lines.push(
       '   - Provide a direct, crystal-clear explanation of the active milestone.'
@@ -340,6 +343,9 @@ export class PromptBuilder {
     );
     lines.push(
       '   - If Current Strike Count is 1 (Strike 2 Hint): Stop open-ended questioning; provide a concrete hint, analogy, or narrowed two-choice prompt.'
+    );
+    lines.push(
+      '   - This applies even when the learner says "I don\'t know": at Strike Count 0 or 1, do not give the full explanation yet; leave the learner a question to answer.'
     );
     lines.push('');
     lines.push(

@@ -281,6 +281,41 @@ describe('IMP-019: Backend Interact Mode Service, 3-Strike State Machine, & Unbu
       expect(result.nextStrikeCount).toBe(2); // Unchanged, no breaker triggered
       expect(result.isCircuitBreakerExplanation).toBe(false);
     });
+
+    it.each([
+      { strikeCount: 0, expectedNext: 1 },
+      { strikeCount: 1, expectedNext: 2 },
+    ])(
+      'treats a model CIRCUIT_BREAKER_ACK at strikeCount $strikeCount as an ordinary strike (LIVE-BUG-M1)',
+      ({ strikeCount, expectedNext }) => {
+        const result = computeNextInteractState({
+          milestones: baseMilestones,
+          activeMilestoneIndex: 0,
+          strikeCount,
+          outcome: SocraticOutcome.CIRCUIT_BREAKER_ACK,
+          forceDirectExplanation: false,
+        });
+
+        expect(result.isCircuitBreakerExplanation).toBe(false);
+        expect(result.nextStrikeCount).toBe(expectedNext);
+        expect(result.strikeNumberAtTurn).toBe(expectedNext);
+        expect(result.nextMilestoneIndex).toBe(0);
+      }
+    );
+
+    it('honours a model CIRCUIT_BREAKER_ACK once strikeCount reaches 2', () => {
+      const result = computeNextInteractState({
+        milestones: baseMilestones,
+        activeMilestoneIndex: 0,
+        strikeCount: 2,
+        outcome: SocraticOutcome.CIRCUIT_BREAKER_ACK,
+        forceDirectExplanation: false,
+      });
+
+      expect(result.isCircuitBreakerExplanation).toBe(true);
+      expect(result.nextStrikeCount).toBe(0);
+      expect(result.strikeNumberAtTurn).toBe(3);
+    });
   });
 
   describe('2. Control Header Stream Parser (ControlHeaderStreamParser)', () => {
@@ -592,6 +627,60 @@ describe('IMP-019: Backend Interact Mode Service, 3-Strike State Machine, & Unbu
       const lastAssistantMsg = dbSession?.interactState.messages[6];
       expect(lastAssistantMsg?.isCircuitBreakerExplanation).toBe(true);
       expect(lastAssistantMsg?.strikeNumberAtTurn).toBe(3);
+    });
+
+    it('does not break the circuit early when the model answers CIRCUIT_BREAKER_ACK at strike 1 (LIVE-BUG-M1)', async () => {
+      // Replays the live audit: "I don't know" -> strike 1, then "No idea, sorry" and the
+      // model jumped straight to a direct explanation, resetting the ladder at strike 2.
+      const user = await setupUser('Edsger Dijkstra', 'dijkstra@example.com');
+      const session = await createTestSession(user.userId);
+      const sessionPath = `/api/v1/sessions/${session._id.toString()}`;
+
+      setGeminiClient({
+        models: {
+          generateContent: vi.fn().mockResolvedValue({
+            text: JSON.stringify(mockInteractInitPayload),
+          }),
+        },
+      } as unknown as GoogleGenAI);
+      await request(app)
+        .post(`${sessionPath}/interact/init`)
+        .set('Authorization', `Bearer ${user.token}`);
+
+      setGeminiClient({
+        models: {
+          generateContentStream: vi.fn().mockImplementation(async function* () {
+            yield { text: '<<MENTORA_STATE:{"outcome":"STRIKE"}>>\nLet us take it step by step.' };
+          }),
+        },
+      } as unknown as GoogleGenAI);
+      await request(app)
+        .post(`${sessionPath}/interact/stream`)
+        .set('Authorization', `Bearer ${user.token}`)
+        .send({ message: "I don't know" });
+
+      setGeminiClient({
+        models: {
+          generateContentStream: vi.fn().mockImplementation(async function* () {
+            yield {
+              text: '<<MENTORA_STATE:{"outcome":"CIRCUIT_BREAKER_ACK"}>>\nHere is the full answer.',
+            };
+          }),
+        },
+      } as unknown as GoogleGenAI);
+      const res = await request(app)
+        .post(`${sessionPath}/interact/stream`)
+        .set('Authorization', `Bearer ${user.token}`)
+        .send({ message: 'No idea, sorry' });
+
+      expect(res.status).toBe(200);
+      expect(res.text).toContain('"strikeCount":2');
+
+      const dbSession = await TopicSession.findById(session._id);
+      expect(dbSession?.interactState.strikeCount).toBe(2);
+      const lastAssistantMsg = dbSession?.interactState.messages.at(-1);
+      expect(lastAssistantMsg?.isCircuitBreakerExplanation).toBe(false);
+      expect(lastAssistantMsg?.strikeNumberAtTurn).toBe(2);
     });
 
     it('advances milestone and resets strikeCount to 0 when outcome is ADVANCE (AC-INT-03)', async () => {
