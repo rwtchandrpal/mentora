@@ -7,6 +7,7 @@ import { healthRouter } from './routes/health.routes.js';
 import { authRouter } from './routes/auth.routes.js';
 import { profileRouter } from './routes/profile.routes.js';
 import { sessionRouter } from './routes/session.routes.js';
+import { quotaRouter } from './routes/quota.routes.js';
 import { notFoundMiddleware, errorMiddleware } from './middlewares/error.middleware.js';
 import {
   createApiRateLimiter,
@@ -66,6 +67,7 @@ export const createApp = (
   app.use('/api/v1', healthRouter);
   app.use('/api/v1/auth', authRouter);
   app.use('/api/v1/profile', profileRouter);
+  app.use('/api/v1/quota', quotaRouter);
   // The explain/interact/practice routers are mounted inside sessionRouter, which applies
   // auth, profile and per-session access checks once for all of them (A-13).
   app.use('/api/v1/sessions', sessionRouter);

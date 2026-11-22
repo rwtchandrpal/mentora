@@ -141,6 +141,27 @@ export const updateProfileThunk = createAsyncThunk<
   }
 });
 
+/**
+ * Loads the guest's current quota (read-only; reserves nothing) so the badge is visible after
+ * a reload, before any AI action. Failures are silent: the badge simply stays hidden.
+ */
+export const fetchGuestQuotaThunk = createAsyncThunk<void, void>(
+  'auth/fetchGuestQuota',
+  async (_, { dispatch, getState }) => {
+    try {
+      const response = await apiClient.get<ApiSuccessEnvelope<{ quota: QuotaMetaDTO }>>('/quota');
+      const quota = response.data.data?.quota;
+      // Ignore the result if the guest signed in, or an AI action already reported fresher data.
+      const { auth } = getState() as { auth: AuthState };
+      if (quota && auth.user === null && auth.quota === null) {
+        dispatch(setQuota(quota));
+      }
+    } catch {
+      // Best effort only.
+    }
+  }
+);
+
 export const authSlice = createSlice({
   name: 'auth',
   initialState: initialAuthState,

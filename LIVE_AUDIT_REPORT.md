@@ -470,12 +470,16 @@ Each task can be done and verified independently. Order = user impact × likelih
 - **Verification:** 4 new tests (API success, fallback on reject, fallback with no API, both fail → "Copy failed" → resets). Full client suite 183/183; `tsc --noEmit` and `eslint src` clean.
 - **Still to do after deploy:** confirm in a browser where `writeText` is denied.
 
-### LIVE-FIX-010 — Guest quota badge hydration (BUG-L4)
+### LIVE-FIX-010 — Guest quota badge hydration (BUG-L4) — ✅ implemented (not yet deployed)
 - **Target files:**
-  - `apps/client/src/components/layout/QuotaBadge.tsx:12-13`
-  - `apps/server/src/controllers/session.controller.ts` (or a new `GET /quota`)
-- **Exact fix:** Add a lightweight `GET /api/v1/quota` (or include `meta.quota` in `GET /sessions/:id` for guests) that reads, without reserving, `syncGuestQuotaWindow`. Dispatch `setQuota` on workspace mount for guests.
-- **Verification:** A guest reloads `/workspace/:id`; the badge renders the server value immediately.
+  - Server: `routes/quota.routes.ts` (new), `controllers/quota.controller.ts` (new), `middlewares/quota.middleware.ts` (`peekGuestQuota`), `app.ts`, `__tests__/guest-mode.routes.test.ts`
+  - Client: `store/authSlice.ts` (`fetchGuestQuotaThunk`), `pages/WorkspacePage.tsx`, `__tests__/GuestQuotaHydration.test.tsx` (new)
+- **Fix as implemented:**
+  - **`GET /api/v1/quota`** (optional auth) returns `data.quota`. Guests get a strictly read-only view via `peekGuestQuota`: it creates, rolls over and reserves nothing. No record, or an expired one, reports `used: 0` with `resetAt` 24 h from now. Signed-in users get their synced window.
+  - **Client:** `WorkspacePage` dispatches `fetchGuestQuotaThunk` for guests with no known quota. The result is dropped if the user signed in, or an AI action already reported fresher data, in the meantime. Failures are silent and the badge stays hidden as before.
+  - Guest quota is keyed on the client IP (LIVE-FIX-003), so no guest token is needed and the badge also shows on the bare `/workspace` form.
+- **Verification:** 4 new server tests (fresh guest creates no record, real usage with no reservation across 3 reads, expired window, signed-in user) and 3 new client tests (badge appears with 11/15 left, no call when quota is known, silent on failure). Server 266/266, client 186/186; `tsc --noEmit` and `eslint src` clean on both.
+- **Still to do after deploy:** reload a guest session and confirm the badge shows without any AI action.
 
 ### LIVE-FIX-011 — Logout navigation (BUG-L6)
 - **Target file:** `apps/client/src/components/layout/LeftHistorySidebar.tsx:334`

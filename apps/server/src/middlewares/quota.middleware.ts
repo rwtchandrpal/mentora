@@ -99,6 +99,26 @@ export const syncGuestQuotaWindow = async (
   }
 };
 
+/**
+ * Read-only view of a guest's current quota window: never creates, rolls over or
+ * reserves anything. A guest with no live window has used nothing, and the window
+ * would start 24 h from their first AI action (reported as 24 h from now).
+ */
+export const peekGuestQuota = async (
+  guestId: string,
+  now: Date = new Date()
+): Promise<QuotaMetaDTO> => {
+  const record = await GuestQuota.findById(guestId).lean().exec();
+  const live = record && record.windowResetAt.getTime() > now.getTime() ? record : null;
+  return toQuotaMetaDTO(
+    {
+      dailyCount: live?.count ?? 0,
+      windowResetAt: live?.windowResetAt ?? new Date(now.getTime() + GUEST_QUOTA_WINDOW_MS),
+    },
+    GUEST_DAILY_AI_QUOTA_LIMIT
+  );
+};
+
 export const incrementGuestQuota = async (
   guestId: string,
   now: Date = new Date()

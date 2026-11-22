@@ -12,6 +12,7 @@ import {
   createSessionThunk,
   clearSessionError,
 } from '../store/sessionSlice.js';
+import { fetchGuestQuotaThunk } from '../store/authSlice.js';
 import { toggleMobileDrawer, toggleSidebar } from '../store/uiSlice.js';
 import { LeftHistorySidebar } from '../components/layout/LeftHistorySidebar.js';
 import { StickyTopicHeader } from '../components/layout/StickyTopicHeader.js';
@@ -65,6 +66,14 @@ export const WorkspacePage: React.FC = () => {
       void dispatch(fetchSessionsThunk());
     }
   }, [dispatch, user]);
+
+  // 1b. Guests: load the quota badge's value from the server (it isn't persisted client-side)
+  const hasQuota = useAppSelector((state) => state.auth.quota !== null);
+  useEffect(() => {
+    if (!user && !hasQuota) {
+      void dispatch(fetchGuestQuotaThunk());
+    }
+  }, [dispatch, user, hasQuota]);
 
   // 2. Direct session deep-link hydration (/workspace/:sessionId)
   // Fetch each routed session id at most once per visit. The active session can be cleared

@@ -427,4 +427,57 @@ describe('Guest Mode Backend Integration Tests', () => {
       expect(record?.count ?? 0).toBe(0);
     });
   });
+
+  describe('GET /quota (LIVE-FIX-010)', () => {
+    const guestIp = '192.0.2.77';
+
+    it('reports a fresh guest as 0/15 without creating a quota record', async () => {
+      const res = await request(app).get('/api/v1/quota').set('X-Forwarded-For', guestIp);
+      expect(res.status).toBe(200);
+      expect(res.body.data.quota).toMatchObject({
+        used: 0,
+        limit: GUEST_DAILY_AI_QUOTA_LIMIT,
+      });
+      expect(await GuestQuota.countDocuments({})).toBe(0);
+    });
+
+    it('reports a guest’s real usage and never reserves a unit', async () => {
+      await incrementGuestQuota(guestIp);
+      await incrementGuestQuota(guestIp);
+      const before = await GuestQuota.findById(guestIp).lean();
+
+      for (let i = 0; i < 3; i++) {
+        const res = await request(app).get('/api/v1/quota').set('X-Forwarded-For', guestIp);
+        expect(res.status).toBe(200);
+        expect(res.body.data.quota.used).toBe(2);
+        expect(res.body.data.quota.resetAt).toBe(before!.windowResetAt.toISOString());
+      }
+      const after = await GuestQuota.findById(guestIp).lean();
+      expect(after?.count).toBe(2);
+    });
+
+    it('reports a guest whose window expired as unused', async () => {
+      await incrementGuestQuota(guestIp);
+      await GuestQuota.updateOne({ _id: guestIp }, { windowResetAt: new Date(Date.now() - 1000) });
+      const res = await request(app).get('/api/v1/quota').set('X-Forwarded-For', guestIp);
+      expect(res.body.data.quota.used).toBe(0);
+      expect(new Date(res.body.data.quota.resetAt).getTime()).toBeGreaterThan(Date.now());
+    });
+
+    it('returns the signed-in user’s quota instead of the guest bucket', async () => {
+      const user = await User.create({
+        name: 'Quota User',
+        email: 'quota-user@example.com',
+        passwordHash: 'x'.repeat(20),
+        usageQuota: { dailyCount: 4, windowResetAt: new Date(Date.now() + 3600_000) },
+      });
+      const token = signAccessToken({ sub: user.id, email: user.email });
+      const res = await request(app)
+        .get('/api/v1/quota')
+        .set('Authorization', `Bearer ${token}`);
+      expect(res.status).toBe(200);
+      expect(res.body.data.quota.used).toBe(4);
+      expect(res.body.data.quota.limit).not.toBe(GUEST_DAILY_AI_QUOTA_LIMIT);
+    });
+  });
 });
