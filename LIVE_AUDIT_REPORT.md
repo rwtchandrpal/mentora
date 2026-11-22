@@ -298,21 +298,29 @@ Each task can be done and verified independently. Order = user impact × likelih
   - Full client suite: 150/150 pass; `tsc --noEmit` and `eslint src` are clean.
   - Live check after deploy: one click from any session shows the empty form, and no `GET /sessions/:id` appears in the network log.
 
-### LIVE-FIX-002 — Responsive session header (BUG-H1)
+### LIVE-FIX-002 — Responsive session header (BUG-H1) — ✅ implemented (not yet deployed)
 - **Target files:**
-  - `apps/client/src/components/layout/StickyTopicHeader.tsx` (35-82)
+  - `apps/client/src/components/layout/StickyTopicHeader.tsx`
   - `apps/client/src/components/layout/ModeSwitcherTabs.tsx`
-- **Exact fix:**
-  - Below `sm`, use two rows: `flex-wrap`, or `grid grid-cols-[auto_1fr_auto]` with the tabs on a full-width second row (`order-last w-full sm:w-auto sm:order-none`).
-  - Remove `flex-shrink-0` from the right group below `sm`.
-  - Use short tab labels below `sm` ("Explain / Interact / Practice").
-  - For guests below `sm`, collapse "Get Started" to an icon button with `aria-label`, or move it into the drawer.
-  - Give the title `min-w-0 flex-1` so it truncates instead of collapsing to 0.
-- **Verification:**
-  - At 390×844, guest and authenticated: `document.documentElement.scrollWidth === 390`, and no header descendant has `getBoundingClientRect().right > 390`.
-  - `elementFromPoint` at the hamburger's centre returns the hamburger, and tapping it opens the drawer.
-  - The `<h1>` width is > 0.
-  - Add a Playwright mobile snapshot.
+  - `apps/client/src/__tests__/guest-mode.ui.test.tsx` (structural regression assertions)
+- **Fix as implemented:**
+  - The header is `flex-wrap` below `md` (768px). Row 1 holds the menu button, the title (`flex-1 min-w-0 truncate`) and, for guests, "Get Started". Row 2 holds the mode tabs (`order-last w-full`), stretched to full width with equal-width buttons.
+  - From `md` up it is one row again (`md:flex-nowrap`, tabs `md:order-none md:w-auto`, CTA `md:order-last`), so the order stays title → tabs → Get Started.
+  - Below `sm`, the tabs show short labels ("Explain / Interact / Practice"). The full names stay the accessible names via `aria-label`, so screen readers and existing tests are unaffected.
+  - The guest CTA keeps its text and gets a 44px touch target on mobile.
+- **Verification (local Vite dev server, temporary harness rendering the guest and signed-in variants):**
+
+  | Width | Horizontal overflow | Menu button reachable | Title width (guest / auth) | Header height |
+  |---|---|---|---|---|
+  | 320px | none | yes | 130 / 232px | 126px (2 rows) |
+  | 390px | none | yes | 201 / 302px | 126px (2 rows) |
+  | 640px | none | yes | 434 / 536px | 124px (2 rows) |
+  | 768px | none | yes | 156 / 257px | 72px (1 row) |
+  | 1440px | none | hidden (desktop sidebar) | 884 / 985px | 72px (1 row) |
+
+  - "Menu button reachable" means `elementFromPoint` at the button's centre returns the button itself.
+  - Full client suite 150/150 passes; `tsc --noEmit` and `eslint src` are clean.
+  - Still to do after deploy: re-run the 390×844 check on the live site inside a guest session.
 
 ### LIVE-FIX-003 — Correct guest identity for quota & rate limiting (BUG-H2)
 - **Target files:**
